@@ -24,6 +24,10 @@ separation of concerns, start with the plain `net11.0`
 the managed `SubmitAsync` operation and native `ConfirmAsync` callback;
 [the service](samples/Orders.AsyncBusiness/OrdersService.cs) implements
 business logic and requests confirmation from the native UI. The
+[minimal native UI slices](samples/Orders.NativeUi/README.md) show what
+generated-client usage looks like in SwiftUI and Compose **for the
+earlier v3 Orders.Business route**; they are typechecked with the
+proof hosts but are not drop-in apps or v5 clients. The
 [SwiftUI](spikes/apple/NativeV5SwiftHost/NativeV5SwiftHostApp.swift) and
 [Compose](spikes/android/NetLift.AndroidRuntime/v5-async-sample/src/main/java/com/netlift/v5asyncsample/V5AsyncSampleActivity.kt)
 apps exercise the old-profile library on simulator/emulator, but are

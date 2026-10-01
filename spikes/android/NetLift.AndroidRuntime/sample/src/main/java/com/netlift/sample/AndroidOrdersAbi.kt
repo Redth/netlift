@@ -47,6 +47,9 @@ internal class AndroidOrdersAbi(context: Context) : LiftNativeCallbackLifecycleV
             NetLiftHost.revoke(registrationToken)
     }
 
+    override fun revokeV2(registrationToken: Long) =
+        NetLiftHost.revokeV2(registrationToken)
+
     override fun begin(
         serviceId: Int,
         methodId: Int,

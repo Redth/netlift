@@ -48,3 +48,9 @@ yet a generator for arbitrary async service shapes. This library does
 not implement the event/stream or arbitrary delegate profiles, nor
 does it prove physical-device no-JIT, production
 signing, authenticated delivery, or a product ABI.
+
+For a short look at *actual generated native-client calls* in views, see
+the [minimal SwiftUI and Compose screens](../Orders.NativeUi/README.md).
+They deliberately use the earlier v3 `Orders.Business` contract:
+`AsyncCallbackV1` currently projects native codecs rather than the
+equivalent typed `SubmitAsync` client.

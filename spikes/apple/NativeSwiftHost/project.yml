@@ -11,6 +11,7 @@ targets:
     sources:
       - NativeSwiftHostApp.swift
       - NativeHostView.swift
+      - OrdersMinimalScreen.swift
       - CoreCLRHost.m
       - GeneratedFacadeAdapter.c
       - Generated/NetLift.swift
