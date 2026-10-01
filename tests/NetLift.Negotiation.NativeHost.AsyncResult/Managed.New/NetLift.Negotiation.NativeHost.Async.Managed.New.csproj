@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AssemblyName>NetLift.Negotiation.NativeHost.Async.Managed.New</AssemblyName>
+    <DefineConstants>$(DefineConstants);NETLIFT_V5_NEW;NETLIFT_V5_ASYNC_RESULT</DefineConstants>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../NetLift.Negotiation.AsyncHost.Managed.New/NetLift.Negotiation.AsyncHost.Managed.New.csproj" />
+    <ProjectReference Include="../../../src/NetLift.Negotiation/NetLift.Negotiation.csproj" />
+    <Compile Include="../../NetLift.Negotiation.NativeHost.Managed.Shared/NativeApi.cs"
+             Link="NativeApi.cs" />
+  </ItemGroup>
+</Project>

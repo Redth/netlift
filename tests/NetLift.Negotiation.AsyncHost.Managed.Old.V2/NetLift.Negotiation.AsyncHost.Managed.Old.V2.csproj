@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AssemblyName>NetLift.Negotiation.AsyncHost.Managed.Old.V2</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/NetLift.Contracts/NetLift.Contracts.csproj" />
+    <ProjectReference Include="../../samples/Orders.AsyncBusiness/Orders.AsyncBusiness.csproj" />
+    <Compile Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/Managed.Old/OrdersSampleAdapter.cs"
+             Link="OrdersSampleAdapter.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>NetLift.Negotiation.AsyncHost.Managed.Smoke</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/NetLift.Negotiation/NetLift.Negotiation.csproj" />
+    <ProjectReference Include="../NetLift.Negotiation.AsyncHost.Managed.Old/NetLift.Negotiation.AsyncHost.Managed.Old.csproj"
+                      Aliases="OldFixture" />
+    <ProjectReference Include="../NetLift.Negotiation.AsyncHost.Managed.New/NetLift.Negotiation.AsyncHost.Managed.New.csproj"
+                      Aliases="NewFixture" />
+    <ProjectReference Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/Managed.Old/NetLift.Negotiation.NativeHost.AsyncRuntime.Managed.Old.csproj"
+                      Aliases="OldRuntime"
+                      PrivateAssets="all" />
+    <ProjectReference Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/Managed.New/NetLift.Negotiation.NativeHost.AsyncRuntime.Managed.New.csproj"
+                      Aliases="NewRuntime"
+                      PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,21 @@
+--------- beginning of main
+09-25 15:49:57.360 I/NetLiftStress( 4160): RUN_START 1790365797-16670
+09-25 15:49:57.678 I/NetLiftLiftAbi( 4167): ABI v1 schema c4dd2a99283cfc9e1012554d95777b0b11a713f812b997021e197c129684e2f4 ready
+09-25 15:49:57.678 I/NetLiftStress( 4167): event=registration_created token=4294967297 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 15:49:57.678 I/NetLiftLiftAbi( 4167): Generated ABI callbacks registered: 4294967297
+09-25 15:49:57.807 I/NetLiftStress( 4167): event=operation_created token=4294967298 value=-1 live_registrations=1 live_operations=1 live_requests=0
+09-25 15:49:57.815 I/NetLiftStress( 4167): event=request_created token=4294967299 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 15:49:58.272 I/NetLiftStress( 4167): event=registration_revoked token=4294967297 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 15:49:58.273 I/NetLiftStress( 4167): event=request_completed token=4294967299 value=0 live_registrations=1 live_operations=1 live_requests=0
+09-25 15:49:58.275 I/NetLiftStress( 4167): event=operation_removed token=4294967298 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 15:49:58.275 I/NetLiftStress( 4167): event=registration_released token=4294967297 value=-1 live_registrations=0 live_operations=0 live_requests=0
+09-25 15:49:58.275 I/NetLiftLiftAbi( 4167): Generated ABI registration released: 4294967297
+09-25 15:49:58.303 I/NetLiftLiftAbi( 4167): ABI v1 schema c4dd2a99283cfc9e1012554d95777b0b11a713f812b997021e197c129684e2f4 ready
+09-25 15:49:58.303 I/NetLiftStress( 4167): event=registration_created token=4294967300 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 15:49:58.303 I/NetLiftLiftAbi( 4167): Generated ABI callbacks registered: 4294967300
+09-25 15:49:58.701 I/NetLiftStress( 4167): event=registration_revoked token=4294967300 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 15:49:58.702 I/NetLiftStress( 4167): event=registration_released token=4294967300 value=-1 live_registrations=0 live_operations=0 live_requests=0
+09-25 15:49:58.702 I/NetLiftLiftAbi( 4167): Generated ABI registration released: 4294967300
+09-25 15:49:58.741 I/NetLiftLiftAbi( 4167): ABI v1 schema c4dd2a99283cfc9e1012554d95777b0b11a713f812b997021e197c129684e2f4 ready
+09-25 15:49:58.741 I/NetLiftStress( 4167): event=registration_created token=4294967301 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 15:49:58.741 I/NetLiftLiftAbi( 4167): Generated ABI callbacks registered: 4294967301

@@ -1,0 +1,4 @@
+module NetLiftNativeHostABI {
+    header "netlift.h"
+    export *
+}

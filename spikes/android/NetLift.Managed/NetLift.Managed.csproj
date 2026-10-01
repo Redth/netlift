@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <RuntimeIdentifier>android-arm64</RuntimeIdentifier>
+    <RuntimeFrameworkVersion>11.0.0-rc.1.26425.128</RuntimeFrameworkVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../samples/Orders.Business/Orders.Business.csproj" />
+  </ItemGroup>
+</Project>

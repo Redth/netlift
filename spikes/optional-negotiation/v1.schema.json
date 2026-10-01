@@ -1,0 +1,28 @@
+{
+  "schemaHash": "e8a8ddadd2780c938b47dad4771a75942bbb6614404841b56b3dedcf1fd0a74f",
+  "schema": {
+    "abiMajor": 1,
+    "schemaMajor": 1,
+    "schemaMinor": 0,
+    "serviceId": 17,
+    "dto": {
+      "name": "OrderDraft",
+      "fields": [
+        {
+          "id": 1,
+          "name": "sku",
+          "type": "utf8",
+          "nullable": false,
+          "optional": false
+        },
+        {
+          "id": 2,
+          "name": "quantity",
+          "type": "i32",
+          "nullable": false,
+          "optional": false
+        }
+      ]
+    }
+  }
+}

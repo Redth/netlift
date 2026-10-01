@@ -1,0 +1,230 @@
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA0000000000000000000001 /* NetLift.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000002 /* NetLift.swift */; };
+		AA0000000000000000000003 /* NativeMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000004 /* NativeMain.swift */; };
+		AA0000000000000000000018 /* NativeOnly.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000019 /* NativeOnly.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA0000000000000000000002 /* NetLift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "$(DERIVED_FILE_DIR)/NetLiftSchemaV5/NetLift.swift"; sourceTree = "<absolute>"; };
+		AA0000000000000000000004 /* NativeMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "$(DERIVED_FILE_DIR)/NetLiftSchemaV5/NativeMain.swift"; sourceTree = "<absolute>"; };
+		AA0000000000000000000005 /* ProjectionHostV5.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProjectionHostV5.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000019 /* NativeOnly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeOnly.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA0000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000007 = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000019 /* NativeOnly.swift */,
+				AA0000000000000000000017 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000017 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000005 /* ProjectionHostV5.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA0000000000000008 /* ProjectionHostV5 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000011 /* Build configuration list for PBXNativeTarget "ProjectionHostV5" */;
+			buildPhases = (
+				AA0000000000000012 /* Generate v5 codecs */,
+				AA0000000000000009 /* Sources */,
+				AA0000000000000006 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ProjectionHostV5;
+			productName = ProjectionHostV5;
+			productReference = AA0000000000000005 /* ProjectionHostV5.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA000000000000000A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					AA0000000000000008 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = AA0000000000000010 /* Build configuration list for PBXProject "ProjectionHostV5" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000000000000000000007;
+			productRefGroup = AA0000000000000000000017 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0000000000000008 /* ProjectionHostV5 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA0000000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000001 /* NetLift.swift in Sources */,
+				AA0000000000000000000003 /* NativeMain.swift in Sources */,
+				AA0000000000000000000018 /* NativeOnly.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AA0000000000000012 /* Generate v5 codecs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/contract-selection.txt",
+				"$(SRCROOT)/NativeMain.old.swift",
+				"$(SRCROOT)/NativeMain.new.swift",
+				"$(SRCROOT)/NetLiftV5HostTypecheckStub.swift",
+				"$(NETLIFT_NATIVE_GRAPH_ARTIFACTS)/inputs/codec-schema.lock",
+				"$(NETLIFT_NATIVE_GRAPH_ARTIFACTS)/inputs/contracts/old/LiftContract.g.cs",
+				"$(NETLIFT_NATIVE_GRAPH_ARTIFACTS)/inputs/contracts/new/LiftContract.g.cs",
+				"$(NETLIFT_NATIVE_GRAPH_ARTIFACTS)/projection-artifacts/bin/NetLift.Projection/release/NetLift.Projection.dll",
+				"$(NETLIFT_NATIVE_GRAPH_ARTIFACTS)/inputs/projection-source.sha256",
+				"$(NETLIFT_REPOSITORY_ROOT)/spikes/build-dev-loop/V5NativeConsumer/stage-v5-codec.py",
+				"$(NETLIFT_REPOSITORY_ROOT)/spikes/build-dev-loop/V5NativeConsumer/stage-v5-codec.sh",
+				"$(SRCROOT)/run-v5-xcode-codec.sh",
+			);
+			name = "Generate v5 codecs";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/NetLiftSchemaV5/NetLift.swift",
+				"$(DERIVED_FILE_DIR)/NetLiftSchemaV5/NativeMain.swift",
+				"$(DERIVED_FILE_DIR)/NetLiftSchemaV5/codec-provenance.json",
+				"$(DERIVED_FILE_DIR)/NetLiftV5Host.swiftmodule",
+				"$(DERIVED_FILE_DIR)/NetLiftV5Host.swiftdoc",
+				"$(DERIVED_FILE_DIR)/NetLiftV5Host.swiftsourceinfo",
+				"$(DERIVED_FILE_DIR)/libNetLiftV5Host.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "/bin/bash \"${SRCROOT}/run-v5-xcode-codec.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA0000000000000013 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_INCLUDE_PATHS = "$(DERIVED_FILE_DIR)";
+			};
+			name = Debug;
+		};
+		AA0000000000000014 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_INCLUDE_PATHS = "$(DERIVED_FILE_DIR)";
+			};
+			name = Release;
+		};
+		AA0000000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.netlift.spikes.ProjectionHostV5;
+				PRODUCT_NAME = ProjectionHostV5;
+				SWIFT_VERSION = 6.0;
+				SWIFT_INCLUDE_PATHS = "$(DERIVED_FILE_DIR)";
+				LIBRARY_SEARCH_PATHS = "$(inherited) $(DERIVED_FILE_DIR)";
+				OTHER_LDFLAGS = "$(inherited) -lNetLiftV5Host";
+			};
+			name = Debug;
+		};
+		AA0000000000000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.netlift.spikes.ProjectionHostV5;
+				PRODUCT_NAME = ProjectionHostV5;
+				SWIFT_VERSION = 6.0;
+				SWIFT_INCLUDE_PATHS = "$(DERIVED_FILE_DIR)";
+				LIBRARY_SEARCH_PATHS = "$(inherited) $(DERIVED_FILE_DIR)";
+				OTHER_LDFLAGS = "$(inherited) -lNetLiftV5Host";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0000000000000010 /* Build configuration list for PBXProject "ProjectionHostV5" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000013 /* Debug */,
+				AA0000000000000014 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000011 /* Build configuration list for PBXNativeTarget "ProjectionHostV5" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000015 /* Debug */,
+				AA0000000000000016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA000000000000000A /* Project object */;
+}

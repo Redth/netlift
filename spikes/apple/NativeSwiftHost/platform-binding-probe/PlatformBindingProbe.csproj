@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-ios</TargetFramework>
+    <OutputType>Library</OutputType>
+    <IsAppBundle>false</IsAppBundle>
+    <UseMonoRuntime>false</UseMonoRuntime>
+    <RuntimeIdentifier>ios-arm64</RuntimeIdentifier>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="PlatformApiAndObjCCallback.cs" />
+  </ItemGroup>
+</Project>

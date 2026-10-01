@@ -1,0 +1,24 @@
+name: NativeBaseline
+options:
+  bundleIdPrefix: org.netlift
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  NativeBaseline:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.netlift.nativebaseline.ios
+        PRODUCT_NAME: NativeBaseline
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: NativeBaseline
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        CODE_SIGNING_ALLOWED: NO
+    scheme:
+      testTargets: []

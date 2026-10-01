@@ -1,0 +1,42 @@
+using System.Threading;
+using System.Threading.Tasks;
+using NetLift;
+
+namespace NetLift.NativeHost.Managed;
+
+[LiftDto("order-draft", Id = 3, Version = 1)]
+public sealed record OrderDraft(
+    [property: LiftField(1)] string Sku,
+    [property: LiftField(2)] int Quantity);
+
+[LiftDto("order-receipt", Id = 4, Version = 1)]
+public sealed record OrderReceipt(
+    [property: LiftField(1)] long Id,
+    [property: LiftField(2)] string Sku,
+    [property: LiftField(3)] int Quantity);
+
+[LiftDto("order-update", Id = 5, Version = 1)]
+public sealed record OrderUpdate(
+    [property: LiftField(1)] long Id,
+    [property: LiftField(2)] string State);
+
+[LiftService("orders", Id = 2, Version = 1)]
+public interface IOrdersService
+{
+    [LiftMethod(1)]
+    Task<OrderReceipt> PlaceAsync(OrderDraft draft, CancellationToken cancellationToken);
+
+    [LiftStream(2)]
+    IAsyncEnumerable<OrderUpdate> WatchAsync(CancellationToken cancellationToken);
+}
+
+#if NETLIFT_TYPED_REPLY_V3
+[LiftNativeService("confirmation", Id = 3, Version = 1, ReplyProtocol = LiftNativeReplyProtocol.TypedV1)]
+#else
+[LiftNativeService("confirmation", Id = 3, Version = 1)]
+#endif
+public interface IConfirmationService
+{
+    [LiftMethod(1)]
+    Task<bool> ConfirmAsync(string prompt, CancellationToken cancellationToken);
+}

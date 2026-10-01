@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>NetLift.ManagedHost.Smoke</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(NetLiftManagedHostDispatchSmoke)' == 'true'">
+    <DefineConstants>$(DefineConstants);NETLIFT_MANAGED_HOST_DISPATCH_SMOKE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/NetLift.ManagedHost/NetLift.ManagedHost.csproj" />
+    <ProjectReference Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/LiveHost.Old/NetLift.Negotiation.NativeHost.AsyncRuntime.LiveHost.Old.csproj" />
+    <ProjectReference Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/LiveHost.New/NetLift.Negotiation.NativeHost.AsyncRuntime.LiveHost.New.csproj" />
+    <ProjectReference Include="Fixtures/CapturedModule/NetLift.ManagedHost.CapturedModule.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/CapturedModuleReplacement/NetLift.ManagedHost.CapturedModuleReplacement.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/CapturedPrivateDependencyReplacement/CapturedPrivateDependencyReplacement.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/CapturedGeneratedProviderReplacement/CapturedGeneratedProviderReplacement.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/CapturedNativeModule/CapturedNativeModule.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(NetLiftManagedHostDispatchSmoke)' == 'true'">
+    <ProjectReference Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/Managed.Old/NetLift.Negotiation.NativeHost.AsyncRuntime.Managed.Old.csproj"
+                      Aliases="OldAsyncRuntime" />
+    <ProjectReference Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/Managed.New/NetLift.Negotiation.NativeHost.AsyncRuntime.Managed.New.csproj"
+                      Aliases="NewAsyncRuntime" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Fixtures/**/*.cs" />
+    <Compile Include="../NetLift.Negotiation.AsyncHost.Managed.Smoke/AsyncCallbackV1SmokeSupport.cs"
+             Link="AsyncCallbackV1SmokeSupport.cs" />
+    <Compile Include="../NetLift.Negotiation.NativeHost.AsyncRuntime/Managed/ManagedAppEndpointDescriptorFactory.cs"
+             Link="ManagedAppEndpointDescriptorFactory.cs" />
+  </ItemGroup>
+</Project>

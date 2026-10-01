@@ -1,0 +1,39 @@
+<Project>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'ios-arm64' and '$(TargetFramework)' == 'net11.0'">
+    <_TaskAssemblyName>$(HOME)/Library/Application Support/dotnetup/dotnet/packs/Microsoft.iOS.Sdk.net11.0_26.5/26.5.12194-net11-rc.1/tools/msbuild/net11.0/Xamarin.MacDev.Tasks.dll</_TaskAssemblyName>
+    <_TaskRuntime>NET</_TaskRuntime>
+    <_PlatformName>iOS</_PlatformName>
+    <IsMacEnabled>true</IsMacEnabled>
+    <TargetArchitectures>ARM64</TargetArchitectures>
+    <BuildSessionId>NetLiftDispatchDemoR2R</BuildSessionId>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <MinSupportedOSPlatformVersion>13.0</MinSupportedOSPlatformVersion>
+    <AppleMinOSVersion>13.0</AppleMinOSVersion>
+    <_MinimumOSVersion>13.0</_MinimumOSVersion>
+    <_SdkDevPath>/Applications/Xcode_26.6.app/Contents/Developer</_SdkDevPath>
+    <_SdkRoot>/Applications/Xcode_26.6.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk</_SdkRoot>
+    <_SdkVersion>26.5</_SdkVersion>
+    <_SdkIsSimulator>false</_SdkIsSimulator>
+    <_TargetFrameworkPlatform>ios</_TargetFrameworkPlatform>
+    <_ComputedTargetFrameworkMoniker>.NETCoreApp,Version=v11.0,Profile=ios</_ComputedTargetFrameworkMoniker>
+    <_BundleIdentifier>org.netlift.dispatchdemo.assets</_BundleIdentifier>
+    <_ResourcePrefix>Resources</_ResourcePrefix>
+    <DeviceSpecificIntermediateOutputPath>$(IntermediateOutputPath)ios-arm64/</DeviceSpecificIntermediateOutputPath>
+  </PropertyGroup>
+
+  <UsingTask Condition="'$(RuntimeIdentifier)' == 'ios-arm64' and '$(TargetFramework)' == 'net11.0'"
+             Runtime="$(_TaskRuntime)"
+             TaskName="Microsoft.Build.Tasks.MakeDir"
+             AssemblyFile="$(_TaskAssemblyName)" />
+  <UsingTask Condition="'$(RuntimeIdentifier)' == 'ios-arm64' and '$(TargetFramework)' == 'net11.0'"
+             Runtime="$(_TaskRuntime)"
+             TaskName="Xamarin.MacDev.Tasks.CompileAppManifest"
+             AssemblyFile="$(_TaskAssemblyName)" />
+  <UsingTask Condition="'$(RuntimeIdentifier)' == 'ios-arm64' and '$(TargetFramework)' == 'net11.0'"
+             Runtime="$(_TaskRuntime)"
+             TaskName="Xamarin.MacDev.Tasks.LinkNativeCode"
+             AssemblyFile="$(_TaskAssemblyName)" />
+
+  <Import Condition="'$(RuntimeIdentifier)' == 'ios-arm64' and '$(TargetFramework)' == 'net11.0'"
+          Project="$(HOME)/Library/Application Support/dotnetup/dotnet/packs/Microsoft.iOS.Sdk.net11.0_26.5/26.5.12194-net11-rc.1/targets/Microsoft.Sdk.R2R.targets" />
+</Project>

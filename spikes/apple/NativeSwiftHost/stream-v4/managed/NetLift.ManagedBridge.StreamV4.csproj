@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <AssemblyName>NetLift.ManagedBridge.StreamV4</AssemblyName>
+    <RootNamespace>NetLift.ManagedBridge.StreamV4</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="OrdersStreamContract.cs" />
+    <Compile Include="StreamManagedEntryPoints.cs" />
+    <ProjectReference Include="../../managed/NetLift.ManagedBridge.csproj"
+                      Aliases="ManagedBridge" />
+    <ProjectReference Include="../../../../../src/NetLift.Contracts/NetLift.Contracts.csproj" />
+    <ProjectReference Include="../../../../../src/NetLift.Generator/NetLift.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../../../samples/Orders.Business/Orders.Business.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,45 @@
+name: NativeSwiftHostTyped
+options:
+  bundleIdPrefix: org.netlift
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+targets:
+  NativeSwiftHostTyped:
+    type: application
+    platform: iOS
+    sources:
+      - NativeSwiftHostApp.swift
+      - NativeHostView.swift
+      - CoreCLRHost.m
+      - GeneratedFacadeAdapter.c
+      - CallbackLifecycleV2Accessor.c
+      - CallbackLifecycleV2Adapter.c
+      - CallbackLifecycleV2State.c
+      - tests/CoreCLRManagedV2Proof.c
+      - GeneratedTyped/NetLift.swift
+    preBuildScripts:
+      - name: Stage isolated typed .NET 11 runtime and bridge
+        basedOnDependencyAnalysis: false
+        script: |
+          sh "$SRCROOT/stage-runtime-typed.sh" \
+            "$CONFIGURATION" \
+            "$PLATFORM_NAME" \
+            "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.netlift.nativeswifthost.typed
+        PRODUCT_NAME: NativeSwiftHostTyped
+        INFOPLIST_FILE: ../Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_OBJC_BRIDGING_HEADER: "$(SRCROOT)/CoreCLRHost.h"
+        SWIFT_INCLUDE_PATHS: "$(inherited) $(SRCROOT)/GeneratedTyped"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/GeneratedTyped"
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path @executable_path/Frameworks"
+        OTHER_LDFLAGS: "$(inherited) -Wl,-export_dynamic"
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      testTargets: []

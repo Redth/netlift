@@ -1,0 +1,66 @@
+name: NativeSwiftHost
+options:
+  bundleIdPrefix: org.netlift
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+targets:
+  NativeSwiftHost:
+    type: application
+    platform: iOS
+    sources:
+      - NativeSwiftHostApp.swift
+      - NativeHostView.swift
+      - CoreCLRHost.m
+      - GeneratedFacadeAdapter.c
+      - Generated/NetLift.swift
+      - stream-v4/StreamFacadeAdapter.m
+      - stream-v4/StreamSwiftABI.swift
+      - stream-v4/StreamHostView.swift
+      - stream-v4/Generated/NetLift.StreamV4.swift
+    preBuildScripts:
+      - name: Stage .NET 11 CoreCLR and managed assemblies
+        basedOnDependencyAnalysis: false
+        script: |
+          case "${RUNTIME_ASSET_SOURCE:-packs}" in
+            packs)
+              sh "$SRCROOT/stage-runtime.sh" \
+                "$CONFIGURATION" \
+                "$PLATFORM_NAME" \
+                "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+              ;;
+            probe)
+              sh "$SRCROOT/stage-runtime-probe.sh" \
+                "$CONFIGURATION" \
+                "$PLATFORM_NAME" \
+                "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+              ;;
+            *)
+              echo "Unsupported RUNTIME_ASSET_SOURCE: $RUNTIME_ASSET_SOURCE" >&2
+              exit 64
+              ;;
+          esac
+      - name: Stage .NET 11 v4 Orders stream bridge
+        basedOnDependencyAnalysis: false
+        script: |
+          sh "$SRCROOT/stream-v4/stage-stream-v4.sh" \
+            "$CONFIGURATION" \
+            "$PLATFORM_NAME" \
+            "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.netlift.nativeswifthost
+        PRODUCT_NAME: NativeSwiftHost
+        INFOPLIST_FILE: Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_OBJC_BRIDGING_HEADER: "$(SRCROOT)/CoreCLRHost.h"
+        SWIFT_INCLUDE_PATHS: "$(inherited) $(SRCROOT)/Generated"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/Generated"
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path @executable_path/Frameworks"
+        OTHER_LDFLAGS: "$(inherited) -Wl,-export_dynamic"
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      testTargets: []

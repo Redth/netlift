@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-ios</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <UseMonoRuntime>false</UseMonoRuntime>
+
+    <!--
+      Enable full trimming in Release mode.
+      To learn more, see: https://learn.microsoft.com/dotnet/core/deploying/trimming/trimming-options#trimming-granularity
+    -->
+    <TrimMode Condition="'$(Configuration)' == 'Release'">full</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <NativeReference Include="obj/SwiftUIBridge/libNetLiftSwiftUI.a"
+                     Kind="Static"
+                     ForceLoad="true"
+                     Frameworks="SwiftUI UIKit"
+                     LinkWithSwiftSystemLibraries="true" />
+  </ItemGroup>
+
+  <Target Name="BuildSwiftUIBridge" BeforeTargets="PrepareForBuild">
+    <MakeDir Directories="$(BaseIntermediateOutputPath)SwiftUIBridge" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="bash build-swiftui-bridge.sh &quot;$(RuntimeIdentifier)&quot;" />
+  </Target>
+</Project>

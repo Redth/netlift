@@ -1,0 +1,4 @@
+module NetLiftNativeHostABI {
+    header "NetLiftCallbackLifecycleV2.h"
+    export *
+}

@@ -1,0 +1,1 @@
+{"schemaVersion":2,"schemaHash":null,"services":[{"id":1,"name":"orders","version":1,"kind":"managed","methods":[]}],"dtos":[{"id":2,"name":"order","version":1,"fields":[{"id":1,"name":"Quantity","type":{"kind":"int64","name":null,"nullable":false,"typeId":null}},{"id":2,"name":"Sku","type":{"kind":"string","name":null,"nullable":true,"typeId":null}}]}]}

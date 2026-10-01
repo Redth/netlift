@@ -1,0 +1,3 @@
+func asyncNativeOnlyMarker() -> String {
+    "baseline"
+}

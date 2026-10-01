@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>NetLift.Contracts</AssemblyName>
+    <AssemblyVersion>99.0.0.0</AssemblyVersion>
+    <FileVersion>99.0.0.0</FileVersion>
+  </PropertyGroup>
+</Project>

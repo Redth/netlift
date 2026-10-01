@@ -1,0 +1,163 @@
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		AA0000000000000000000001 /* ProjectionPhase */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = AA0000000000000000000008 /* Build configuration list for PBXAggregateTarget "ProjectionPhase" */;
+			buildPhases = (
+				AA0000000000000000000002 /* Generate and typecheck projections */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ProjectionPhase;
+			productName = ProjectionPhase;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildConfiguration section */
+		AA0000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		AA0000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End PBXBuildConfiguration section */
+
+/* Begin PBXConfigurationList section */
+		AA0000000000000000000008 /* Build configuration list for PBXAggregateTarget "ProjectionPhase" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000005 /* Debug */,
+				AA0000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AA000000000000000000000A /* Build configuration list for PBXProject "ProjectionPhase" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000007 /* Debug */,
+				AA0000000000000000000009 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End PBXConfigurationList section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000003 = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXProject section */
+		AA000000000000000000000B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					AA0000000000000000000001 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+				};
+			};
+			buildConfigurationList = AA000000000000000000000A /* Build configuration list for PBXProject "ProjectionPhase" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000000000000000000003;
+			productRefGroup = AA0000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0000000000000000000001 /* ProjectionPhase */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AA0000000000000000000002 /* Generate and typecheck projections */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 0;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../../../../global.json",
+				"$(SRCROOT)/../../../../src/NetLift.Projection/NetLift.Projection.csproj",
+				"$(SRCROOT)/../../../../src/NetLift.Projection/Program.cs",
+				"$(SRCROOT)/../Fixtures/ProjectionFixture.g.cs",
+				"$(SRCROOT)/../Sources/ProjectionCABI/include/ProjectionCABI.h",
+				"$(SRCROOT)/Fixture.swift",
+				"$(SRCROOT)/abi.c",
+				"$(SRCROOT)/run-phase.sh",
+			);
+			name = "Generate and typecheck projections";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/NetLift.swift",
+				"$(DERIVED_FILE_DIR)/netlift.h",
+				"$(DERIVED_FILE_DIR)/projection-manifest.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "/bin/bash \"${SRCROOT}/run-phase.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+	};
+	rootObject = AA000000000000000000000B /* Project object */;
+}

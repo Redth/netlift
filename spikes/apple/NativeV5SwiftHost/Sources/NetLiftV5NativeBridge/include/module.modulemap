@@ -1,0 +1,4 @@
+module NetLiftV5NativeBridge {
+    header "netlift_v5_ios_bridge.h"
+    export *
+}

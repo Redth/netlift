@@ -1,0 +1,37 @@
+--------- beginning of main
+09-25 16:22:19.630 I/NetLiftStress( 3783): RUN_START 1790367739-53265
+09-25 16:22:20.140 I/NetLiftLiftAbi( 3791): ABI v1 schema c4dd2a99283cfc9e1012554d95777b0b11a713f812b997021e197c129684e2f4 ready
+09-25 16:22:20.140 I/NetLiftStress( 3791): event=registration_created token=4294967297 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.140 I/NetLiftLiftAbi( 3791): Generated ABI callbacks registered: 4294967297
+09-25 16:22:20.140 I/NetLiftStress( 3791): STRESS_STARTED cycles=2
+09-25 16:22:20.140 I/NetLiftStress( 3791): event=operation_created token=4294967298 value=-1 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.178 I/NetLiftStress( 3791): event=request_created token=4294967299 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 16:22:20.179 I/NetLiftStress( 3791): event=request_completed token=4294967299 value=0 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.179 I/NetLiftStress( 3791): event=registration_revoked token=4294967297 value=-1 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.181 I/NetLiftStress( 3791): event=operation_removed token=4294967298 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.181 I/NetLiftStress( 3791): event=registration_released token=4294967297 value=-1 live_registrations=0 live_operations=0 live_requests=0
+09-25 16:22:20.181 I/NetLiftLiftAbi( 3791): Generated ABI registration released: 4294967297
+09-25 16:22:20.195 I/NetLiftLiftAbi( 3791): ABI v1 schema c4dd2a99283cfc9e1012554d95777b0b11a713f812b997021e197c129684e2f4 ready
+09-25 16:22:20.196 I/NetLiftStress( 3791): event=registration_created token=4294967300 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.196 I/NetLiftLiftAbi( 3791): Generated ABI callbacks registered: 4294967300
+09-25 16:22:20.196 I/NetLiftStress( 3791): event=operation_created token=4294967301 value=-1 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.199 I/NetLiftStress( 3791): event=request_created token=4294967302 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 16:22:20.203 I/NetLiftStress( 3791): event=request_completed token=4294967302 value=0 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.205 I/NetLiftStress( 3791): event=operation_removed token=4294967301 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.205 I/NetLiftStress( 3791): STRESS_CYCLE cycle=1 pending=cancelled-11 accepted=false
+09-25 16:22:20.205 I/NetLiftStress( 3791): event=operation_created token=4294967303 value=-1 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.206 I/NetLiftStress( 3791): event=request_created token=4294967304 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 16:22:20.208 I/NetLiftStress( 3791): event=registration_revoked token=4294967300 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 16:22:20.208 I/NetLiftStress( 3791): event=request_completed token=4294967304 value=0 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.209 I/NetLiftStress( 3791): event=operation_removed token=4294967303 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.209 I/NetLiftStress( 3791): event=registration_released token=4294967300 value=-1 live_registrations=0 live_operations=0 live_requests=0
+09-25 16:22:20.209 I/NetLiftLiftAbi( 3791): Generated ABI registration released: 4294967300
+09-25 16:22:20.225 I/NetLiftLiftAbi( 3791): ABI v1 schema c4dd2a99283cfc9e1012554d95777b0b11a713f812b997021e197c129684e2f4 ready
+09-25 16:22:20.225 I/NetLiftStress( 3791): event=registration_created token=4294967305 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.225 I/NetLiftLiftAbi( 3791): Generated ABI callbacks registered: 4294967305
+09-25 16:22:20.225 I/NetLiftStress( 3791): event=operation_created token=4294967306 value=-1 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.226 I/NetLiftStress( 3791): event=request_created token=4294967307 value=-1 live_registrations=1 live_operations=1 live_requests=1
+09-25 16:22:20.226 I/NetLiftStress( 3791): event=request_completed token=4294967307 value=1 live_registrations=1 live_operations=1 live_requests=0
+09-25 16:22:20.228 I/NetLiftStress( 3791): event=operation_removed token=4294967306 value=-1 live_registrations=1 live_operations=0 live_requests=0
+09-25 16:22:20.228 I/NetLiftStress( 3791): STRESS_CYCLE cycle=2 pending=cancelled-11 accepted=true
+09-25 16:22:20.228 I/NetLiftStress( 3791): STRESS_COMPLETE cycles=2 cancelled=2 raced_declines=0 accepted=1 declined=1

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PlatformBindingProbe">
+      <HintPath>../bin/Release/net11.0-ios/ios-arm64/PlatformBindingProbe.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.iOS">
+      <HintPath>$(MicrosoftIOSReferenceAssembly)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
