@@ -20,13 +20,19 @@ Xcode device-support stack. Neither physical-device gate is accepted.
 canonical managed Orders library and labels the native apps as proof
 fixtures. The [publishability tranche](plan.md#publishability-tranche)
 separates a source-only, audited research snapshot from any product SDK
-or support claim. Fourteen child sessions were idle at the October 1
+or support claim. The [source ownership map](source-boundaries.md)
+distinguishes reusable `src/` prototypes from test-only Apple/Android
+providers and the unexported provisional facade. Fourteen child sessions were idle at the October 1
 inventory; after committing the local source baseline `5a74548`,
-the two children with empty session `files/` were archived. Their
-session histories remain restorable and the shared source tree remains
-intact. The other twelve retain experiment evidence in session
-artifacts, including paths cited by reports; do not archive them
-solely because source is now in Git.
+the two children with empty session `files/` were archived. Three
+more completed children were archived only after their whole `files/`
+trees were copied to manager-owned scratch and hash-verified; see the
+[local evidence ledger](evidence-retention.md). Their session histories
+remain restorable and the shared source tree remains intact. The
+other nine retain experiment evidence in session artifacts, including
+paths cited by reports; do not archive them solely because source is
+now in Git. The manager-owned retention copy is not a Git-backed
+release archive and must itself be preserved before this session ends.
 The local spike and test trees include large derived-output roots
 (notably `spikes/build-dev-loop/.artifacts` at about 30 GB and
 `spikes/apple/NativeSwiftHost/.artifacts` at about 4.5 GB).

@@ -60,6 +60,11 @@ The completed run used:
 
 `/Users/redth/.copilot/session-state/8a760cfa-e246-4a5c-b808-af2ee65ee370/files/native-captured-registration-seam/run.cCyMgm`
 
+That child is now archived. Its full `files/` tree and an independent
+manager log were retained locally as recorded in the
+[evidence ledger](../evidence-retention.md); use an active session's
+scratch path for new runs.
+
 Both managed builds completed with **0 warnings and 0 errors**; the C runner
 compiled with `-Wall -Wextra -Werror`. The exact final runner output was
 `PASS native captured-registration seam and negative matrix.`

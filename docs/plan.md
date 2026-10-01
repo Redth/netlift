@@ -20,7 +20,9 @@ between authored source, generated output and supported API unmistakable:
 1. Preserve the plain `samples/Orders.AsyncBusiness` library as the
    developer-authored reference. Inventory the reusable `src/` components,
    test-only providers, fixture host assemblies and generated outputs;
-   do not move a proof host into a product package by renaming it.
+   do not move a proof host into a product package by renaming it. The
+   current [source ownership map](source-boundaries.md) records that
+   distinction without changing the build graph.
 2. Stage a **source-only** snapshot with derived outputs excluded; audit
    the file manifest for local caches, build artifacts, credentials,
    test signing material, stale binaries, and platform SDK/runtime
@@ -28,7 +30,9 @@ between authored source, generated output and supported API unmistakable:
    provides a committed source baseline (`5a74548`); Git does not
    preserve session scratch,
    so retain evidence logs in session artifacts or bounded reports
-   before archiving child sessions or pruning local output. A local
+   before archiving child sessions or pruning local output. The first
+   three evidence-bearing retirements and their local hashes are
+   [recorded separately](evidence-retention.md). A local
    baseline is not release provenance; do not label it a release archive.
 3. Give a fresh reader one small library-to-native walkthrough, exact
    reproducible checks and a separation between executable proof commands

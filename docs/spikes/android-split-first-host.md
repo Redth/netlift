@@ -32,6 +32,9 @@ native split failed APK v3 verification and install with
 `INSTALL_PARSE_FAILED_NO_CERTIFICATES`. The full final output is retained
 outside the repository at
 `~/.copilot/session-state/d4a4216e-4be4-42e7-852b-f6d87c9fea92/files/android-split-first-host-final-run-04.log`.
+That child is now archived; the complete log set and independent manager
+receipt survive under the manager session root listed in the
+[evidence ledger](../evidence-retention.md).
 
 ## Reproduction
 

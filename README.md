@@ -42,7 +42,9 @@ negotiation and host *prototype* components; [`samples/`](samples/)
 contains developer-authored business examples; [`spikes/`](spikes/)
 contains isolated platform/host experiments, not a distributable SDK;
 [`tests/`](tests/) holds their controls; and [`docs/`](docs/) records
-decisions and limits. The local Git history captures authored source
+decisions and limits. [Source ownership](docs/source-boundaries.md)
+identifies test-only and provisional boundaries before packaging.
+The local Git history captures authored source
 only. Session scratch, build artifacts, and raw proof logs are separate
 and must be retained before their owner sessions are retired.
 
@@ -313,6 +315,8 @@ distribution. The existing .NET-owned mobile spikes are controls only.
 | [Android pivot](docs/android.md) | Kotlin/Compose-facing API, JNI, CoreCLR host and Gradle packaging |
 | [Delivery plan](docs/plan.md) | Spikes, release sequence, acceptance tests and risk controls |
 | [Project status](docs/status.md) | Live workstreams, evidence, decisions and next gates |
+| [Source ownership](docs/source-boundaries.md) | Reusable prototypes versus fixture providers and unexported host API |
+| [Local evidence retention](docs/evidence-retention.md) | Archived-child artifact receipts and manager-owned retention limits |
 | [Orders business sample](samples/Orders.AsyncBusiness/README.md) | Small managed developer-authored library; native apps remain proof fixtures |
 | [Native-only baselines](docs/spikes/native-baseline.md) | Xcode/Gradle Release simulator/emulator controls and measured limitations |
 
