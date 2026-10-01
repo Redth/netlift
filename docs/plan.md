@@ -25,7 +25,8 @@ between authored source, generated output and supported API unmistakable:
    the file manifest for local caches, build artifacts, credentials,
    test signing material, stale binaries, and platform SDK/runtime
    redistribution rights. A local Git repository with no remote now
-   provides a source baseline; Git does not preserve session scratch,
+   provides a committed source baseline (`5a74548`); Git does not
+   preserve session scratch,
    so retain evidence logs in session artifacts or bounded reports
    before archiving child sessions or pruning local output. A local
    baseline is not release provenance; do not label it a release archive.

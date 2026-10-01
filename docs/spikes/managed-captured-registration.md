@@ -9,6 +9,9 @@ Added an internal, opt-in entrypoint that registers a `CapturedManagedAppModule`
 ## Reproduction
 
 Run from the repository root. The runner requires a session-owned scratch directory and puts the CLI home, NuGet caches, temporary files, and `--artifacts-path` outputs beneath a per-run directory there. It sets `DOTNET_GENERATE_ASPNET_CERTIFICATE=false` and `DOTNET_CLI_HOME` before invoking `dotnet`, and removes the work directory on exit.
+The commands below record the original owner's exact run; that child session
+is now archived, so substitute an existing active session's `files/`
+directory for `NETLIFT_TRUST_TMPDIR` when reproducing them.
 
 ```sh
 NETLIFT_TRUST_TMPDIR="$HOME/.copilot/session-state/d2b739f3-0e04-4cdd-9b6a-358fb382db83/files" \

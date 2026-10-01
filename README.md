@@ -37,6 +37,15 @@ documents and generated API sketches are proposals where explicitly
 marked; there is no supported product `ACTIVE` route, frozen public host
 ABI, physical-device result, or authenticated distribution yet.
 
+**Source map:** [`src/`](src/) contains reusable compiler, projection,
+negotiation and host *prototype* components; [`samples/`](samples/)
+contains developer-authored business examples; [`spikes/`](spikes/)
+contains isolated platform/host experiments, not a distributable SDK;
+[`tests/`](tests/) holds their controls; and [`docs/`](docs/) records
+decisions and limits. The local Git history captures authored source
+only. Session scratch, build artifacts, and raw proof logs are separate
+and must be retained before their owner sessions are retired.
+
 NetLift revisits the idea behind
 [Embeddinator-4000](https://github.com/mono/Embeddinator-4000): expose an
 opted-in managed API as an idiomatic native API. Its first targets are

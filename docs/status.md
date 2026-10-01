@@ -21,8 +21,12 @@ canonical managed Orders library and labels the native apps as proof
 fixtures. The [publishability tranche](plan.md#publishability-tranche)
 separates a source-only, audited research snapshot from any product SDK
 or support claim. Fourteen child sessions were idle at the October 1
-inventory, but they hold persistent source or experiment evidence in
-this shared folder/session artifacts; none was archived on idle alone.
+inventory; after committing the local source baseline `5a74548`,
+the two children with empty session `files/` were archived. Their
+session histories remain restorable and the shared source tree remains
+intact. The other twelve retain experiment evidence in session
+artifacts, including paths cited by reports; do not archive them
+solely because source is now in Git.
 The local spike and test trees include large derived-output roots
 (notably `spikes/build-dev-loop/.artifacts` at about 30 GB and
 `spikes/apple/NativeSwiftHost/.artifacts` at about 4.5 GB).
@@ -41,8 +45,11 @@ release packages. This is a path/size audit, **not** a credential,
 license, provenance or reproducible-build audit.
 Excluding previously missed Android `.cxx` compiler caches and a stale,
 session-path-bound generated Xcode project reduces the local Git
-candidate to 1,016 files (about 9 MB), with no binary/key/package
-extension candidates. This local source baseline does not preserve
+baseline to 1,016 files (about 9 MB), with no binary/key/package
+extension candidates other than the two Gradle wrapper JARs.
+A staged-source pattern scan found no common private-key or token
+markers; this is not a comprehensive secrets or license audit.
+This local source baseline does not preserve
 the child sessions' raw experiment artifacts, including paths cited
 in the spike reports: archive them only after deciding what evidence
 must be retained outside those sessions.
