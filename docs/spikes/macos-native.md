@@ -10,6 +10,9 @@ CoreCLR startup and unmanaged-method resolution are a locally consumable Swift
 package; independent SwiftPM consumers verify installed and private runtime
 resolution and concurrent handle release. GUI interaction was not observed;
 native Swift command-line clients exercised the host paths.
+The original child session is archived. Five run logs were retained under
+the manager session as listed in the [evidence ledger](../evidence-retention.md);
+the child's generated build directories were not retained.
 
 The bundle needs no separately installed .NET runtime when run, but its native
 host uses the **framework-dependent hostfxr configuration**. It is not a

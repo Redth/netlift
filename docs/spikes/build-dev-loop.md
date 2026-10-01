@@ -21,6 +21,10 @@ The isolated AGP Debug/Release and Xcode matrix also passed a deterministic
 invalid-contract failure, verified downstream compile/package/link blocking,
 restored the contract with matching generated hashes, and confirmed the next
 build skipped unchanged projections.
+The child session is now archived. Its final two-root matrix summary and
+AGP/Xcode run logs were copied to the manager session and hash-verified
+([evidence ledger](../evidence-retention.md)); the multi-gigabyte derived
+build trees were not retained.
 
 ## Environment and exact commands
 

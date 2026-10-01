@@ -5,6 +5,10 @@
 RC1 SDK. No product, previously accepted spike, or shared PM file was changed.
 No SDK was installed or altered; no notarization, app installation, or device
 test was performed.
+The child session has since been archived. Its final signed app, published
+dylib and selected run/restore logs were copied to the manager session and
+hash-verified; see the [evidence ledger](../evidence-retention.md). Historical
+commands below need an active session-owned scratch path for a new run.
 
 ## Result
 
