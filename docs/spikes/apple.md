@@ -1,5 +1,13 @@
 # Apple CoreCLR hosting spike
 
+The original Apple CoreCLR child session is archived. Its logs and simulator
+images were selectively retained under the manager session and hash-verified
+([evidence ledger](../evidence-retention.md)); generated simulator/device
+bundles, Swift-caller builds and caches were **not** retained. Commands below
+with that child's session path record historical runs; substitute an active
+session's scratch root for reproduction. Later Apple work has separate
+owners and evidence.
+
 ## 2026-09-28: Native-owned V5 SwiftUI iOS simulator proof
 
 **Gate verdict:** G0 inventory is PASS; G1A (Xcode-owned simulator host,

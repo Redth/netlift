@@ -28,12 +28,12 @@ baseline `5a74548`,
 the two children with empty session `files/` were archived. Three
 more completed children were archived only after their whole `files/`
 trees were copied to manager-owned scratch and hash-verified. Another
-three were archived after selected final logs and the signed NativeAOT
-proof app/dylib were copied and byte-verified, without preserving
+four were archived after selected final logs/screenshots and the signed
+NativeAOT proof app/dylib were copied and byte-verified, without preserving
 regenerable SDK/NuGet/Gradle/Xcode caches; see the
 [local evidence ledger](evidence-retention.md). Their session histories
 remain restorable and the shared source tree remains intact. The
-other six retain experiment evidence in session artifacts, including
+other five retain experiment evidence in session artifacts, including
 paths cited by reports; do not archive them solely because source is
 now in Git. The manager-owned retention copy is not a Git-backed
 release archive and must itself be preserved before this session ends.

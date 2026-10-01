@@ -27,7 +27,7 @@ captured-image fixture; retaining it locally does not make those outputs
 redistributable source. The Android child includes all five historical logs,
 including `android-split-first-host-final-run-04.log`.
 
-Three more completed children were archived after **selected** artifacts,
+Four more completed children were archived after **selected** artifacts,
 rather than their entire scratch trees, were copied and individually
 SHA-256-compared with the originals. The digest below covers the selected
 copies only, with paths relative to each child's retained directory:
@@ -37,6 +37,7 @@ copies only, with paths relative to each child's retained directory:
 | macOS CoreCLR (`1d4e0fbe-b6c2-440a-aad4-8e7ae4662db7`) | Five `coreclr-consumer-*.log` receipts; generated host/app build directories omitted | 5 | `4acdc8878b2126edf9e23ee7ce32891fe698ea297d64617182e6921427220bc9` |
 | Module asset trust / macOS NativeAOT (`30594d60-6e7a-456b-b2b7-04b10a6451cc`) | `apple-nativeaot-macos-library/{*.log,run.9tmUU1/,publish/}`; NuGet/Swift caches and intermediate builds omitted | 20 | `743e5b3afd2e2e428ecbd1f53755dc0487a3ab0a1e50a5f9bb648815d0f524da` |
 | Native build/debug loop (`df025315-1e36-4ea4-8772-640780c47a4f`) | Final `async-v5-native-matrix-20260928T1525Z/summary.txt` and `root-{a,b}/logs/`; earlier runs, Gradle/Xcode build outputs omitted | 25 | `769aedf46164f694063433bc76f3dbcfe6f669635268967f1fa2576b21a5338e` |
+| Apple CoreCLR (`1d2635bf-f83f-43e9-a1a8-b349fe90a1a8`) | 531 `.log`, `.png`, `.json`, `.txt`, `.md` files smaller than 5 MB, with their original relative paths; generated simulator/device binaries and compiler caches omitted | 531 | `d04e31f00525e367b00831be10f17c5238e89a92236ada69ec4799d9b9c89ef4` |
 
 The copied NativeAOT `run.9tmUU1/NativeAotHost.app` passed
 `codesign --verify --deep --strict` after relocation. This preserves the
@@ -64,6 +65,6 @@ referenced in [status](status.md). These remain outside Git.
 Two earlier archived children, Native-only baselines and Managed assembly
 load identity, had empty `files/` directories; their source and bounded
 outcomes are in Git, and the latter report's old scratch path is historical.
-The six other completed children still own raw artifacts and are **not**
+The five other completed children still own raw artifacts and are **not**
 cleared for retirement by this ledger. Reproduce the proof rather than
 mistaking an archived run artifact for release/device evidence.
