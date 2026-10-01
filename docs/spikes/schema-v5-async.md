@@ -1,5 +1,11 @@
 # Schema-v5 async result and managed-origin callback
 
+The original native-result descriptor child session is archived. Its
+selected logs and textual receipts (not generated binaries) were copied
+and hash-verified in the [local evidence ledger](../evidence-retention.md).
+Recorded child artifact paths below are historical; use an active
+session scratch root to rerun.
+
 **Status: compiler, native descriptor, test-only desktop runtime, and native-owned iOS/Android simulator/emulator async execution verified.**
 The opt-in async-callback-v1 generator now emits canonical dual-DTO
 manifests and direct cancellable managed dispatch; trusted bilateral

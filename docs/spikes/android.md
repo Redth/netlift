@@ -1,5 +1,12 @@
 # Android CoreCLR spike
 
+The original Android CoreCLR and async callback child sessions are archived.
+Selected test logs, JSON receipts and screenshots were copied to manager-owned
+local artifacts and hash-verified ([evidence ledger](../evidence-retention.md)).
+Their APK/AAB/AAR and generated build trees were **not** copied; historical
+child-session paths below are not reusable build roots. This does not alter
+the manager's separately recorded emulator evidence.
+
 Updated: 2026-09-28. This report covers the Gradle-owned Android product
 topology; the .NET-owned Android app is only a runtime control.
 

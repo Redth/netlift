@@ -22,21 +22,18 @@ fixtures. The [publishability tranche](plan.md#publishability-tranche)
 separates a source-only, audited research snapshot from any product SDK
 or support claim. The [source ownership map](source-boundaries.md)
 distinguishes reusable `src/` prototypes from test-only Apple/Android
-providers and the unexported provisional facade. Fourteen child sessions
-were idle at the October 1 inventory; after committing the local source
-baseline `5a74548`,
-the two children with empty session `files/` were archived. Three
-more completed children were archived only after their whole `files/`
-trees were copied to manager-owned scratch and hash-verified. Another
-four were archived after selected final logs/screenshots and the signed
-NativeAOT proof app/dylib were copied and byte-verified, without preserving
-regenerable SDK/NuGet/Gradle/Xcode caches; see the
-[local evidence ledger](evidence-retention.md). Their session histories
-remain restorable and the shared source tree remains intact. The
-other five retain experiment evidence in session artifacts, including
-paths cited by reports; do not archive them solely because source is
-now in Git. The manager-owned retention copy is not a Git-backed
-release archive and must itself be preserved before this session ends.
+providers and the unexported provisional facade. All 14 child sessions
+were idle at the October 1 inventory and are now archived after the
+source baseline `5a74548` and a staged evidence inventory. Two had empty
+session `files/`; three whole trees and nine explicitly selected sets
+of logs, screenshots and metadata were copied to manager-owned scratch
+and hash-verified. The final signed NativeAOT app was also retained and
+its signature rechecked; large SDK/NuGet/Gradle/Xcode caches, Android
+APK/AAB/AAR and ordinary generated iOS bundles were **not** copied.
+See the [local evidence ledger](evidence-retention.md) for precise scope.
+Child histories remain restorable and the shared Git source is intact.
+The manager-owned retention copies are not Git-backed and must themselves
+be preserved before this session ends.
 Archiving these sessions did not remove their original scratch
 directories on disk; no storage-reclamation claim follows.
 The local spike and test trees include large derived-output roots

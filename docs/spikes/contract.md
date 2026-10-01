@@ -1,5 +1,11 @@
 # Phase 2 contract/compiler spike
 
+The original contract-compiler child session is archived. Selected logs,
+generated metadata and text receipts were copied to manager-owned local
+artifacts and hash-verified ([evidence ledger](../evidence-retention.md));
+compiler/build binaries were not copied. Historical session-local paths
+below require an active scratch root for reproduction.
+
 **State:** executable compiler prototype and bounded desktop ABI proof; formal G2 remains open.  
 **Toolchain:** .NET SDK `11.0.100-rc.1.26425.128`.  
 **Scope:** deliberately small generated sync/async contract slice plus a

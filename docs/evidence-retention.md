@@ -1,11 +1,12 @@
 # Local spike evidence retention
 
 Git contains the authored source, commands, and bounded conclusions, **not**
-the raw simulator/emulator or build output. Before archiving the child sessions
-below on 2026-10-01, the manager copied each entire `files/` tree into its
-own session artifacts directory and compared the SHA-256 of every source and
-destination file. The child histories remain restorable; the original
-`session-state/<child-id>/files/` paths are no longer reliable.
+the raw simulator/emulator or build output. Before archiving these child
+sessions on 2026-10-01, the manager copied three entire `files/` trees and
+nine selected sets of receipts into its own session artifacts directory,
+comparing the SHA-256 of every source and destination file. Two children
+had empty `files/` trees. The child histories remain restorable; the
+original `session-state/<child-id>/files/` paths are not dependable.
 
 Retained root on this machine:
 `~/.copilot/session-state/7ff0c055-36c9-44dc-a367-aa9ae7b7060b/files/retained-child-evidence/`.
@@ -33,10 +34,14 @@ captured-image fixture; retaining it locally does not make those outputs
 redistributable source. The Android child includes all five historical logs,
 including `android-split-first-host-final-run-04.log`.
 
-Four more completed children were archived after **selected** artifacts,
+Nine more completed children were archived after **selected** artifacts,
 rather than their entire scratch trees, were copied and individually
 SHA-256-compared with the originals. The digest below covers the selected
-copies only, with paths relative to each child's retained directory:
+copies only, with paths relative to each child's retained directory. For
+the final five rows, selection was `.log`, `.png`, `.json`, `.txt`, or
+`.md` files strictly smaller than 5,000,000 bytes, preserving paths; no
+symlinks were selected. This includes metadata under generated trees,
+**not** all original files in those trees:
 
 | Archived child | Retained evidence | Files | Selected tree SHA-256 |
 | --- | --- | ---: | --- |
@@ -44,6 +49,11 @@ copies only, with paths relative to each child's retained directory:
 | Module asset trust / macOS NativeAOT (`30594d60-6e7a-456b-b2b7-04b10a6451cc`) | `apple-nativeaot-macos-library/{*.log,run.9tmUU1/,publish/}`; NuGet/Swift caches and intermediate builds omitted | 20 | `743e5b3afd2e2e428ecbd1f53755dc0487a3ab0a1e50a5f9bb648815d0f524da` |
 | Native build/debug loop (`df025315-1e36-4ea4-8772-640780c47a4f`) | Final `async-v5-native-matrix-20260928T1525Z/summary.txt` and `root-{a,b}/logs/`; earlier runs, Gradle/Xcode build outputs omitted | 25 | `769aedf46164f694063433bc76f3dbcfe6f669635268967f1fa2576b21a5338e` |
 | Apple CoreCLR (`1d2635bf-f83f-43e9-a1a8-b349fe90a1a8`) | 531 `.log`, `.png`, `.json`, `.txt`, `.md` files smaller than 5 MB, with their original relative paths; generated simulator/device binaries and compiler caches omitted | 531 | `d04e31f00525e367b00831be10f17c5238e89a92236ada69ec4799d9b9c89ef4` |
+| Contract compiler (`677d34d7-ef98-47fe-b9ed-081edfc603fc`) | Selected `.log`, `.png`, `.json`, `.txt`, `.md` receipts below 5 MB each; generated compiler/build binaries omitted | 2,134 | `25b4e10f834c96bb9b5df67105f50a35cee66a35b005fba413ae208165313aa0` |
+| Async native result descriptor (`4d0ea695-6414-4b9d-bb5f-77ef1a81277f`) | Same selected receipt extensions and limit; native/CoreCLR test binaries omitted | 5,770 | `41a009582f84d3ac36597dadc7dfa76e2cba5000b4ca6e1e49bf3119785ebac6` |
+| Android CoreCLR (`11a5dd1a-53b1-4770-940c-ba9701dc2585`) | Same selected receipt extensions and limit; APK/AAB/AAR, Gradle binaries and large R8 mapping files omitted | 2,899 | `00ebb4d0b12d2e53ccac5dd8480501e8aacb3af5f829d8551c0f1b3febcceb35` |
+| Android async callback app (`af9f8322-1838-4870-9bef-fc462b01b753`) | Same selected receipt extensions and limit; APK/AAB/AAR, Gradle binaries and large R8 mapping files omitted | 7,745 | `346a0e9d7cb56eecd42f206b8d95271749345aa14ce3a9d6af24982181b97df5` |
+| Apple async result simulator (`ed48d086-da6d-45b1-85eb-099b5dfef057`) | Same selected receipt extensions and limit; simulator/device app bundles and derived builds omitted | 2,770 | `0bb43c80616ccdb7247f4f181c2a082c05d30cf6795426c53181694de78e6450` |
 
 The copied NativeAOT `run.9tmUU1/NativeAotHost.app` passed
 `codesign --verify --deep --strict` after relocation. This preserves the
@@ -71,6 +81,12 @@ referenced in [status](status.md). These remain outside Git.
 Two earlier archived children, Native-only baselines and Managed assembly
 load identity, had empty `files/` directories; their source and bounded
 outcomes are in Git, and the latter report's old scratch path is historical.
-The five other completed children still own raw artifacts and are **not**
-cleared for retirement by this ledger. Reproduce the proof rather than
-mistaking an archived run artifact for release/device evidence.
+All 14 child sessions created under this manager were archived: two had
+empty `files/`, three have full retained copies, and nine have explicitly
+selected retained receipts. **Archiving alone did not remove original
+session files** at the last disk inspection, and the selected-copy
+policy intentionally does not preserve every original build artifact.
+Reproduce a proof rather than mistaking a retained log for its signed
+package or device-execution evidence. Original child artifacts should
+not be manually removed without a separate targeted inventory and
+retention decision.

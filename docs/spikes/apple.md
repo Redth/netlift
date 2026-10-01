@@ -5,8 +5,11 @@ images were selectively retained under the manager session and hash-verified
 ([evidence ledger](../evidence-retention.md)); generated simulator/device
 bundles, Swift-caller builds and caches were **not** retained. Commands below
 with that child's session path record historical runs; substitute an active
-session's scratch root for reproduction. Later Apple work has separate
-owners and evidence.
+session's scratch root for reproduction. The later Apple async-result child
+is now also archived: its selected simulator screenshots, logs and metadata
+are retained under the manager session as listed in that ledger, but its
+generated app bundles and build outputs were not copied. Other Apple work
+has separate owners and evidence.
 
 ## 2026-09-28: Native-owned V5 SwiftUI iOS simulator proof
 
