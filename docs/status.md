@@ -37,6 +37,8 @@ other five retain experiment evidence in session artifacts, including
 paths cited by reports; do not archive them solely because source is
 now in Git. The manager-owned retention copy is not a Git-backed
 release archive and must itself be preserved before this session ends.
+Archiving these sessions did not remove their original scratch
+directories on disk; no storage-reclamation claim follows.
 The local spike and test trees include large derived-output roots
 (notably `spikes/build-dev-loop/.artifacts` at about 30 GB and
 `spikes/apple/NativeSwiftHost/.artifacts` at about 4.5 GB).

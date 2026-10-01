@@ -12,6 +12,12 @@ Retained root on this machine:
 The root is **not in Git**; do not archive the manager session or delete its
 files before relocating needed evidence elsewhere. For a rerun, substitute
 the current active session's `files/` directory in the recorded commands.
+Archiving removed the children from active coordination but did **not**
+remove their original scratch directories on this machine at the last
+inspection. The copies below make later, explicitly targeted cleanup
+possible; they do not by themselves reclaim disk space or grant product
+provenance. Leave original generated outputs in place until a separate
+cleanup decision is made.
 
 | Archived child | Files copied | Tree SHA-256 |
 | --- | ---: | --- |
