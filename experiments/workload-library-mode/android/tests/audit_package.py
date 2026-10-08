@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import urllib.request
 import zipfile
 from pathlib import Path
 
@@ -40,17 +41,15 @@ DEFAULT_APK = (
 COMPONENT_MANIFEST = "assets/netlift-workload-component.json"
 RUNTIME_MANIFEST = "assets/netlift-runtime-android.json"
 DEFAULT_RUNTIME_AAR = (
-    REPO_ROOT
-    / "product"
-    / "artifacts"
-    / "maven"
-    / "io"
-    / "github"
-    / "redth"
-    / "netlift"
-    / "runtime-android"
-    / NETLIFT_RUNTIME_VERSION
+    PROOF_ROOT
+    / ".artifacts"
+    / "downloaded"
     / f"runtime-android-{NETLIFT_RUNTIME_VERSION}.aar"
+)
+PUBLISHED_RUNTIME_URL = (
+    "https://redth.github.io/netlift-sdk/maven/io/github/redth/netlift/"
+    f"runtime-android/{NETLIFT_RUNTIME_VERSION}/"
+    f"runtime-android-{NETLIFT_RUNTIME_VERSION}.aar"
 )
 RELEASE_MAPPING = (
     PROOF_ROOT
@@ -103,12 +102,26 @@ def require_unique_entries(archive: zipfile.ZipFile) -> None:
         raise RuntimeError(f"Archive contains duplicate entries: {', '.join(duplicates)}")
 
 
+def download_published_runtime(destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    urllib.request.urlretrieve(PUBLISHED_RUNTIME_URL, temporary)
+    temporary.replace(destination)
+    urllib.request.urlretrieve(
+        PUBLISHED_RUNTIME_URL + ".sha256",
+        destination.with_suffix(destination.suffix + ".sha256"),
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--aar", type=Path, default=DEFAULT_AAR)
     parser.add_argument("--runtime-aar", type=Path, default=DEFAULT_RUNTIME_AAR)
     parser.add_argument("--apk", type=Path, default=DEFAULT_APK)
     args = parser.parse_args()
+
+    if args.runtime_aar == DEFAULT_RUNTIME_AAR:
+        download_published_runtime(args.runtime_aar)
 
     for path in (args.aar, args.runtime_aar, args.apk):
         if not path.is_file():
@@ -140,6 +153,12 @@ def main() -> int:
             actual = digest(aar.read(path))
             if actual != file["sha256"]:
                 raise RuntimeError(f"Component manifest hash mismatch: {path}")
+
+    runtime_checksum = args.runtime_aar.with_suffix(args.runtime_aar.suffix + ".sha256")
+    if runtime_checksum.is_file():
+        expected = runtime_checksum.read_text(encoding="utf-8").split()[0]
+        if digest(args.runtime_aar.read_bytes()) != expected:
+            raise RuntimeError("Downloaded runtime AAR checksum does not match")
 
     with zipfile.ZipFile(args.runtime_aar) as runtime_aar:
         require_unique_entries(runtime_aar)

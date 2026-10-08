@@ -111,14 +111,13 @@ stores. Those app-specific products belong to the separate workload component
 generated for each consuming app and variant. This first alpha publishes only
 the `arm64-v8a` runtime slice used by the executable acceptance app.
 
-Until the public preview repository is online, a consumer can resolve the
-Maven-layout repository directly:
+The public preview repository is live. A consumer resolves the package with:
 
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
     repositories {
-        maven { url = uri("/path/to/netlift/product/artifacts/maven") }
+        maven { url = uri("https://redth.github.io/netlift-sdk/maven/") }
         google()
         mavenCentral()
     }
@@ -152,8 +151,8 @@ propagates Java and managed failures, attaches and detaches native threads
 through the cached `JavaVM`, and exposes a global-reference diagnostic used by
 the package-consuming acceptance app.
 
-The next packaging slice replaces the handwritten component file dependency
-with the NetLift Gradle plugin. Public preview publication also requires the
-`Redth/netlift-sdk` Pages repository/feed to exist and serve its `maven/`
-directory; no Maven Central credentials or signing keys are needed for that
-preview.
+The preview is published from the root of the public `Redth/netlift-sdk`
+Pages repository; `maven/` is a directory beneath that root, not a selectable
+Pages source folder. The next packaging slice replaces the handwritten
+component file dependency with the NetLift Gradle plugin. Maven Central
+credentials and signing keys are not needed for this preview feed.

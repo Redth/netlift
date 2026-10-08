@@ -10,7 +10,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         maven {
-            url = uri("../../../../product/artifacts/maven")
+            url = uri("https://redth.github.io/netlift-sdk/maven/")
         }
         google()
         mavenCentral()

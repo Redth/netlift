@@ -1491,11 +1491,11 @@ accepted behavior has either moved to runtime code or a focused regression.
   revoke/drain behavior are not fabricated in the request/response package.
   They remain a later versioned ABI extension. Existing workload `[Export]`
   delegates used by the app-specific bridge remain explicitly process-rooted.
-- Public publication is the remaining external gate. The next action requiring
-  repository setup is a public `Redth/netlift-sdk` Pages repository serving
-  `maven/`; the local Maven workflow and artifact shape are ready to publish
-  there. No Maven Central account, signing key, or Apple credentials are
-  required for this preview.
+- The first immutable preview is published from the root of the public
+  `Redth/netlift-sdk` Pages repository. The runtime resolves at
+  `https://redth.github.io/netlift-sdk/maven/`, and the merged-package auditor
+  downloads the public AAR and SHA-256 checksum. No Maven Central account,
+  signing key, or Apple credentials are required for this preview.
 
 ### W5 - Deliver the Gradle plugin and first usable Maven preview
 

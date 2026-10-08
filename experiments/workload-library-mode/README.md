@@ -45,16 +45,18 @@ python3 experiments/workload-library-mode/android/tests/audit_package.py \
 ```
 
 The Android application consumes the generic runtime by its Maven coordinate
-from `product/artifacts/maven`; it does not compile runtime source or use
-Gradle composite substitution. A separate app-specific workload component AAR
-contains CoreCLR, the assembly store, managed payload, typemaps, and workload
-Java peers. The runtime AAR contains only the reusable Kotlin/JNI/native
+from `https://redth.github.io/netlift-sdk/maven/`; it does not compile runtime
+source or use Gradle composite substitution. A separate app-specific workload
+component AAR contains CoreCLR, the assembly store, managed payload, typemaps,
+and workload Java peers. The runtime AAR contains only the reusable
+Kotlin/JNI/native
 runtime. Their compatibility manifests require the same ABI and NetLift
 package version before startup.
 
-The runtime-AAR audit reads the published Maven artifact rather than Gradle's
-build directory. The merged-package audit verifies the two AAR boundaries,
-rejects duplicate roots and app code in the runtime package, preserves
+The runtime-AAR audit reads the Maven-layout publication rather than Gradle's
+build directory. The merged-package audit downloads the public AAR and its
+SHA-256 checksum before verifying the two AAR boundaries. It rejects duplicate
+roots and app code in the runtime package, preserves
 component payload hashes, requires the generated Orders DTO/client in the
 final DEX, and verifies narrow R8 preservation in the minified Release APK.
 The merged application has no automatic runtime provider; native code owns the
