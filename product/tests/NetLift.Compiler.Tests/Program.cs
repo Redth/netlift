@@ -37,6 +37,15 @@ var projections = ProjectionEmitter.Emit(first, "dev.netlift.orders", "OrdersNet
 Require(projections.Count == 3, "Expected Kotlin, Swift, and managed outputs.");
 foreach (var projection in projections.Values)
     Require(projection.Contains(first.SchemaHash, StringComparison.Ordinal), "Generated output omitted the schema hash.");
+var kotlin = projections["NetLiftContracts.kt"];
+Require(
+    kotlin.Contains($"const val ServiceId: UInt = {first.Services[0].Id}u", StringComparison.Ordinal),
+    "Generated Kotlin client omitted its public service ID.");
+Require(
+    kotlin.Contains(
+        $"const val SubmitOrderAsyncId: UInt = {first.Services[0].Methods[0].Id}u",
+        StringComparison.Ordinal),
+    "Generated Kotlin client omitted its public member ID.");
 
 var contractLock = ContractCompiler.CreateLock(first);
 Require(ContractCompiler.Compare(contractLock, contractLock).Count == 0, "Identical locks were incompatible.");

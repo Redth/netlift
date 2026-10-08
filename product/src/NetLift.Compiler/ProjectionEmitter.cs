@@ -104,7 +104,17 @@ public static class ProjectionEmitter
             var serviceName = TrimInterfacePrefix(ShortName(service.Name));
             builder.Append("class ").Append(serviceName).AppendLine("Client(")
                 .AppendLine("    private val transport: NetLiftTransport,")
-                .AppendLine(") {");
+                .AppendLine(") {")
+                .AppendLine("    companion object {")
+                .Append("        const val ServiceId: UInt = ").Append(service.Id)
+                .AppendLine("u");
+            foreach (var method in service.Methods)
+            {
+                builder.Append("        const val ").Append(method.Name).Append("Id: UInt = ")
+                    .Append(method.Id).AppendLine("u");
+            }
+            builder.AppendLine("    }")
+                .AppendLine();
             foreach (var method in service.Methods)
             {
                 var requestType = method.Parameters.Count == 1
@@ -114,8 +124,8 @@ public static class ProjectionEmitter
                     .Append("(request: ").Append(requestType).Append("): ")
                     .Append(KotlinType(method.Result)).AppendLine(" {")
                     .Append("        val response = transport.invoke(")
-                    .Append(service.Id).Append("u, ").Append(method.Id)
-                    .AppendLine("u, NetLiftJsonCodec.encode(request))")
+                    .Append("ServiceId, ").Append(method.Name)
+                    .AppendLine("Id, NetLiftJsonCodec.encode(request))")
                     .Append("        return NetLiftJsonCodec.decode")
                     .Append(ShortName(method.Result.TypeName!)).AppendLine("(response)")
                     .AppendLine("    }")

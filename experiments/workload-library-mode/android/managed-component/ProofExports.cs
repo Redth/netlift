@@ -22,11 +22,11 @@ public static class ProofExports
     }
 }
 
-[Register("dev/netlift/workloadlibrarymode/ManagedNetLiftBridge")]
+[Register("dev/netlift/runtime/ManagedNetLiftBridge")]
 public sealed class ManagedNetLiftBridge : Java.Lang.Object
 {
     private const string JniClassName =
-        "dev/netlift/workloadlibrarymode/ManagedNetLiftBridge";
+        "dev/netlift/runtime/ManagedNetLiftBridge";
     private static readonly IOrdersService OrdersService = new OrdersService();
     private static readonly NetLiftEndpointHost Endpoint =
         new(new ContractDispatcherAdapter(OrdersService));

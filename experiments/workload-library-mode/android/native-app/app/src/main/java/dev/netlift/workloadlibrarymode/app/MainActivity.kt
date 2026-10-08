@@ -6,8 +6,8 @@ import android.widget.TextView
 import dev.netlift.orders.OrderPriority
 import dev.netlift.orders.OrderRequest
 import dev.netlift.orders.OrdersServiceClient
-import dev.netlift.workloadlibrarymode.DotnetAndroidRuntime
-import dev.netlift.workloadlibrarymode.ManagedNetLiftBridge
+import dev.netlift.runtime.ManagedNetLiftBridge
+import dev.netlift.runtime.NetLiftRuntime
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
@@ -22,15 +22,18 @@ class MainActivity : Activity() {
         setContentView(status)
 
         try {
-            DotnetAndroidRuntime.initialize(applicationContext)
+            NetLiftRuntime.initialize(applicationContext)
             // Verify repeated initialization is safe and does not start CoreCLR twice.
-            DotnetAndroidRuntime.initialize(applicationContext)
-            check(DotnetAndroidRuntime.isInitialized()) {
+            NetLiftRuntime.initialize(applicationContext)
+            check(NetLiftRuntime.isInitialized()) {
                 ".NET Android workload component did not report ready."
+            }
+            check(NetLiftRuntime.diagnostics().globalReferenceCount == 2) {
+                "NetLift retained an unexpected number of JNI global references."
             }
 
             val bridge = ManagedNetLiftBridge()
-            val transport = ManagedNetLiftTransport(bridge)
+            val transport = ManagedNetLiftTransport()
             val orders = OrdersServiceClient(transport)
             val result = runImmediate {
                 orders.submitOrder(
@@ -38,7 +41,7 @@ class MainActivity : Activity() {
                         customerId = "customer-42",
                         quantity = 2,
                         priority = OrderPriority.Expedited,
-                        note = "Generated Kotlin client",
+                        note = "Generated Kotlin client \uD83D\uDE80",
                     )
                 )
             }
@@ -50,11 +53,28 @@ class MainActivity : Activity() {
             }
             val invalidRoute = runCatching {
                 runImmediate {
-                    transport.invoke(0u, 0u, "{}".encodeToByteArray())
+                    transport.invoke(
+                        OrdersServiceClient.ServiceId,
+                        UInt.MAX_VALUE,
+                        "{}".encodeToByteArray(),
+                    )
                 }
             }.exceptionOrNull()
             check(!invalidRoute?.message.isNullOrBlank()) {
                 "Managed route failures were not translated to Kotlin exceptions."
+            }
+            val nativeThreadFailure = runCatching {
+                NetLiftRuntime.invokeFromNativeThreadForDiagnostics(
+                    OrdersServiceClient.ServiceId,
+                    UInt.MAX_VALUE,
+                    "{}".encodeToByteArray(),
+                )
+            }.exceptionOrNull()
+            check(!nativeThreadFailure?.message.isNullOrBlank()) {
+                "JNI native-thread attachment did not preserve managed error translation."
+            }
+            check(NetLiftRuntime.diagnostics().globalReferenceCount == 2) {
+                "A native-thread invocation leaked JNI global references."
             }
 
             status.text = """

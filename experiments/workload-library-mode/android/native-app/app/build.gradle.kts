@@ -18,7 +18,6 @@ val buildWorkloadComponent = tasks.register<Exec>("buildWorkloadComponent") {
         rootProject.fileTree("../../android/managed-component") {
             exclude("bin/**", "obj/**")
         },
-        rootProject.fileTree("../../android/component-src"),
         rootProject.file("../../android/build_component.py"),
         rootProject.file("../../shared/inventory_workloads.py"),
         rootProject.file("../../proof.json"),
@@ -87,6 +86,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("io.github.redth.netlift:runtime-android:0.1.0-alpha.1")
     implementation(files(workloadComponent).builtBy(buildWorkloadComponent))
 }
 

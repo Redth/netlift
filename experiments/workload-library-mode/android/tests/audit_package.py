@@ -13,6 +13,13 @@ from pathlib import Path
 
 
 PROOF_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = PROOF_ROOT.parents[1]
+PRODUCT_ANDROID_PROPERTIES = REPO_ROOT / "product" / "android" / "gradle.properties"
+NETLIFT_RUNTIME_VERSION = next(
+    line.split("=", 1)[1].strip()
+    for line in PRODUCT_ANDROID_PROPERTIES.read_text(encoding="utf-8").splitlines()
+    if line.startswith("netliftVersion=")
+)
 DEFAULT_AAR = (
     PROOF_ROOT
     / ".artifacts"
@@ -31,6 +38,20 @@ DEFAULT_APK = (
     / "app-debug.apk"
 )
 COMPONENT_MANIFEST = "assets/netlift-workload-component.json"
+RUNTIME_MANIFEST = "assets/netlift-runtime-android.json"
+DEFAULT_RUNTIME_AAR = (
+    REPO_ROOT
+    / "product"
+    / "artifacts"
+    / "maven"
+    / "io"
+    / "github"
+    / "redth"
+    / "netlift"
+    / "runtime-android"
+    / NETLIFT_RUNTIME_VERSION
+    / f"runtime-android-{NETLIFT_RUNTIME_VERSION}.aar"
+)
 RELEASE_MAPPING = (
     PROOF_ROOT
     / "android"
@@ -46,6 +67,8 @@ REQUIRED_NATIVE_LIBRARIES = {
     "lib/arm64-v8a/libassembly-store.so",
     "lib/arm64-v8a/libcoreclr.so",
     "lib/arm64-v8a/libmonodroid.so",
+    "lib/arm64-v8a/libnetlift.so",
+    "lib/arm64-v8a/libnetlift_android.so",
     "lib/arm64-v8a/libxamarin-app.so",
 }
 
@@ -83,10 +106,11 @@ def require_unique_entries(archive: zipfile.ZipFile) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--aar", type=Path, default=DEFAULT_AAR)
+    parser.add_argument("--runtime-aar", type=Path, default=DEFAULT_RUNTIME_AAR)
     parser.add_argument("--apk", type=Path, default=DEFAULT_APK)
     args = parser.parse_args()
 
-    for path in (args.aar, args.apk):
+    for path in (args.aar, args.runtime_aar, args.apk):
         if not path.is_file():
             raise RuntimeError(f"Package does not exist: {path}")
 
@@ -103,6 +127,11 @@ def main() -> int:
         manifest = json.loads(aar.read(COMPONENT_MANIFEST))
         if "provider" in aar.read("AndroidManifest.xml").decode("utf-8"):
             raise RuntimeError("Component AAR registers an automatic runtime provider")
+        with zipfile.ZipFile(aar.open("classes.jar")) as component_classes:
+            if "dev/netlift/runtime/NetLiftRuntime.class" in component_classes.namelist():
+                raise RuntimeError("Component AAR contains the generic runtime facade")
+        if any(name.endswith("/libnetlift.so") for name in aar_names):
+            raise RuntimeError("Component AAR contains the generic native runtime")
 
         for file in manifest["files"]:
             path = file["path"]
@@ -111,6 +140,26 @@ def main() -> int:
             actual = digest(aar.read(path))
             if actual != file["sha256"]:
                 raise RuntimeError(f"Component manifest hash mismatch: {path}")
+
+    with zipfile.ZipFile(args.runtime_aar) as runtime_aar:
+        require_unique_entries(runtime_aar)
+        runtime_names = set(runtime_aar.namelist())
+        runtime_manifest = json.loads(runtime_aar.read(RUNTIME_MANIFEST))
+        if manifest["requiredRuntimeAbiVersion"] != runtime_manifest["runtimeAbiVersion"]:
+            raise RuntimeError("Component and runtime ABI versions do not match")
+        if manifest["requiredRuntimeVersion"] != NETLIFT_RUNTIME_VERSION:
+            raise RuntimeError("Component and runtime package versions do not match")
+        with zipfile.ZipFile(runtime_aar.open("classes.jar")) as runtime_classes:
+            if "dev/netlift/runtime/NetLiftRuntime.class" not in runtime_classes.namelist():
+                raise RuntimeError("Runtime AAR is missing NetLiftRuntime")
+            if "dev/netlift/runtime/ManagedNetLiftBridge.class" in runtime_classes.namelist():
+                raise RuntimeError("Runtime AAR contains the app-specific managed bridge")
+        for native_name in (
+            "jni/arm64-v8a/libnetlift.so",
+            "jni/arm64-v8a/libnetlift_android.so",
+        ):
+            if native_name not in runtime_names:
+                raise RuntimeError(f"Runtime AAR is missing {native_name}")
 
     with zipfile.ZipFile(args.apk) as apk:
         require_unique_entries(apk)
@@ -140,8 +189,8 @@ def main() -> int:
         "dev.netlift.orders.OrdersServiceClient",
     }
     required_runtime_classes = {
-        "dev.netlift.workloadlibrarymode.DotnetAndroidRuntime",
-        "dev.netlift.workloadlibrarymode.ManagedNetLiftBridge",
+        "dev.netlift.runtime.NetLiftRuntime",
+        "dev.netlift.runtime.ManagedNetLiftBridge",
         "net.dot.android.crypto.DotnetProxyTrustManager",
         "net.dot.jni.ManagedPeer",
     }

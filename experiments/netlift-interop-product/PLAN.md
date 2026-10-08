@@ -1467,6 +1467,36 @@ variants, or both local and upstream bootstrap paths.
 **Cleanup gate:** delete the copied Android spike host/provider after every
 accepted behavior has either moved to runtime code or a focused regression.
 
+**Implementation status on the current branch:**
+
+- `product/android/runtime-android` is a standalone Gradle library with its
+  own wrapper and Maven publication. The local preview coordinate is
+  `io.github.redth.netlift:runtime-android:0.1.0-alpha.1`.
+- The published AAR contains only the generic Kotlin facade, JNI adapter,
+  native ABI core, compatibility metadata, and consumer R8 rules. Its auditor
+  rejects customer contracts, managed assemblies, workload runtime assets,
+  duplicate roots, and unexpected native libraries.
+- The workload proof now builds a separate app-specific component AAR
+  containing CoreCLR, workload Java peers, typemaps, assembly store, managed
+  payload, and generated managed bridge. The sample resolves the generic
+  runtime by Maven coordinate and combines the two packages only at the app
+  boundary.
+- Debug and R8-minified Release packages pass the merged-package audit and run
+  the generated Orders client through the numeric generic route. Acceptance
+  covers arbitrary UTF-8 request data, managed failure translation, explicit
+  idempotent initialization, Android peer identity, native-thread
+  attach/detach, repeated Activity recreation, and a stable baseline of two
+  process-lifetime JNI global references.
+- V1 has no callback or streaming ABI slots, so callback generations and
+  revoke/drain behavior are not fabricated in the request/response package.
+  They remain a later versioned ABI extension. Existing workload `[Export]`
+  delegates used by the app-specific bridge remain explicitly process-rooted.
+- Public publication is the remaining external gate. The next action requiring
+  repository setup is a public `Redth/netlift-sdk` Pages repository serving
+  `maven/`; the local Maven workflow and artifact shape are ready to publish
+  there. No Maven Central account, signing key, or Apple credentials are
+  required for this preview.
+
 ### W5 - Deliver the Gradle plugin and first usable Maven preview
 
 **Primary owner:** Android build integration.

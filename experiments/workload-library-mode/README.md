@@ -30,21 +30,35 @@ does not hardcode JDK, Android SDK, or Xcode requirements.
 Build and audit the Kotlin-owned Android application:
 
 ```bash
+product/android/gradlew -p product/android \
+  :runtime-android:publishAllPublicationsToPreviewRepository \
+  --no-daemon
+python3 product/android/runtime-android/audit_runtime_aar.py \
+  product/artifacts/maven/io/github/redth/netlift/runtime-android/\
+0.1.0-alpha.1/runtime-android-0.1.0-alpha.1.aar
 experiments/workload-library-mode/android/native-app/gradlew \
   -p experiments/workload-library-mode/android/native-app \
-  :app:assembleDebug :app:assembleRelease --no-daemon
+  clean :app:assembleDebug :app:assembleRelease --no-daemon
 python3 experiments/workload-library-mode/android/tests/audit_package.py
 python3 experiments/workload-library-mode/android/tests/audit_package.py \
   --apk experiments/workload-library-mode/android/native-app/app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-The audit verifies that the merged application has no automatic runtime
-provider, contains the explicit initializer and required CoreCLR libraries,
-has no duplicate package entries, and preserves the component manifest
-payload hashes. It also requires the generated Orders DTO, enum, transport, and
-client classes in the final DEX. The AAR includes the CoreCLR assembly-store DSO
-and all workload/runtime-pack Java peers needed by JNI. Its consumer rules
-preserve the workload's `mono.**` and `net.dot.**` runtime classes through R8.
+The Android application consumes the generic runtime by its Maven coordinate
+from `product/artifacts/maven`; it does not compile runtime source or use
+Gradle composite substitution. A separate app-specific workload component AAR
+contains CoreCLR, the assembly store, managed payload, typemaps, and workload
+Java peers. The runtime AAR contains only the reusable Kotlin/JNI/native
+runtime. Their compatibility manifests require the same ABI and NetLift
+package version before startup.
+
+The runtime-AAR audit reads the published Maven artifact rather than Gradle's
+build directory. The merged-package audit verifies the two AAR boundaries,
+rejects duplicate roots and app code in the runtime package, preserves
+component payload hashes, requires the generated Orders DTO/client in the
+final DEX, and verifies narrow R8 preservation in the minified Release APK.
+The merged application has no automatic runtime provider; native code owns the
+explicit startup call.
 
 Build and audit the SwiftUI-owned Apple application:
 
@@ -70,9 +84,11 @@ bytes, dispatches through the product `NetLiftEndpointHost` and generated manage
 route adapter, and displays the returned `order-customer-42`. The
 contract-neutral `ManagedNetLiftBridge` returns an explicit status-bearing
 response envelope, so managed failures are surfaced as Kotlin exceptions.
-The proof also verifies
-idempotent initialization, survives Activity recreation without restarting
-CoreCLR, and runs from an R8-minified release APK.
+The proof also verifies arbitrary UTF-8 request bytes, idempotent
+initialization, managed route-error translation, native-thread JVM
+attach/detach, exactly two process-lifetime JNI global references, repeated
+Activity recreation without restarting CoreCLR or leaking references, and the
+same behavior from an R8-minified release APK.
 
 The workload's dynamic `[Export]` registration creates callback delegates that
 are not process-rooted under this CoreCLR library-mode composition. The proof
@@ -91,11 +107,13 @@ apple/tests/                 component, symbol, peer, and lifecycle checks
 android/managed-component/   workload-built managed/platform closure
 android/native-app/          Kotlin-owned entry point and lifecycle
 android/tests/               AAR, typemap, peer, and lifecycle checks
+../../product/android/       standalone generic runtime AAR project
 ```
 
 Platform directories are added only as their first executable slice is
 implemented. Generated workload output, runtime packs, APKs, frameworks, and
-local Maven repositories remain under ignored `.artifacts/` directories.
+the local Maven repository remain under ignored `.artifacts/` or
+`product/artifacts/` directories.
 
 ## Initial acceptance sequence
 

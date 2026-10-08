@@ -16,6 +16,7 @@ REPO_ROOT = PROOF_ROOT.parents[1]
 PRODUCT_SOLUTION = REPO_ROOT / "product" / "NetLift.Product.slnx"
 PRODUCT_TOOL = REPO_ROOT / "product" / "src" / "NetLift.Tool"
 PRODUCT_CONFIG = REPO_ROOT / "product" / "netlift.json"
+PRODUCT_ANDROID_PROPERTIES = REPO_ROOT / "product" / "android" / "gradle.properties"
 PROJECT = (
     PROOF_ROOT
     / "android"
@@ -40,15 +41,6 @@ INTERMEDIATE_ROOT = (
     / "Debug"
     / "net10.0-android"
     / "android-arm64"
-)
-INITIALIZER_SOURCE = (
-    PROOF_ROOT
-    / "android"
-    / "component-src"
-    / "dev"
-    / "netlift"
-    / "workloadlibrarymode"
-    / "DotnetAndroidRuntime.java"
 )
 FIXED_ZIP_TIME = (2020, 1, 1, 0, 0, 0)
 
@@ -86,6 +78,11 @@ def main() -> int:
         str(inventory_path),
     )
     inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    netlift_runtime_version = next(
+        line.split("=", 1)[1].strip()
+        for line in PRODUCT_ANDROID_PROPERTIES.read_text(encoding="utf-8").splitlines()
+        if line.startswith("netliftVersion=")
+    )
 
     run("dotnet", "build", str(PRODUCT_SOLUTION), "-v:minimal", cwd=REPO_ROOT)
     run(
@@ -164,10 +161,9 @@ def main() -> int:
         generated_classes
         / "dev"
         / "netlift"
-        / "workloadlibrarymode"
+        / "runtime"
         / "ManagedNetLiftBridge.class",
         apk,
-        INITIALIZER_SOURCE,
     ]
     missing = [str(path) for path in required if not path.exists()]
     if missing:
@@ -175,20 +171,7 @@ def main() -> int:
 
     if ARTIFACT_ROOT.exists():
         shutil.rmtree(ARTIFACT_ROOT)
-    classes_root = ARTIFACT_ROOT / "classes"
-    classes_root.mkdir(parents=True)
-
-    run(
-        "javac",
-        "--release",
-        "17",
-        "-cp",
-        f"{android_jar}:{runtime_jar}",
-        "-d",
-        str(classes_root),
-        str(INITIALIZER_SOURCE),
-    )
-
+    ARTIFACT_ROOT.mkdir(parents=True)
     class_entries: dict[str, bytes] = {}
     for java_archive_path in (
         runtime_jar,
@@ -213,9 +196,6 @@ def main() -> int:
     ]
     for path in generated_class_paths:
         class_entries[path.relative_to(generated_classes).as_posix()] = path.read_bytes()
-    for path in classes_root.rglob("*.class"):
-        class_entries[path.relative_to(classes_root).as_posix()] = path.read_bytes()
-
     classes_jar = ARTIFACT_ROOT / "classes.jar"
     write_zip(classes_jar, class_entries.items())
 
@@ -275,6 +255,8 @@ def main() -> int:
             "sha256": inventory["android"]["manifestSha256"],
         },
         "initializationAbiVersion": 1,
+        "requiredRuntimeAbiVersion": 1,
+        "requiredRuntimeVersion": netlift_runtime_version,
         "minimumAndroidSdk": 24,
         "typemapMode": "llvm-ir",
         "files": manifest_files,
@@ -290,8 +272,7 @@ def main() -> int:
   <application />
 </manifest>
 """
-    consumer_rules = b"""-keep class dev.netlift.workloadlibrarymode.DotnetAndroidRuntime { *; }
--keep class dev.netlift.workloadlibrarymode.ManagedNetLiftBridge { *; }
+    consumer_rules = b"""-keep class dev.netlift.runtime.ManagedNetLiftBridge { *; }
 -keep class mono.** { *; }
 -keep class net.dot.** { *; }
 """
@@ -320,8 +301,7 @@ def main() -> int:
             Path(ARTIFACT_ROOT / "classes.jar")
         ) as classes_archive:
             required_classes = {
-                "dev/netlift/workloadlibrarymode/DotnetAndroidRuntime.class",
-                "dev/netlift/workloadlibrarymode/ManagedNetLiftBridge.class",
+                "dev/netlift/runtime/ManagedNetLiftBridge.class",
                 "mono/MonoPackageManager.class",
                 "mono/MonoPackageManager_Resources.class",
                 "mono/android/TypeManager.class",
