@@ -990,7 +990,7 @@ initial coordinates:
 | Maven | Android runtime | `io.github.redth.netlift:runtime-android` | AAR containing Kotlin runtime API, JNI host, native libraries, managed host, and runtime assets; never app business assemblies. |
 | Maven | Gradle plugin | `io.github.redth.netlift:gradle-plugin` | AGP variant tasks, compiler invocation, payload staging, and generated Kotlin registration. |
 | Gradle plugin marker | Plugin ID | `io.github.redth.netlift` | Customer-facing plugin application. |
-| SwiftPM | Swift package | `https://github.com/Redth/netlift-swift` | Products `NetLift` and `NetLiftRuntime`; plugin `NetLiftPlugin`. |
+| SwiftPM | Swift package | `https://github.com/Redth/netlift-sdk` | Products `NetLift` and `NetLiftRuntime`; plugin `NetLiftPlugin`. |
 | GitHub release asset | Apple runtime | `NetLiftRuntime-<version>.xcframework.zip` | Binary target used by the Swift package. |
 | GitHub release asset | Compiler tool | `netlift-compiler-<version>.artifactbundle.zip` | Executable tool used by the SwiftPM plugin. |
 
@@ -1012,7 +1012,7 @@ vertical slice:
   consumers while iteration is rapid.
 - Publish Apple XCFramework and compiler artifact-bundle ZIPs as immutable
   GitHub Release assets in the product repository.
-- Maintain `Redth/netlift-swift` as the small distribution repository whose
+- Maintain `Redth/netlift-sdk` as the small distribution repository whose
   `Package.swift` contains the released binary target URLs and checksums.
   Tag it with the exact same semantic version. Generate this repository's
   manifest, README, license, and tag from the source release workflow; do not
@@ -1075,7 +1075,7 @@ Initial secrets and permissions:
 
 - `NUGET_API_KEY` scoped to the NetLift package IDs
 - a GitHub App or fine-grained token scoped only to updating/tagging
-  `Redth/netlift-swift`
+  `Redth/netlift-sdk`
 - GitHub Pages `pages:write` and `id-token:write`
 - release `contents:write` and artifact-attestation permissions
 - no Apple signing identity is needed to publish the unsigned XCFramework;
@@ -1683,7 +1683,8 @@ history, not the product tree.
    generated Swift source alone is not sufficient to add a linker input.
 8. Build the Orders SwiftUI sample using the tagged remote Swift package and
    NuGet-managed project dependency only.
-9. Publish/tag `0.1.0-alpha.1` in `Redth/netlift-swift`.
+9. Publish/tag the Swift package in the public `Redth/netlift-sdk`
+   repository.
 
 **Deliverables:**
 
@@ -1704,6 +1705,25 @@ history, not the product tree.
 **Cleanup gate:** remove the wrapper-staged artifact-only and aggregate-phase
 implementations from the product path; preserve their useful behavior as
 plugin/package regression tests.
+
+**Completed Swift preview:**
+
+- Published immutable `0.1.0-alpha.4` in `Redth/netlift-sdk` with the generic
+  runtime XCFramework and self-contained `osx-arm64` compiler artifact bundle.
+- Added `NetLiftPlugin`, strict target-owned `netlift.json` parsing, package
+  boundary enforcement, sandbox-safe managed build output, and generated
+  Swift/manifest outputs.
+- Added a remote-tag-consuming Orders package with no copied runtime, host,
+  compiler, or generator source.
+- Verified implementation-only edits preserve generated Swift content and
+  timestamp, public contract edits regenerate, missing output repairs, and
+  malformed or out-of-package configuration fails.
+- Downloaded the exact Pages-hosted alpha artifacts and verified both SwiftPM
+  checksums.
+- Fed the exact plugin-generated Swift contract into the W6 package-owned
+  component integration and executed successful and typed-error Orders calls
+  on the iOS 26.5 ARM64 simulator.
+- Physical iOS, macOS, and x86_64 simulator remain explicitly unsupported.
 
 ### W8 - Productize async, callbacks, cancellation, and streams
 

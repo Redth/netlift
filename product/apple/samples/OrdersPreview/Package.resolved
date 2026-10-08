@@ -1,0 +1,15 @@
+{
+  "originHash" : "e26a2d4597a5ab486042ad941a1abb2991b5bbf625a35a2946392a4913946e42",
+  "pins" : [
+    {
+      "identity" : "netlift-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Redth/netlift-sdk.git",
+      "state" : {
+        "revision" : "ae7514722f6a9358e8e248ed89637e4e39adecdf",
+        "version" : "0.1.0-alpha.4"
+      }
+    }
+  ],
+  "version" : 3
+}

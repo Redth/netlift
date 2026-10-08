@@ -115,7 +115,9 @@ def main() -> int:
     parser.add_argument("--managed-project", type=Path, required=True)
     parser.add_argument("--managed-framework", default="net10.0")
     parser.add_argument("--contract-root", action="append", required=True)
+    parser.add_argument("--swift-module", default="NetLiftGenerated")
     parser.add_argument("--native-source-root", type=Path, required=True)
+    parser.add_argument("--swift-contracts", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
         "--bundle-identifier",
@@ -137,7 +139,7 @@ def main() -> int:
     runtime_xcframework = (
         PRODUCT
         / "apple"
-        / "runtime-apple"
+        / "netlift-swift"
         / "artifacts"
         / "NetLiftRuntime.xcframework"
     )
@@ -176,7 +178,7 @@ def main() -> int:
         "assembly": str(managed_assembly),
         "contractRoots": args.contract_root,
         "kotlinPackage": "dev.netlift.generated",
-        "swiftModule": "NetLiftGenerated",
+        "swiftModule": args.swift_module,
         "output": str(generated),
         "emitAppleBridge": True,
     }
@@ -190,6 +192,14 @@ def main() -> int:
         "--",
         str(config_path),
     )
+    if args.swift_contracts is not None:
+        plugin_swift = args.swift_contracts.resolve()
+        generated_swift = generated / "NetLiftContracts.swift"
+        if plugin_swift.read_bytes() != generated_swift.read_bytes():
+            raise RuntimeError(
+                "SwiftPM plugin output does not match component contract generation"
+            )
+        shutil.copy2(plugin_swift, generated_swift)
 
     component_project_root = artifact_root / "component-project"
     component_project_root.mkdir()
@@ -310,7 +320,7 @@ def main() -> int:
         str(
             PRODUCT
             / "apple"
-            / "runtime-apple"
+            / "netlift-swift"
             / "Sources"
             / "NetLiftRuntime"
             / "NetLiftRuntime.swift"
@@ -445,7 +455,7 @@ def main() -> int:
             "manifest": str(
                 PRODUCT
                 / "apple"
-                / "runtime-apple"
+                / "netlift-swift"
                 / "artifacts"
                 / "netlift-runtime-apple.json"
             ),

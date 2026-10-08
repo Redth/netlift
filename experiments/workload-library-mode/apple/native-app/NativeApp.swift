@@ -71,11 +71,25 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let receipt = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-42",
-                        quantity: 2,
                         priority: .expedited,
+                        quantity: 2,
                         note: "NETLIFT-IOS"
                     )
                 )
+                let typedError: String
+                do {
+                    _ = try await client.submitOrder(
+                        request: OrderRequest(
+                            customerId: "customer-42",
+                            priority: .standard,
+                            quantity: 1,
+                            note: "NETLIFT-ERROR"
+                        )
+                    )
+                    typedError = "missing"
+                } catch ManagedTransportError.managed(let status, _) {
+                    typedError = "managed status \(status)"
+                }
                 window.rootViewController = UIHostingController(
                     rootView: ProofView(
                         status: """
@@ -83,6 +97,7 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                             Generated Orders client: \(receipt.orderId)
                             Accepted: \(receipt.accepted)
                             \(receipt.message ?? "")
+                            Typed error: \(typedError)
                             """
                     )
                 )

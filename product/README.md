@@ -187,14 +187,14 @@ Apple Silicon iOS Simulator 15.0 or later. Physical iOS devices are explicitly
 unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
-The contract-neutral runtime is published as Swift package
-`NetLiftRuntime` `0.1.0-alpha.1`:
+The contract-neutral runtime and projection plugin are published in Swift
+package `NetLift` `0.1.0-alpha.4`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.1"
+        exact: "0.1.0-alpha.4"
     ),
 ]
 ```
@@ -202,6 +202,38 @@ dependencies: [
 Its `NetLiftRuntime.xcframework` contains only `netlift.h` and the V1 native
 core. It contains no customer assemblies, generated contracts, registrar
 output, R2R image, CoreCLR runtime, or app bootstrap.
+
+Attach the package's `NetLiftPlugin` to a Swift target and place
+`netlift.json` in that target's source directory:
+
+```swift
+.executableTarget(
+    name: "OrdersPreview",
+    exclude: ["netlift.json"],
+    plugins: [
+        .plugin(name: "NetLiftPlugin", package: "netlift-sdk"),
+    ]
+)
+```
+
+```json
+{
+  "version": 1,
+  "managedProject": "../../Managed/Orders/Orders.csproj",
+  "contractRoots": ["Orders.Preview.IOrdersService"],
+  "swiftModule": "OrdersPreview"
+}
+```
+
+The managed project must be inside the Swift package. The self-contained
+compiler artifact builds it in the plugin sandbox and adds deterministic
+Swift DTOs, codecs, `async throws` clients, and contract metadata to the
+target. A package-consuming command-line acceptance sample is available at
+`apple/samples/OrdersPreview`:
+
+```bash
+swift run --package-path product/apple/samples/OrdersPreview OrdersPreview
+```
 
 The current package-owned Xcode build integration is the deterministic
 `product/apple/build_component.py` command. It accepts a portable managed
@@ -212,13 +244,16 @@ the Swift-owned executable:
 
 ```bash
 python3 product/apple/build_component.py \
-  --managed-project product/samples/Orders.Contracts/Orders.Contracts.csproj \
-  --contract-root Orders.Contracts.IOrdersService \
+  --managed-project product/apple/samples/OrdersPreview/Managed/Orders/Orders.csproj \
+  --contract-root Orders.Preview.IOrdersService \
+  --swift-module OrdersPreview \
   --native-source-root experiments/workload-library-mode/apple/native-app \
-  --output experiments/workload-library-mode/.artifacts/apple-product-slice
+  --swift-contracts product/apple/samples/OrdersPreview/.build/plugins/outputs/orderspreview/OrdersPreview/destination/NetLiftPlugin/Generated/NetLiftContracts.swift \
+  --output experiments/workload-library-mode/.artifacts/apple-swiftpm-slice
 ```
 
-This is a package-shaped preview rather than the final SwiftPM build-tool
-plugin. SwiftPM plugins cannot dynamically add a generated framework or
-archive to an app target's link inputs, so the platform-bound component must
-continue to use an explicit Xcode build phase/package-owned script.
+SwiftPM build-tool plugins cannot dynamically add a generated framework or
+archive to an app target's link inputs. The plugin owns source projection;
+the explicit package-owned component command owns platform-bound
+registrar/R2R/CoreCLR construction and Xcode linking. The component command
+rejects plugin output that does not exactly match its managed contract.

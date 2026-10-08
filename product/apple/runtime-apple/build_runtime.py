@@ -14,7 +14,8 @@ from pathlib import Path
 PRODUCT = Path(__file__).resolve().parents[2]
 SOURCE = PRODUCT / "src" / "NetLift.NativeCore" / "netlift.c"
 HEADER = PRODUCT / "include" / "netlift.h"
-OUTPUT = PRODUCT / "apple" / "runtime-apple" / "artifacts"
+ARTIFACTS = PRODUCT / "apple" / "netlift-swift" / "artifacts"
+OUTPUT = ARTIFACTS / "runtime-build"
 XCODE = Path("/Applications/Xcode_26.6.app/Contents/Developer")
 DEPLOYMENT_TARGET = "15.0"
 
@@ -46,6 +47,9 @@ def main() -> int:
         raise RuntimeError(f"Compatible Xcode was not found: {XCODE}")
     if OUTPUT.exists():
         shutil.rmtree(OUTPUT)
+    xcframework = ARTIFACTS / "NetLiftRuntime.xcframework"
+    if xcframework.exists():
+        shutil.rmtree(xcframework)
     framework = OUTPUT / "staging" / "NetLiftC.framework"
     headers = framework / "Headers"
     modules = framework / "Modules"
@@ -104,7 +108,6 @@ def main() -> int:
             sort_keys=True,
         )
 
-    xcframework = OUTPUT / "NetLiftRuntime.xcframework"
     run(
         "xcrun",
         "xcodebuild",
@@ -149,7 +152,7 @@ def main() -> int:
             ),
         },
     }
-    (OUTPUT / "netlift-runtime-apple.json").write_text(
+    (ARTIFACTS / "netlift-runtime-apple.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )

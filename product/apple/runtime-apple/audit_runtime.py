@@ -9,8 +9,8 @@ import subprocess
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
-ARTIFACTS = ROOT / "artifacts"
+APPLE_ROOT = Path(__file__).resolve().parents[1]
+ARTIFACTS = APPLE_ROOT / "netlift-swift" / "artifacts"
 FRAMEWORK = (
     ARTIFACTS
     / "NetLiftRuntime.xcframework"

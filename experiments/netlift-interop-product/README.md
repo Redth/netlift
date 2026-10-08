@@ -200,17 +200,17 @@ let package = Package(
         .executable(name: "OrdersApp", targets: ["OrdersApp"])
     ],
     dependencies: [
-        .package(url: "https://github.com/Redth/netlift-swift", from: "1.0.0")
+        .package(url: "https://github.com/Redth/netlift-sdk", from: "1.0.0")
     ],
     targets: [
         .executableTarget(
             name: "OrdersApp",
             dependencies: [
-                .product(name: "NetLift", package: "netlift-swift"),
-                .product(name: "NetLiftRuntime", package: "netlift-swift")
+                .product(name: "NetLift", package: "netlift-sdk"),
+                .product(name: "NetLiftRuntime", package: "netlift-sdk")
             ],
             plugins: [
-                .plugin(name: "NetLiftPlugin", package: "netlift-swift")
+                .plugin(name: "NetLiftPlugin", package: "netlift-sdk")
             ])
     ]
 )

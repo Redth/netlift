@@ -57,7 +57,7 @@ def main() -> int:
 
     generic_runtime = (
         Path(__file__).resolve().parent
-        / "runtime-apple"
+        / "netlift-swift"
         / "artifacts"
         / "NetLiftRuntime.xcframework"
     )
