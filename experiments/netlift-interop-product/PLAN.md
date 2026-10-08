@@ -1639,6 +1639,23 @@ hide that limitation behind the Swift package.
 from the product package; rejected runtime approaches remain in research
 history, not the product tree.
 
+**Completed simulator preview:**
+
+- Published contract-neutral `NetLiftRuntime` `0.1.0-alpha.1` as a Swift
+  package backed by an immutable XCFramework ZIP on the public SDK Pages site.
+- Declared support only for Apple Silicon iOS Simulator 15.0 or later.
+  Physical iOS, macOS, and x86_64 simulator remain unsupported.
+- Added deterministic Apple component generation from the portable managed
+  project: compiler output, service construction, managed Objective-C adapter,
+  synthesized `net11.0-ios` workload project, registrar/R2R/CoreCLR closure,
+  and Swift-owned final executable all live outside source control.
+- Audited the generic/app-specific boundary and the exact downloaded public
+  artifact.
+- Executed the generated Swift Orders client against the portable
+  `OrdersService` on an iOS 26.5 ARM64 simulator.
+- Deleted the superseded checked-in Apple managed component and proof-only
+  package builder.
+
 ### W7 - Deliver the SwiftPM plugin and first usable Swift preview
 
 **Primary owner:** Apple build integration.

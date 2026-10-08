@@ -179,3 +179,46 @@ Pages repository; `maven/` is a directory beneath that root, not a selectable
 Pages source folder. It contains the runtime AAR, Gradle plugin implementation,
 and standard plugin-marker POM. Maven Central credentials and signing keys are
 not needed for this preview feed.
+
+## Apple runtime and generated component
+
+The first Apple preview is intentionally narrower than Android. It supports
+Apple Silicon iOS Simulator 15.0 or later. Physical iOS devices are explicitly
+unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
+macOS and x86_64 simulator slices are not included.
+
+The contract-neutral runtime is published as Swift package
+`NetLiftRuntime` `0.1.0-alpha.1`:
+
+```swift
+dependencies: [
+    .package(
+        url: "https://github.com/Redth/netlift-sdk.git",
+        exact: "0.1.0-alpha.1"
+    ),
+]
+```
+
+Its `NetLiftRuntime.xcframework` contains only `netlift.h` and the V1 native
+core. It contains no customer assemblies, generated contracts, registrar
+output, R2R image, CoreCLR runtime, or app bootstrap.
+
+The current package-owned Xcode build integration is the deterministic
+`product/apple/build_component.py` command. It accepts a portable managed
+project and contract root, runs the compiler, generates Swift contracts and
+the managed Apple adapter, synthesizes the `net11.0-ios` workload project in
+ignored output, and links its app-specific registrar/R2R/CoreCLR closure into
+the Swift-owned executable:
+
+```bash
+python3 product/apple/build_component.py \
+  --managed-project product/samples/Orders.Contracts/Orders.Contracts.csproj \
+  --contract-root Orders.Contracts.IOrdersService \
+  --native-source-root experiments/workload-library-mode/apple/native-app \
+  --output experiments/workload-library-mode/.artifacts/apple-product-slice
+```
+
+This is a package-shaped preview rather than the final SwiftPM build-tool
+plugin. SwiftPM plugins cannot dynamically add a generated framework or
+archive to an app target's link inputs, so the platform-bound component must
+continue to use an explicit Xcode build phase/package-owned script.

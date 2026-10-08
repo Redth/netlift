@@ -63,16 +63,23 @@ explicit startup call.
 Build and audit the SwiftUI-owned Apple application:
 
 ```bash
-cd experiments/workload-library-mode/apple
-python3 build_native_app.py
-cd ../../..
-python3 experiments/workload-library-mode/apple/tests/audit_package.py
+python3 product/apple/build_component.py \
+  --managed-project product/samples/Orders.Contracts/Orders.Contracts.csproj \
+  --contract-root Orders.Contracts.IOrdersService \
+  --native-source-root experiments/workload-library-mode/apple/native-app \
+  --output experiments/workload-library-mode/.artifacts/apple-product-slice
+python3 product/apple/audit_component.py \
+  experiments/workload-library-mode/.artifacts/apple-product-slice/\
+NetLift.Generated.Apple.app
 ```
 
 The Apple build requires the installed .NET 11 RC workload set and Xcode 26.6.
-It preserves the workload-generated CoreCLR setup, registrar, R2R module
-registry, native runtime libraries, and managed payload while replacing only
-the generated process entry point. Native code owns `main`, Swift owns the
+It builds the portable Orders assembly, generates the Swift contracts,
+managed dispatcher, and Objective-C adapter, and synthesizes the mobile
+workload project under ignored build output. It preserves the
+workload-generated CoreCLR setup, registrar, R2R module registry, native
+runtime libraries, and managed payload while replacing only the generated
+process entry point. Native code owns `main`, Swift owns the
 `UIApplicationDelegate` and SwiftUI root, and managed code trampolines into
 the native UI only after workload initialization completes.
 
@@ -101,9 +108,7 @@ ownership, part of the hosting infrastructure rather than customer code.
 
 ```text
 shared/                      environment inventory and component contracts
-apple/managed-component/     workload-built managed/platform closure
 apple/native-app/            SwiftUI-owned entry point and lifecycle
-apple/tests/                 component, symbol, peer, and lifecycle checks
 android/native-app/          Kotlin-owned entry point and lifecycle
 android/tests/               AAR, typemap, peer, and lifecycle checks
 ../../product/android/       standalone generic runtime AAR project
@@ -131,7 +136,6 @@ the local Maven repository remain under ignored `.artifacts/` or
 | --- | --- | --- |
 | `shared/inventory_workloads.py` | Promote | Keep if final platform builds need the same manifest-driven prerequisite check. |
 | `proof.json` | Promote or merge | Merge into final build configuration if both platforms use the fields. |
-| `apple/managed-component` | Delete after extraction | Promote only reusable component targets/bootstrap facade and focused regressions. |
 | `apple/native-app` | Delete after extraction | Promote one clean package-consuming sample only. |
 | `android/native-app` | Delete after extraction | Promote one clean package-consuming sample only. |
 | `.artifacts/` | Always delete/ignore | Never commit generated workload or runtime output. |

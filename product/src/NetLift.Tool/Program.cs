@@ -20,7 +20,7 @@ try
 
     var assemblyPath = Path.GetFullPath(configuration.Assembly, configurationDirectory);
     var outputPath = Path.GetFullPath(configuration.Output, configurationDirectory);
-    var compilation = configuration.EmitAndroidBridge
+    var compilation = configuration.EmitAndroidBridge || configuration.EmitAppleBridge
         ? ContractCompiler.CompileWithImplementations(assemblyPath, configuration.ContractRoots)
         : new ContractCompilation(
             ContractCompiler.Compile(assemblyPath, configuration.ContractRoots),
@@ -52,6 +52,10 @@ try
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftAndroidBridge.g.cs"),
             ProjectionEmitter.EmitAndroidBridge(manifest, compilation.Implementations));
+    if (configuration.EmitAppleBridge)
+        WriteIfChanged(
+            Path.Combine(outputPath, "NetLiftAppleBridge.g.cs"),
+            ProjectionEmitter.EmitAppleBridge(manifest, compilation.Implementations));
 
     Console.WriteLine($"Generated NetLift contract {manifest.SchemaHash} in {outputPath}");
     return 0;

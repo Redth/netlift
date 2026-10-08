@@ -164,7 +164,8 @@ public static class ProjectionEmitter
                 builder.Append("public enum ").Append(name)
                     .AppendLine(": String, Codable, Sendable {");
                 foreach (var value in type.Values)
-                    builder.Append("    case ").Append(LowerFirst(value)).AppendLine();
+                    builder.Append("    case ").Append(LowerFirst(value))
+                        .Append(" = \"").Append(value).AppendLine("\"");
                 builder.AppendLine("}")
                     .AppendLine();
                 continue;
@@ -174,6 +175,12 @@ public static class ProjectionEmitter
             foreach (var field in type.Fields)
                 builder.Append("    public let ").Append(LowerFirst(field.Name))
                     .Append(": ").Append(SwiftType(field.Type)).AppendLine();
+            builder.AppendLine()
+                .AppendLine("    private enum CodingKeys: String, CodingKey {");
+            foreach (var field in type.Fields)
+                builder.Append("        case ").Append(LowerFirst(field.Name))
+                    .Append(" = \"").Append(field.Name).AppendLine("\"");
+            builder.AppendLine("    }");
             builder.AppendLine()
                 .Append("    public init(");
             builder.Append(string.Join(", ", type.Fields.Select(field =>
@@ -449,6 +456,80 @@ public static class ProjectionEmitter
             .AppendLine("    private sealed record BridgeResponse(bool Success, string? Payload, string? Error, int Status);")
             .AppendLine("}");
         return builder.ToString();
+    }
+
+    public static string EmitAppleBridge(
+        ContractManifest manifest,
+        IReadOnlyList<ContractServiceImplementation> implementations)
+    {
+        ArgumentNullException.ThrowIfNull(implementations);
+        if (implementations.Count != manifest.Services.Count)
+            throw new ContractCompilerException("Every Apple contract service requires an implementation.");
+        var implementationsByService = implementations.ToDictionary(
+            item => item.Service, StringComparer.Ordinal);
+        var services = manifest.Services.Select(service =>
+        {
+            if (!implementationsByService.TryGetValue(service.Name, out var implementation))
+                throw new ContractCompilerException(
+                    $"Apple service implementation for '{service.Name}' was not provided.");
+            return implementation;
+        }).ToArray();
+
+        return GeneratedHeader("//", manifest)
+            .AppendLine("#nullable enable")
+            .AppendLine("namespace NetLift.Generated.Apple;")
+            .AppendLine()
+            .AppendLine("public static class Application")
+            .AppendLine("{")
+            .AppendLine("    public static unsafe int Main(string[] args)")
+            .AppendLine("    {")
+            .AppendLine("        var process = global::System.Runtime.InteropServices.NativeLibrary.GetMainProgramHandle();")
+            .AppendLine("        var entryPoint = global::System.Runtime.InteropServices.NativeLibrary.GetExport(process, \"netlift_native_ui_main\");")
+            .AppendLine("        return ((delegate* unmanaged[Cdecl]<int>)entryPoint)();")
+            .AppendLine("    }")
+            .AppendLine("}")
+            .AppendLine()
+            .AppendLine("[global::Foundation.Register(\"NetLiftManagedBridge\")]")
+            .AppendLine("public sealed class ManagedNetLiftBridge : global::Foundation.NSObject")
+            .AppendLine("{")
+            .Append("    private static readonly global::NetLift.Runtime.NetLiftEndpointHost Endpoint = new(new global::NetLift.Generated.ContractDispatcherAdapter(")
+            .Append(string.Join(", ", services.Select(service => $"new global::{service.Implementation}()")))
+            .AppendLine("));")
+            .AppendLine("    private static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = new()")
+            .AppendLine("    {")
+            .AppendLine("        PropertyNamingPolicy = global::System.Text.Json.JsonNamingPolicy.CamelCase,")
+            .AppendLine("    };")
+            .AppendLine("    private static long nextOperationToken;")
+            .AppendLine()
+            .AppendLine("    [global::Foundation.Export(\"invokeService:member:payload:\")]")
+            .AppendLine("    public global::Foundation.NSString Invoke(uint serviceId, uint memberId, global::Foundation.NSData payload)")
+            .AppendLine("    {")
+            .AppendLine("        try")
+            .AppendLine("        {")
+            .AppendLine("            global::System.ArgumentNullException.ThrowIfNull(payload);")
+            .AppendLine("            var result = Endpoint.InvokeAsync(")
+            .AppendLine("                    checked((ulong)global::System.Threading.Interlocked.Increment(ref nextOperationToken)),")
+            .AppendLine("                    serviceId,")
+            .AppendLine("                    memberId,")
+            .AppendLine("                    payload.ToArray(),")
+            .AppendLine("                    global::System.Threading.CancellationToken.None)")
+            .AppendLine("                .AsTask().GetAwaiter().GetResult();")
+            .AppendLine("            return CreateResponse(result.Status == global::NetLift.Runtime.NetLiftStatus.Success")
+            .AppendLine("                ? new(true, global::System.Convert.ToBase64String(result.Payload.Span), null, (int)result.Status)")
+            .AppendLine("                : new(false, null, result.Error, (int)result.Status));")
+            .AppendLine("        }")
+            .AppendLine("        catch (global::System.Exception error)")
+            .AppendLine("        {")
+            .AppendLine("            return CreateResponse(new(false, null, error.Message, (int)global::NetLift.Runtime.NetLiftStatus.InvalidArgument));")
+            .AppendLine("        }")
+            .AppendLine("    }")
+            .AppendLine()
+            .AppendLine("    private static global::Foundation.NSString CreateResponse(BridgeResponse response) =>")
+            .AppendLine("        new(global::System.Text.Json.JsonSerializer.Serialize(response, JsonOptions));")
+            .AppendLine()
+            .AppendLine("    private sealed record BridgeResponse(bool Success, string? Payload, string? Error, int Status);")
+            .AppendLine("}")
+            .ToString();
     }
 
     private static string KotlinJsonRead(ContractField field)

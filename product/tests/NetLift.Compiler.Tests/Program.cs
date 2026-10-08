@@ -60,6 +60,18 @@ var androidBridge = ProjectionEmitter.EmitAndroidBridge(
 Require(
     androidBridge.Contains("new global::Orders.Contracts.OrdersService()", StringComparison.Ordinal),
     "Generated Android bridge omitted deterministic service construction.");
+var appleBridge = ProjectionEmitter.EmitAppleBridge(
+    androidCompilation.Manifest,
+    androidCompilation.Implementations);
+Require(
+    appleBridge.Contains("new global::Orders.Contracts.OrdersService()", StringComparison.Ordinal),
+    "Generated Apple bridge omitted deterministic service construction.");
+Require(
+    appleBridge.Contains("[global::Foundation.Register(\"NetLiftManagedBridge\")]", StringComparison.Ordinal),
+    "Generated Apple bridge omitted its Objective-C registration.");
+Require(
+    appleBridge.Contains("netlift_native_ui_main", StringComparison.Ordinal),
+    "Generated Apple bridge omitted the native-owned UI handoff.");
 
 var contractLock = ContractCompiler.CreateLock(first);
 Require(ContractCompiler.Compare(contractLock, contractLock).Count == 0, "Identical locks were incompatible.");

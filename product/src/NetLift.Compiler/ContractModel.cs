@@ -61,7 +61,8 @@ public sealed record CompilerConfiguration(
     string SwiftModule,
     string Output,
     string? CompatibilityLock = null,
-    bool EmitAndroidBridge = false);
+    bool EmitAndroidBridge = false,
+    bool EmitAppleBridge = false);
 
 [JsonSerializable(typeof(ContractManifest))]
 [JsonSerializable(typeof(ContractLock))]

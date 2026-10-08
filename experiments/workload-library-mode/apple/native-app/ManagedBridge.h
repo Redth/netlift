@@ -1,8 +1,9 @@
 #import <UIKit/UIKit.h>
 
-@interface NetLiftManagedProofBridge : NSObject
+@interface NetLiftManagedBridge : NSObject
 
-- (int)addLeft:(int)left right:(int)right;
-- (UIView *)echoView:(UIView *)view;
+- (NSString *)invokeService:(uint32_t)serviceId
+                     member:(uint32_t)memberId
+                    payload:(NSData *)payload;
 
 @end

@@ -85,9 +85,12 @@ that property and package the resulting `libassembly-store.so`. No custom
 - packaged proof:
   `.artifacts/apple-native-app/NetLift.WorkloadLibraryMode.Apple.app`
 
-The native-owned app runs successfully on an iOS 26.5 ARM64 simulator. Swift
-owns the app delegate, window, and SwiftUI root; the registrar-generated
-`NetLiftManagedProofBridge` reports managed arithmetic and preserves `UIView`
-peer identity. This validates the workload closure, but the use of
-`xamarin_main` plus a managed-to-native UI trampoline remains the key API seam
-to split in an upstream library-mode design.
+The original native-owned proof ran successfully on an iOS 26.5 ARM64
+simulator and established `UIView` peer identity. That checked-in managed
+component has since been deleted. The promoted Apple product slice generates
+`NetLiftManagedBridge`, the dispatcher, and the workload project from the
+portable Orders project under ignored build output. Swift still owns the app
+delegate, window, and SwiftUI root, and the generated Orders client now
+executes the real portable `OrdersService`. The use of `xamarin_main` plus a
+managed-to-native UI trampoline remains the key API seam to split in an
+upstream library-mode design.
