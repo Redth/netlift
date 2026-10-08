@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NetLift.Compiler/NetLift.Compiler.csproj" />
+    <Project Path="src/NetLift.Tool/NetLift.Tool.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Orders.Contracts/Orders.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NetLift.Compiler.Tests/NetLift.Compiler.Tests.csproj" />
+    <Project Path="tests/NetLift.GeneratedDispatcher.Tests/NetLift.GeneratedDispatcher.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,78 @@
+{
+  "formatVersion": 1,
+  "schemaHash": "c04facd03c6b76a41ed53b4530b36421f2a36d629c9dc56ff8a4cd065d2c3f4c",
+  "entries": [
+    {
+      "kind": "dto",
+      "id": 249840796,
+      "name": "Orders.Contracts.OrderResult",
+      "signature": "Orders.Contracts.OrderResult:dto:300439661:Message:string:-:?,1922247558:OrderId:string:-:!,2118497412:Accepted:bool:-:!"
+    },
+    {
+      "kind": "dto",
+      "id": 779267412,
+      "name": "Orders.Contracts.OrderRequest",
+      "signature": "Orders.Contracts.OrderRequest:dto:25135561:CustomerId:string:-:!,388580559:Quantity:int32:-:!,1217124482:Priority:enum:1442367054:!,1263479496:Note:string:-:?"
+    },
+    {
+      "kind": "enum",
+      "id": 1442367054,
+      "name": "Orders.Contracts.OrderPriority",
+      "signature": "Orders.Contracts.OrderPriority:enum:Standard,Expedited"
+    },
+    {
+      "kind": "field",
+      "id": 25135561,
+      "name": "Orders.Contracts.OrderRequest.CustomerId",
+      "signature": "Orders.Contracts.OrderRequest.CustomerId:string:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 300439661,
+      "name": "Orders.Contracts.OrderResult.Message",
+      "signature": "Orders.Contracts.OrderResult.Message:string:-:?"
+    },
+    {
+      "kind": "field",
+      "id": 388580559,
+      "name": "Orders.Contracts.OrderRequest.Quantity",
+      "signature": "Orders.Contracts.OrderRequest.Quantity:int32:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 1217124482,
+      "name": "Orders.Contracts.OrderRequest.Priority",
+      "signature": "Orders.Contracts.OrderRequest.Priority:enum:1442367054:!"
+    },
+    {
+      "kind": "field",
+      "id": 1263479496,
+      "name": "Orders.Contracts.OrderRequest.Note",
+      "signature": "Orders.Contracts.OrderRequest.Note:string:-:?"
+    },
+    {
+      "kind": "field",
+      "id": 1922247558,
+      "name": "Orders.Contracts.OrderResult.OrderId",
+      "signature": "Orders.Contracts.OrderResult.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 2118497412,
+      "name": "Orders.Contracts.OrderResult.Accepted",
+      "signature": "Orders.Contracts.OrderResult.Accepted:bool:-:!"
+    },
+    {
+      "kind": "method",
+      "id": 479762786,
+      "name": "Orders.Contracts.IOrdersService.SubmitOrderAsync",
+      "signature": "Orders.Contracts.IOrdersService.SubmitOrderAsync(request:dto:779267412:!)-\u003Edto:249840796:!:True:True"
+    },
+    {
+      "kind": "service",
+      "id": 335637873,
+      "name": "Orders.Contracts.IOrdersService",
+      "signature": "service:Orders.Contracts.IOrdersService"
+    }
+  ]
+}
