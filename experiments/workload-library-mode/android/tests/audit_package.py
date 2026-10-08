@@ -23,9 +23,13 @@ NETLIFT_RUNTIME_VERSION = next(
 )
 DEFAULT_AAR = (
     PROOF_ROOT
-    / ".artifacts"
-    / "android-component"
-    / "netlift-workload-component-debug.aar"
+    / "android"
+    / "native-app"
+    / "app"
+    / "build"
+    / "netlift"
+    / "debug"
+    / "netlift-workload-component.aar"
 )
 DEFAULT_APK = (
     PROOF_ROOT

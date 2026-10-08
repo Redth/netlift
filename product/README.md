@@ -81,7 +81,7 @@ table through `struct_size` and a new ABI version rather than changing the V1
 layout. Mobile runtime adapters attach to the workload-initialized runtime;
 they never start a second CLR.
 
-## Android runtime package
+## Android Gradle plugin and runtime
 
 `android/runtime-android` is the standalone, publishable Android runtime
 project. It produces:
@@ -115,6 +115,15 @@ The public preview repository is live. A consumer resolves the package with:
 
 ```kotlin
 // settings.gradle.kts
+pluginManagement {
+    repositories {
+        maven { url = uri("https://redth.github.io/netlift-sdk/maven/") }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 dependencyResolutionManagement {
     repositories {
         maven { url = uri("https://redth.github.io/netlift-sdk/maven/") }
@@ -126,11 +135,26 @@ dependencyResolutionManagement {
 
 ```kotlin
 // app/build.gradle.kts
-dependencies {
-    implementation("io.github.redth.netlift:runtime-android:0.1.0-alpha.1")
-    implementation(files(generatedNetLiftWorkloadComponent))
+plugins {
+    id("io.github.redth.netlift") version "0.1.0-alpha.4"
+}
+
+netlift {
+    managedProject.set(file("../managed/Orders.Contracts.csproj"))
+    componentProject.set(file("../managed-android/Orders.Android.csproj"))
+    contractRoots.set(listOf("Orders.Contracts.IOrdersService"))
+    kotlinPackage.set("com.example.orders")
+    swiftModule.set("OrdersNetLift")
 }
 ```
+
+The plugin adds runtime `0.1.0-alpha.1` automatically. Its implementation JAR
+contains the matching compiler and deterministic Android component packager,
+so projection does not depend on a NetLift source checkout. For this early
+preview, `componentProject` is the small `net10.0-android` platform adapter
+that composes service implementations, generated dispatch, and any platform
+object peers. Promoting that adapter template behind `managedProject` alone is
+the next API simplification.
 
 The native app owns startup and calls the runtime explicitly:
 
@@ -153,6 +177,6 @@ the package-consuming acceptance app.
 
 The preview is published from the root of the public `Redth/netlift-sdk`
 Pages repository; `maven/` is a directory beneath that root, not a selectable
-Pages source folder. The next packaging slice replaces the handwritten
-component file dependency with the NetLift Gradle plugin. Maven Central
-credentials and signing keys are not needed for this preview feed.
+Pages source folder. It contains the runtime AAR, Gradle plugin implementation,
+and standard plugin-marker POM. Maven Central credentials and signing keys are
+not needed for this preview feed.

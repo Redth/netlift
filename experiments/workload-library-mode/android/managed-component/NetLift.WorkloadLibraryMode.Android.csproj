@@ -18,7 +18,11 @@
   <ItemGroup>
     <ProjectReference Include="../../../../product/src/NetLift.Runtime/NetLift.Runtime.csproj" />
     <ProjectReference Include="../../../../product/samples/Orders.Contracts/Orders.Contracts.csproj" />
+    <Compile Include="$(NetLiftGeneratedDirectory)/NetLiftDispatcher.g.cs"
+             Condition="'$(NetLiftGeneratedDirectory)' != ''"
+             Link="Generated/NetLiftDispatcher.g.cs" />
     <Compile Include="../../../../product/artifacts/generated/NetLiftDispatcher.g.cs"
+             Condition="'$(NetLiftGeneratedDirectory)' == ''"
              Link="Generated/NetLiftDispatcher.g.cs" />
   </ItemGroup>
 </Project>

@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "netlift-android"
 include(":runtime-android")
+include(":netlift-gradle-plugin")

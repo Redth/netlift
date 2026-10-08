@@ -1,5 +1,8 @@
 pluginManagement {
     repositories {
+        maven {
+            url = uri("https://redth.github.io/netlift-sdk/maven/")
+        }
         google()
         mavenCentral()
         gradlePluginPortal()

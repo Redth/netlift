@@ -3,33 +3,27 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("io.github.redth.netlift") version "0.1.0-alpha.4"
 }
 
-val workloadComponent = rootProject.file(
-    "../../.artifacts/android-component/netlift-workload-component-debug.aar"
-)
-val productRoot = rootProject.file("../../../../product")
-val generatedContracts = productRoot.resolve("artifacts/generated")
-
-val buildWorkloadComponent = tasks.register<Exec>("buildWorkloadComponent") {
-    workingDir(rootProject.file("../.."))
-    commandLine("python3", "android/build_component.py")
-    inputs.files(
-        rootProject.fileTree("../../android/managed-component") {
-            exclude("bin/**", "obj/**")
-        },
-        rootProject.file("../../android/build_component.py"),
-        rootProject.file("../../shared/inventory_workloads.py"),
-        rootProject.file("../../proof.json"),
-        rootProject.fileTree(productRoot.resolve("src")) {
-            exclude("**/bin/**", "**/obj/**")
-        },
-        rootProject.fileTree(productRoot.resolve("samples")) {
-            exclude("**/bin/**", "**/obj/**")
-        },
-        productRoot.resolve("netlift.json"),
+netlift {
+    managedProject.set(
+        rootProject.file(
+            "../../../../product/samples/Orders.Contracts/Orders.Contracts.csproj"
+        )
     )
-    outputs.file(workloadComponent)
+    componentProject.set(
+        rootProject.file(
+            "../../android/managed-component/NetLift.WorkloadLibraryMode.Android.csproj"
+        )
+    )
+    contractRoots.set(listOf("Orders.Contracts.IOrdersService"))
+    kotlinPackage.set("dev.netlift.orders")
+    swiftModule.set("OrdersNetLift")
+    componentApplicationId.set("dev.netlift.workloadlibrarymode.component")
+    compatibilityLock.set(
+        rootProject.file("../../../../product/contracts/orders.netlift.lock.json")
+    )
 }
 
 android {
@@ -47,11 +41,6 @@ android {
             abiFilters += "arm64-v8a"
         }
 
-        sourceSets {
-            named("main") {
-                java.srcDir(generatedContracts)
-            }
-        }
     }
 
     buildTypes {
@@ -86,12 +75,4 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.github.redth.netlift:runtime-android:0.1.0-alpha.1")
-    implementation(files(workloadComponent).builtBy(buildWorkloadComponent))
-}
-
-tasks.configureEach {
-    if (name.startsWith("compile") && name.endsWith("Kotlin")) {
-        dependsOn(buildWorkloadComponent)
-    }
 }

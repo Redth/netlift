@@ -27,15 +27,11 @@ python3 shared/inventory_workloads.py \
 The command discovers requirements from the installed workload manifests. It
 does not hardcode JDK, Android SDK, or Xcode requirements.
 
-Build and audit the Kotlin-owned Android application:
+Build and audit the Kotlin-owned Android application. The app resolves
+`io.github.redth.netlift` `0.1.0-alpha.4` and runtime `0.1.0-alpha.1` from the
+public Pages Maven repository:
 
 ```bash
-product/android/gradlew -p product/android \
-  :runtime-android:publishAllPublicationsToPreviewRepository \
-  --no-daemon
-python3 product/android/runtime-android/audit_runtime_aar.py \
-  product/artifacts/maven/io/github/redth/netlift/runtime-android/\
-0.1.0-alpha.1/runtime-android-0.1.0-alpha.1.aar
 experiments/workload-library-mode/android/native-app/gradlew \
   -p experiments/workload-library-mode/android/native-app \
   clean :app:assembleDebug :app:assembleRelease --no-daemon
@@ -44,14 +40,14 @@ python3 experiments/workload-library-mode/android/tests/audit_package.py \
   --apk experiments/workload-library-mode/android/native-app/app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-The Android application consumes the generic runtime by its Maven coordinate
-from `https://redth.github.io/netlift-sdk/maven/`; it does not compile runtime
-source or use Gradle composite substitution. A separate app-specific workload
-component AAR contains CoreCLR, the assembly store, managed payload, typemaps,
-and workload Java peers. The runtime AAR contains only the reusable
-Kotlin/JNI/native
-runtime. Their compatibility manifests require the same ABI and NetLift
-package version before startup.
+The Android application applies the published Gradle plugin from
+`https://redth.github.io/netlift-sdk/maven/`; it does not compile plugin or
+runtime source, use Gradle composite substitution, or wire generated sources
+and AAR files by hand. The plugin contributes generated Kotlin and a separate
+app-specific workload component AAR containing CoreCLR, the assembly store,
+managed payload, typemaps, and workload Java peers. The runtime AAR contains
+only the reusable Kotlin/JNI/native runtime. Their compatibility manifests
+require the same ABI and NetLift package version before startup.
 
 The runtime-AAR audit reads the Maven-layout publication rather than Gradle's
 build directory. The merged-package audit downloads the public AAR and its

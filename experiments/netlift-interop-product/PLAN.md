@@ -1521,8 +1521,8 @@ accepted behavior has either moved to runtime code or a focused regression.
 5. Make configuration-cache and build-cache behavior explicit; avoid task
    execution during Gradle configuration.
 6. Build the Orders Compose sample using only remote Maven/NuGet artifacts.
-7. Publish the plugin implementation and marker with the runtime AAR as
-   `0.1.0-alpha.1`.
+7. Publish the plugin implementation and marker beside runtime AAR
+   `0.1.0-alpha.1`; corrected plugin preview `0.1.0-alpha.2` remains immutable.
 
 **Deliverables:**
 
@@ -1544,6 +1544,32 @@ accepted behavior has either moved to runtime code or a focused regression.
 **Cleanup gate:** remove handwritten Orders Kotlin codecs/facades from the
 customer path; retain only focused stress fixtures that exercise behavior not
 covered by the generated client.
+
+**Implementation status on the current branch:**
+
+- `product/android/netlift-gradle-plugin` implements plugin ID
+  `io.github.redth.netlift`, typed configuration, AGP variant source/dependency
+  wiring, automatic runtime dependency selection, and declared task
+  inputs/outputs.
+- The plugin bundles the matching .NET metadata compiler and promoted,
+  parameterized Android workload component packager. It no longer invokes the
+  proof-only builder or requires a NetLift checkout for those tools.
+- The public Pages Maven repository serves the implementation JAR and standard
+  plugin marker. `0.1.0-alpha.4` is the current plugin preview and selects
+  runtime `0.1.0-alpha.1`.
+- The Android sample has no handwritten Gradle execution task, generated
+  source directory, runtime dependency, or file AAR dependency. Applying and
+  configuring the published plugin owns those integrations.
+- Clean Debug and R8-minified Release builds pass from a fresh Gradle home
+  using only the public Maven repository.
+- Gradle up-to-date checks, deleted-output repair, and configuration-cache
+  reuse pass. Remote build-cache reuse is deliberately disabled until the
+  installed .NET/Android workload closure is modeled as a task input.
+- This preview still accepts an explicit small `componentProject` in addition
+  to `managedProject`. Removing that extra customer concept requires the plugin
+  to synthesize the platform adapter project and generated managed JNI bridge;
+  that remains the final W5 API simplification before the customer story is
+  considered complete.
 
 ### W6 - Settle Apple product-host feasibility and package shape
 
