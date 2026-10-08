@@ -46,6 +46,20 @@ Require(
         $"const val SubmitOrderAsyncId: UInt = {first.Services[0].Methods[0].Id}u",
         StringComparison.Ordinal),
     "Generated Kotlin client omitted its public member ID.");
+var androidCompilation = ContractCompiler.CompileWithImplementations(
+    assemblyPath, ["Orders.Contracts.IOrdersService"]);
+Require(
+    androidCompilation.Implementations is
+    [
+        { Service: "Orders.Contracts.IOrdersService", Implementation: "Orders.Contracts.OrdersService" }
+    ],
+    "Android compilation did not discover the service implementation.");
+var androidBridge = ProjectionEmitter.EmitAndroidBridge(
+    androidCompilation.Manifest,
+    androidCompilation.Implementations);
+Require(
+    androidBridge.Contains("new global::Orders.Contracts.OrdersService()", StringComparison.Ordinal),
+    "Generated Android bridge omitted deterministic service construction.");
 
 var contractLock = ContractCompiler.CreateLock(first);
 Require(ContractCompiler.Compare(contractLock, contractLock).Count == 0, "Identical locks were incompatible.");
@@ -77,6 +91,32 @@ catch (ContractCompilerException exception)
 {
     Require(exception.Message.Contains("not a supported scalar, enum, or DTO", StringComparison.Ordinal),
         "Unsupported signature produced an unclear diagnostic.");
+}
+
+try
+{
+    ContractCompiler.CompileWithImplementations(
+        assemblyPath, ["Orders.Contracts.IMissingService"]);
+    throw new InvalidOperationException("Missing service implementation did not fail.");
+}
+catch (ContractCompilerException exception)
+{
+    Require(
+        exception.Message.Contains("requires one public", StringComparison.Ordinal),
+        "Missing implementation produced an unclear diagnostic.");
+}
+
+try
+{
+    ContractCompiler.CompileWithImplementations(
+        assemblyPath, ["Orders.Contracts.IAmbiguousService"]);
+    throw new InvalidOperationException("Ambiguous service implementation did not fail.");
+}
+catch (ContractCompilerException exception)
+{
+    Require(
+        exception.Message.Contains("multiple constructible implementations", StringComparison.Ordinal),
+        "Ambiguous implementations produced an unclear diagnostic.");
 }
 
 Console.WriteLine($"Compiler tests passed for schema {first.SchemaHash}.");

@@ -308,9 +308,26 @@ public static class ProjectionEmitter
             .AppendLine("    }")
             .AppendLine("}")
             .AppendLine()
-            .AppendLine("public sealed class ContractDispatcherAdapter(object service)")
+            .AppendLine("public sealed class ContractDispatcherAdapter")
             .AppendLine("    : global::NetLift.Runtime.INetLiftDispatcher")
-            .AppendLine("{")
+            .AppendLine("{");
+        for (var index = 0; index < manifest.Services.Count; index++)
+        {
+            var service = manifest.Services[index];
+            builder.Append("    private readonly global::").Append(service.Name)
+                .Append(" service").Append(index).AppendLine(";");
+        }
+        builder.AppendLine()
+            .Append("    public ContractDispatcherAdapter(");
+        builder.Append(string.Join(", ", manifest.Services.Select((service, index) =>
+            $"global::{service.Name} service{index}")));
+        builder.AppendLine(")")
+            .AppendLine("    {");
+        for (var index = 0; index < manifest.Services.Count; index++)
+            builder.Append("        this.service").Append(index).Append(" = service")
+                .Append(index).AppendLine(" ?? throw new global::System.ArgumentNullException(nameof(service" + index + "));");
+        builder.AppendLine("    }")
+            .AppendLine()
             .AppendLine("    public async global::System.Threading.Tasks.ValueTask<global::System.ReadOnlyMemory<byte>> DispatchAsync(")
             .AppendLine("        uint serviceId,")
             .AppendLine("        uint memberId,")
@@ -318,13 +335,118 @@ public static class ProjectionEmitter
             .AppendLine("        global::System.Threading.CancellationToken cancellationToken)")
             .AppendLine("    {")
             .AppendLine("        return await ContractDispatcher.DispatchBytesAsync(")
-            .AppendLine("                service,")
+            .AppendLine("                serviceId switch")
+            .AppendLine("                {");
+        for (var index = 0; index < manifest.Services.Count; index++)
+            builder.Append("                    ").Append(manifest.Services[index].Id)
+                .Append("u => service").Append(index).AppendLine(",");
+        builder.AppendLine("                    _ => throw new global::System.MissingMethodException($\"Unknown NetLift service ID {serviceId}.\")")
+            .AppendLine("                },")
             .AppendLine("                serviceId,")
             .AppendLine("                memberId,")
             .AppendLine("                payload.ToArray(),")
             .AppendLine("                cancellationToken)")
             .AppendLine("            .ConfigureAwait(false);")
             .AppendLine("    }")
+            .AppendLine("}");
+        return builder.ToString();
+    }
+
+    public static string EmitAndroidBridge(
+        ContractManifest manifest,
+        IReadOnlyList<ContractServiceImplementation> implementations)
+    {
+        ArgumentNullException.ThrowIfNull(implementations);
+        if (implementations.Count != manifest.Services.Count)
+            throw new ContractCompilerException("Every Android contract service requires an implementation.");
+        var implementationsByService = implementations.ToDictionary(
+            item => item.Service, StringComparer.Ordinal);
+        var services = manifest.Services.Select(service =>
+        {
+            if (!implementationsByService.TryGetValue(service.Name, out var implementation))
+                throw new ContractCompilerException(
+                    $"Android service implementation for '{service.Name}' was not provided.");
+            return implementation;
+        }).ToArray();
+
+        var builder = GeneratedHeader("//", manifest)
+            .AppendLine("#nullable enable")
+            .AppendLine("namespace NetLift.Generated.Android;")
+            .AppendLine()
+            .AppendLine("[global::Android.Runtime.Register(\"dev/netlift/runtime/ManagedNetLiftBridge\")]")
+            .AppendLine("public sealed class ManagedNetLiftBridge : global::Java.Lang.Object")
+            .AppendLine("{")
+            .AppendLine("    private const string JniClassName = \"dev/netlift/runtime/ManagedNetLiftBridge\";")
+            .Append("    private static readonly global::NetLift.Runtime.NetLiftEndpointHost Endpoint = new(new global::NetLift.Generated.ContractDispatcherAdapter(")
+            .Append(string.Join(", ", services.Select(service => $"new global::{service.Implementation}()")))
+            .AppendLine("));")
+            .AppendLine("    private static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = new()")
+            .AppendLine("    {")
+            .AppendLine("        PropertyNamingPolicy = global::System.Text.Json.JsonNamingPolicy.CamelCase,")
+            .AppendLine("    };")
+            .AppendLine("    private static readonly InvokeCallback Callback = InvokeFromJava;")
+            .AppendLine("    private static readonly global::Java.Interop.JniNativeMethodRegistration[] NativeMethods =")
+            .AppendLine("    [")
+            .AppendLine("        new(\"n_Invoke\", \"(IILjava/lang/String;)Ljava/lang/String;\", Callback),")
+            .AppendLine("    ];")
+            .AppendLine("    private static int registered;")
+            .AppendLine("    private static long nextOperationToken;")
+            .AppendLine()
+            .AppendLine("    public ManagedNetLiftBridge()")
+            .AppendLine("    {")
+            .AppendLine("        if (global::System.Threading.Interlocked.Exchange(ref registered, 1) != 0)")
+            .AppendLine("            return;")
+            .AppendLine("        using var peerType = new global::Java.Interop.JniType(JniClassName);")
+            .AppendLine("        global::Java.Interop.JniEnvironment.Types.RegisterNatives(peerType.PeerReference, NativeMethods);")
+            .AppendLine("    }")
+            .AppendLine()
+            .AppendLine("    [global::Java.Interop.Export(\"invoke\")]")
+            .AppendLine("    public global::Java.Lang.String Invoke(int serviceId, int memberId, global::Java.Lang.String payload)")
+            .AppendLine("    {")
+            .AppendLine("        try")
+            .AppendLine("        {")
+            .AppendLine("            global::System.ArgumentNullException.ThrowIfNull(payload);")
+            .AppendLine("            var result = Endpoint.InvokeAsync(")
+            .AppendLine("                    checked((ulong)global::System.Threading.Interlocked.Increment(ref nextOperationToken)),")
+            .AppendLine("                    checked((uint)serviceId),")
+            .AppendLine("                    checked((uint)memberId),")
+            .AppendLine("                    global::System.Text.Encoding.UTF8.GetBytes(payload.ToString()),")
+            .AppendLine("                    global::System.Threading.CancellationToken.None)")
+            .AppendLine("                .AsTask().GetAwaiter().GetResult();")
+            .AppendLine("            return result.Status == global::NetLift.Runtime.NetLiftStatus.Success")
+            .AppendLine("                ? CreateResponse(new(true, global::System.Convert.ToBase64String(result.Payload.Span), null, (int)result.Status))")
+            .AppendLine("                : CreateResponse(new(false, null, result.Error, (int)result.Status));")
+            .AppendLine("        }")
+            .AppendLine("        catch (global::System.Exception error)")
+            .AppendLine("        {")
+            .AppendLine("            return CreateResponse(new(false, null, error.Message, (int)global::NetLift.Runtime.NetLiftStatus.InvalidArgument));")
+            .AppendLine("        }")
+            .AppendLine("    }")
+            .AppendLine()
+            .AppendLine("    private static nint InvokeFromJava(nint environment, nint self, int serviceId, int memberId, nint payload)")
+            .AppendLine("    {")
+            .AppendLine("        try")
+            .AppendLine("        {")
+            .AppendLine("            var bridge = GetObject<ManagedNetLiftBridge>(self, global::Android.Runtime.JniHandleOwnership.DoNotTransfer)")
+            .AppendLine("                ?? throw new global::System.InvalidOperationException(\"Managed bridge peer was unavailable.\");")
+            .AppendLine("            var request = GetObject<global::Java.Lang.String>(payload, global::Android.Runtime.JniHandleOwnership.DoNotTransfer)")
+            .AppendLine("                ?? throw new global::System.ArgumentNullException(nameof(payload));")
+            .AppendLine("            using var response = bridge.Invoke(serviceId, memberId, request);")
+            .AppendLine("            return global::Android.Runtime.JNIEnv.ToLocalJniHandle(response);")
+            .AppendLine("        }")
+            .AppendLine("        catch (global::System.Exception error)")
+            .AppendLine("        {")
+            .AppendLine("            using var response = CreateResponse(new(false, null, error.Message, (int)global::NetLift.Runtime.NetLiftStatus.HandlerFailure));")
+            .AppendLine("            return global::Android.Runtime.JNIEnv.ToLocalJniHandle(response);")
+            .AppendLine("        }")
+            .AppendLine("    }")
+            .AppendLine()
+            .AppendLine("    private delegate nint InvokeCallback(nint environment, nint self, int serviceId, int memberId, nint payload);")
+            .AppendLine()
+            .AppendLine("    private static global::Java.Lang.String CreateResponse(BridgeResponse response) =>")
+            .AppendLine("        new(global::System.Text.Json.JsonSerializer.Serialize(response, JsonOptions));")
+            .AppendLine()
+            .AppendLine("    private sealed record BridgeResponse(bool Success, string? Payload, string? Error, int Status);")
             .AppendLine("}");
         return builder.ToString();
     }

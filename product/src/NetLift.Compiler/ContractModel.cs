@@ -8,6 +8,14 @@ public sealed record ContractManifest(
     IReadOnlyList<ContractService> Services,
     IReadOnlyList<ContractTypeDefinition> Types);
 
+public sealed record ContractCompilation(
+    ContractManifest Manifest,
+    IReadOnlyList<ContractServiceImplementation> Implementations);
+
+public sealed record ContractServiceImplementation(
+    string Service,
+    string Implementation);
+
 public sealed record ContractService(
     uint Id,
     string Name,
@@ -52,7 +60,8 @@ public sealed record CompilerConfiguration(
     string KotlinPackage,
     string SwiftModule,
     string Output,
-    string? CompatibilityLock = null);
+    string? CompatibilityLock = null,
+    bool EmitAndroidBridge = false);
 
 [JsonSerializable(typeof(ContractManifest))]
 [JsonSerializable(typeof(ContractLock))]

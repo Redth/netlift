@@ -45,7 +45,6 @@ class NetLiftPlugin : Plugin<Project> {
                     netLiftTask.description =
                         "Generates NetLift projections and the ${variant.name} workload component."
                     netLiftTask.managedProject.set(extension.managedProject)
-                    netLiftTask.componentProject.set(extension.componentProject)
                     netLiftTask.contractRoots.set(extension.contractRoots)
                     netLiftTask.kotlinPackage.set(extension.kotlinPackage)
                     netLiftTask.swiftModule.set(extension.swiftModule)
@@ -65,16 +64,10 @@ class NetLiftPlugin : Plugin<Project> {
                         )
                     )
                     netLiftTask.toolingDirectory.set(
-                        project.layout.buildDirectory.dir("netlift/tooling")
+                        project.layout.buildDirectory.dir("netlift/${variant.name}/tooling")
                     )
                     netLiftTask.managedSources.from(project.provider {
                         project.fileTree(extension.managedProject.get().asFile.parentFile).matching { patterns ->
-                            patterns.include("**/*.cs", "**/*.csproj", "**/*.props", "**/*.targets")
-                            patterns.exclude("**/bin/**", "**/obj/**")
-                        }
-                    })
-                    netLiftTask.componentSources.from(project.provider {
-                        project.fileTree(extension.componentProject.get().asFile.parentFile).matching { patterns ->
                             patterns.include("**/*.cs", "**/*.csproj", "**/*.props", "**/*.targets")
                             patterns.exclude("**/bin/**", "**/obj/**")
                         }

@@ -28,7 +28,7 @@ The command discovers requirements from the installed workload manifests. It
 does not hardcode JDK, Android SDK, or Xcode requirements.
 
 Build and audit the Kotlin-owned Android application. The app resolves
-`io.github.redth.netlift` `0.1.0-alpha.4` and runtime `0.1.0-alpha.1` from the
+`io.github.redth.netlift` `0.1.0-alpha.6` and runtime `0.1.0-alpha.1` from the
 public Pages Maven repository:
 
 ```bash
@@ -43,8 +43,10 @@ python3 experiments/workload-library-mode/android/tests/audit_package.py \
 The Android application applies the published Gradle plugin from
 `https://redth.github.io/netlift-sdk/maven/`; it does not compile plugin or
 runtime source, use Gradle composite substitution, or wire generated sources
-and AAR files by hand. The plugin contributes generated Kotlin and a separate
-app-specific workload component AAR containing CoreCLR, the assembly store,
+and AAR files by hand. Given only the portable managed project and contract
+roots, the plugin discovers service implementations, generates the managed
+JNI bridge and workload project, contributes generated Kotlin, and builds a
+separate app-specific component AAR containing CoreCLR, the assembly store,
 managed payload, typemaps, and workload Java peers. The runtime AAR contains
 only the reusable Kotlin/JNI/native runtime. Their compatibility manifests
 require the same ABI and NetLift package version before startup.
@@ -75,8 +77,8 @@ the generated process entry point. Native code owns `main`, Swift owns the
 the native UI only after workload initialization completes.
 
 Both platform apps have run successfully on local simulator/emulator targets.
-Each reports explicit CoreCLR initialization and native object peer identity
-preservation. The Android app compiles the canonical compiler's generated
+The earlier workload proofs established native object peer identity
+preservation. The package-consuming Android app compiles the canonical compiler's generated
 Kotlin client into the real Gradle build, sends an `OrderRequest` as UTF-8 JSON
 bytes, dispatches through the product `NetLiftEndpointHost` and generated managed
 route adapter, and displays the returned `order-customer-42`. The
@@ -102,7 +104,6 @@ shared/                      environment inventory and component contracts
 apple/managed-component/     workload-built managed/platform closure
 apple/native-app/            SwiftUI-owned entry point and lifecycle
 apple/tests/                 component, symbol, peer, and lifecycle checks
-android/managed-component/   workload-built managed/platform closure
 android/native-app/          Kotlin-owned entry point and lifecycle
 android/tests/               AAR, typemap, peer, and lifecycle checks
 ../../product/android/       standalone generic runtime AAR project
@@ -132,7 +133,6 @@ the local Maven repository remain under ignored `.artifacts/` or
 | `proof.json` | Promote or merge | Merge into final build configuration if both platforms use the fields. |
 | `apple/managed-component` | Delete after extraction | Promote only reusable component targets/bootstrap facade and focused regressions. |
 | `apple/native-app` | Delete after extraction | Promote one clean package-consuming sample only. |
-| `android/managed-component` | Delete after extraction | Promote only reusable component/AAR tasks/bootstrap facade and focused regressions. |
 | `android/native-app` | Delete after extraction | Promote one clean package-consuming sample only. |
 | `.artifacts/` | Always delete/ignore | Never commit generated workload or runtime output. |
 

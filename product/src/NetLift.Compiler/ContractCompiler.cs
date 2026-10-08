@@ -10,6 +10,17 @@ namespace NetLift.Compiler;
 public static class ContractCompiler
 {
     public static ContractManifest Compile(string assemblyPath, IReadOnlyList<string> contractRoots)
+        => CompileCore(assemblyPath, contractRoots, discoverImplementations: false).Manifest;
+
+    public static ContractCompilation CompileWithImplementations(
+        string assemblyPath,
+        IReadOnlyList<string> contractRoots)
+        => CompileCore(assemblyPath, contractRoots, discoverImplementations: true);
+
+    private static ContractCompilation CompileCore(
+        string assemblyPath,
+        IReadOnlyList<string> contractRoots,
+        bool discoverImplementations)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
         ArgumentNullException.ThrowIfNull(contractRoots);
@@ -44,12 +55,41 @@ public static class ContractCompiler
             var canonical = SerializeCanonical(withoutHash);
             var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))
                 .ToLowerInvariant();
-            return withoutHash with { SchemaHash = hash };
+            var manifest = withoutHash with { SchemaHash = hash };
+            var implementations = discoverImplementations
+                ? ResolveImplementations(exportedTypes, services)
+                : [];
+            return new ContractCompilation(manifest, implementations);
         }
         finally
         {
             loadContext.Unload();
         }
+    }
+
+    private static ContractServiceImplementation[] ResolveImplementations(
+        Type[] exportedTypes,
+        Type[] services)
+    {
+        return services.Select(service =>
+        {
+            var candidates = exportedTypes
+                .Where(type =>
+                    type.IsClass &&
+                    !type.IsAbstract &&
+                    !type.IsGenericType &&
+                    service.IsAssignableFrom(type) &&
+                    type.GetConstructor(Type.EmptyTypes) is { IsPublic: true })
+                .OrderBy(TypeName, StringComparer.Ordinal)
+                .ToArray();
+            if (candidates.Length == 0)
+                throw new ContractCompilerException(
+                    $"Contract service '{TypeName(service)}' requires one public, non-abstract implementation with a public parameterless constructor.");
+            if (candidates.Length > 1)
+                throw new ContractCompilerException(
+                    $"Contract service '{TypeName(service)}' has multiple constructible implementations: {string.Join(", ", candidates.Select(TypeName))}.");
+            return new ContractServiceImplementation(TypeName(service), TypeName(candidates[0]));
+        }).ToArray();
     }
 
     public static string Serialize(ContractManifest manifest) =>

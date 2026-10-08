@@ -18,9 +18,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import java.io.File
-import java.net.URI
-import java.nio.file.FileSystems
-import java.nio.file.Files
+import java.util.jar.JarFile
 import javax.inject.Inject
 
 abstract class NetLiftGenerateTask @Inject constructor(
@@ -30,17 +28,9 @@ abstract class NetLiftGenerateTask @Inject constructor(
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val managedProject: RegularFileProperty
 
-    @get:InputFile
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val componentProject: RegularFileProperty
-
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val managedSources: ConfigurableFileCollection
-
-    @get:InputFiles
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val componentSources: ConfigurableFileCollection
 
     @get:Input
     abstract val contractRoots: ListProperty<String>
@@ -88,7 +78,6 @@ abstract class NetLiftGenerateTask @Inject constructor(
         val tooling = toolingDirectory.get().asFile
         extractBundledTooling(tooling)
         val managed = managedProject.get().asFile
-        val component = componentProject.get().asFile
         val generated = generatedDirectory.get().asFile
         val configurationName = configuration.get()
         val managedAssembly = managed.parentFile
@@ -120,7 +109,8 @@ abstract class NetLiftGenerateTask @Inject constructor(
   "contractRoots": [${contractRoots.get().joinToString(", ") { "\"${json(it)}\"" }}],
   "kotlinPackage": "${json(kotlinPackage.get())}",
   "swiftModule": "${json(swiftModule.get())}",
-  "output": "${jsonPath(generated)}"$lockLine
+  "output": "${jsonPath(generated)}",
+  "emitAndroidBridge": true$lockLine
 }
 """
         )
@@ -132,6 +122,12 @@ abstract class NetLiftGenerateTask @Inject constructor(
                 config,
             )
         }
+        val component = createComponentProject(
+            temporaryDir.resolve("component"),
+            managed,
+            generated,
+            tooling.resolve("runtime/NetLift.Runtime.dll"),
+        )
         execOperations.exec { spec ->
             spec.workingDir(component.parentFile)
             spec.commandLine(
@@ -157,6 +153,53 @@ abstract class NetLiftGenerateTask @Inject constructor(
         }
     }
 
+    private fun createComponentProject(
+        directory: File,
+        managedProjectFile: File,
+        generated: File,
+        runtimeAssembly: File,
+    ): File {
+        require(runtimeAssembly.isFile) {
+            "Bundled NetLift managed runtime was not found: $runtimeAssembly"
+        }
+        directory.mkdirs()
+        return directory.resolve("NetLift.Generated.Android.csproj").also { projectFile ->
+            projectFile.writeText(
+                """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>${xml(componentTargetFramework.get())}</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifier>${xml(runtimeIdentifier.get())}</RuntimeIdentifier>
+    <ApplicationId>${xml(componentApplicationId.get())}</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <UseMonoRuntime>false</UseMonoRuntime>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TrimMode>copy</TrimMode>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="${xml(managedProjectFile.absolutePath)}" />
+    <Reference Include="NetLift.Runtime">
+      <HintPath>${xml(runtimeAssembly.absolutePath)}</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Compile Include="${xml(generated.resolve("NetLiftDispatcher.g.cs").absolutePath)}"
+             Link="Generated/NetLiftDispatcher.g.cs" />
+    <Compile Include="${xml(generated.resolve("NetLiftAndroidBridge.g.cs").absolutePath)}"
+             Link="Generated/NetLiftAndroidBridge.g.cs" />
+  </ItemGroup>
+</Project>
+"""
+            )
+        }
+    }
+
     private fun extractBundledTooling(destination: File) {
         destination.deleteRecursively()
         destination.mkdirs()
@@ -165,17 +208,20 @@ abstract class NetLiftGenerateTask @Inject constructor(
             source.resolve("netlift").copyRecursively(destination, overwrite = true)
             return
         }
-        FileSystems.newFileSystem(URI.create("jar:${source.toURI()}"), emptyMap<String, Any>()).use { fs ->
-            val root = fs.getPath("/netlift")
-            Files.walk(root).use { paths ->
-                paths.forEach { path ->
-                    val relative = root.relativize(path).toString()
-                    if (relative.isEmpty()) return@forEach
-                    val target = destination.toPath().resolve(relative)
-                    if (Files.isDirectory(path)) Files.createDirectories(target)
-                    else {
-                        Files.createDirectories(target.parent)
-                        Files.copy(path, target)
+        JarFile(source).use { jar ->
+            val entries = jar.entries()
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                if (!entry.name.startsWith("netlift/") || entry.name == "netlift/")
+                    continue
+                val relative = entry.name.removePrefix("netlift/")
+                val target = destination.resolve(relative)
+                if (entry.isDirectory) {
+                    target.mkdirs()
+                } else {
+                    target.parentFile.mkdirs()
+                    jar.getInputStream(entry).use { input ->
+                        target.outputStream().use(input::copyTo)
                     }
                 }
             }
@@ -186,4 +232,10 @@ abstract class NetLiftGenerateTask @Inject constructor(
 
     private fun json(value: String): String =
         value.replace("\\", "\\\\").replace("\"", "\\\"")
+
+    private fun xml(value: String): String =
+        value.replace("&", "&amp;")
+            .replace("\"", "&quot;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
 }

@@ -6,7 +6,6 @@ import android.widget.TextView
 import dev.netlift.orders.OrderPriority
 import dev.netlift.orders.OrderRequest
 import dev.netlift.orders.OrdersServiceClient
-import dev.netlift.runtime.ManagedNetLiftBridge
 import dev.netlift.runtime.NetLiftRuntime
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
@@ -32,7 +31,6 @@ class MainActivity : Activity() {
                 "NetLift retained an unexpected number of JNI global references."
             }
 
-            val bridge = ManagedNetLiftBridge()
             val transport = ManagedNetLiftTransport()
             val orders = OrdersServiceClient(transport)
             val result = runImmediate {
@@ -47,9 +45,6 @@ class MainActivity : Activity() {
             }
             check(result.accepted && result.orderId == "order-customer-42") {
                 "Generated Orders client returned an unexpected result: $result"
-            }
-            check(bridge.echoView(status) === status) {
-                "Android View peer identity was not preserved."
             }
             val invalidRoute = runCatching {
                 runImmediate {
@@ -81,7 +76,6 @@ class MainActivity : Activity() {
                 .NET Android workload component initialized explicitly.
                 Generated Orders client: ${result.orderId}
                 ${result.message}
-                Android View peer identity preserved.
             """.trimIndent()
         } catch (error: Throwable) {
             status.text = "Initialization failed: ${error.message}"

@@ -20,7 +20,12 @@ try
 
     var assemblyPath = Path.GetFullPath(configuration.Assembly, configurationDirectory);
     var outputPath = Path.GetFullPath(configuration.Output, configurationDirectory);
-    var manifest = ContractCompiler.Compile(assemblyPath, configuration.ContractRoots);
+    var compilation = configuration.EmitAndroidBridge
+        ? ContractCompiler.CompileWithImplementations(assemblyPath, configuration.ContractRoots)
+        : new ContractCompilation(
+            ContractCompiler.Compile(assemblyPath, configuration.ContractRoots),
+            []);
+    var manifest = compilation.Manifest;
     var contractLock = ContractCompiler.CreateLock(manifest);
     if (configuration.CompatibilityLock is { Length: > 0 } lockPath)
     {
@@ -43,6 +48,10 @@ try
     foreach (var (name, content) in ProjectionEmitter.Emit(
                  manifest, configuration.KotlinPackage, configuration.SwiftModule))
         WriteIfChanged(Path.Combine(outputPath, name), content);
+    if (configuration.EmitAndroidBridge)
+        WriteIfChanged(
+            Path.Combine(outputPath, "NetLiftAndroidBridge.g.cs"),
+            ProjectionEmitter.EmitAndroidBridge(manifest, compilation.Implementations));
 
     Console.WriteLine($"Generated NetLift contract {manifest.SchemaHash} in {outputPath}");
     return 0;

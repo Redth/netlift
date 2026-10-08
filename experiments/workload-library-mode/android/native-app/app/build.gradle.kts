@@ -3,18 +3,13 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.4"
+    id("io.github.redth.netlift") version "0.1.0-alpha.6"
 }
 
 netlift {
     managedProject.set(
         rootProject.file(
             "../../../../product/samples/Orders.Contracts/Orders.Contracts.csproj"
-        )
-    )
-    componentProject.set(
-        rootProject.file(
-            "../../android/managed-component/NetLift.WorkloadLibraryMode.Android.csproj"
         )
     )
     contractRoots.set(listOf("Orders.Contracts.IOrdersService"))

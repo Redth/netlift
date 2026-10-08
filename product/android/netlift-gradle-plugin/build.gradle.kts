@@ -45,8 +45,27 @@ val prepareNetLiftTool by tasks.registering(Exec::class) {
     )
 }
 
+val prepareNetLiftRuntime by tasks.registering(Exec::class) {
+    val output = layout.buildDirectory.dir("generated-resources/netlift/runtime")
+    inputs.dir(rootProject.file("../src/NetLift.Runtime"))
+    outputs.dir(output)
+    commandLine(
+        "dotnet",
+        "publish",
+        rootProject.file("../src/NetLift.Runtime/NetLift.Runtime.csproj"),
+        "-c",
+        "Release",
+        "-f",
+        "net10.0",
+        "--no-self-contained",
+        "-o",
+        output.get().asFile,
+        "-v:minimal",
+    )
+}
+
 tasks.processResources {
-    dependsOn(prepareNetLiftTool)
+    dependsOn(prepareNetLiftTool, prepareNetLiftRuntime)
     from(layout.buildDirectory.dir("generated-resources"))
     from(rootProject.file("tooling")) {
         into("netlift/tooling")

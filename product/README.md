@@ -136,12 +136,11 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.4"
+    id("io.github.redth.netlift") version "0.1.0-alpha.6"
 }
 
 netlift {
-    managedProject.set(file("../managed/Orders.Contracts.csproj"))
-    componentProject.set(file("../managed-android/Orders.Android.csproj"))
+    managedProject.set(file("../managed/Orders.csproj"))
     contractRoots.set(listOf("Orders.Contracts.IOrdersService"))
     kotlinPackage.set("com.example.orders")
     swiftModule.set("OrdersNetLift")
@@ -150,11 +149,11 @@ netlift {
 
 The plugin adds runtime `0.1.0-alpha.1` automatically. Its implementation JAR
 contains the matching compiler and deterministic Android component packager,
-so projection does not depend on a NetLift source checkout. For this early
-preview, `componentProject` is the small `net10.0-android` platform adapter
-that composes service implementations, generated dispatch, and any platform
-object peers. Promoting that adapter template behind `managedProject` alone is
-the next API simplification.
+so projection does not depend on a NetLift source checkout. The plugin finds
+exactly one public, parameterless implementation for each rooted service and
+generates the `net10.0-android` project, multi-service dispatcher, managed JNI
+bridge, and app-specific workload component. Missing or ambiguous service
+implementations fail generation with a precise diagnostic.
 
 The native app owns startup and calls the runtime explicitly:
 

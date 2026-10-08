@@ -2,7 +2,7 @@ using NetLift.Generated;
 using NetLift.Runtime;
 using Orders.Contracts;
 
-var service = new OrdersService();
+var service = new TestOrdersService();
 var request = new OrderRequest("customer-42", 2, OrderPriority.Expedited, null);
 var result = await ContractDispatcher.DispatchAsync(
     service,
@@ -29,7 +29,7 @@ if (projectedResult is not { OrderId: "order-42", Accepted: true })
 
 Console.WriteLine("Generated dispatcher test passed.");
 
-file sealed class OrdersService : IOrdersService
+file sealed class TestOrdersService : IOrdersService
 {
     public Task<OrderResult> SubmitOrderAsync(
         OrderRequest request,

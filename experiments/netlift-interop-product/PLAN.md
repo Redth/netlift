@@ -1555,8 +1555,10 @@ covered by the generated client.
   parameterized Android workload component packager. It no longer invokes the
   proof-only builder or requires a NetLift checkout for those tools.
 - The public Pages Maven repository serves the implementation JAR and standard
-  plugin marker. `0.1.0-alpha.4` is the current plugin preview and selects
-  runtime `0.1.0-alpha.1`.
+  plugin marker. `0.1.0-alpha.6` is the current plugin preview and selects
+  runtime `0.1.0-alpha.1`. `0.1.0-alpha.5` remains immutable; `alpha.6`
+  isolates bundled-tool extraction per variant and supports parallel
+  Debug/Release generation in one Gradle invocation.
 - The Android sample has no handwritten Gradle execution task, generated
   source directory, runtime dependency, or file AAR dependency. Applying and
   configuring the published plugin owns those integrations.
@@ -1565,11 +1567,14 @@ covered by the generated client.
 - Gradle up-to-date checks, deleted-output repair, and configuration-cache
   reuse pass. Remote build-cache reuse is deliberately disabled until the
   installed .NET/Android workload closure is modeled as a task input.
-- This preview still accepts an explicit small `componentProject` in addition
-  to `managedProject`. Removing that extra customer concept requires the plugin
-  to synthesize the platform adapter project and generated managed JNI bridge;
-  that remains the final W5 API simplification before the customer story is
-  considered complete.
+- The plugin now accepts only the portable `managedProject` and contract roots
+  for managed composition. It deterministically requires one public,
+  parameterless implementation per rooted service, emits a multi-service
+  dispatcher and managed JNI bridge, and synthesizes the `net10.0-android`
+  workload project outside source control.
+- The superseded handwritten Android managed-component proof was deleted.
+  Clean Debug, R8-minified Release, package audits, configuration-cache reuse,
+  and emulator execution all pass through the generated component.
 
 ### W6 - Settle Apple product-host feasibility and package shape
 
