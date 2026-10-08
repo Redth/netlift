@@ -3,6 +3,7 @@ using Android.Runtime;
 using Android.Views;
 using Java.Interop;
 using NetLift.Generated;
+using NetLift.Runtime;
 using Orders.Contracts;
 using System.Text;
 using System.Text.Json;
@@ -21,12 +22,14 @@ public static class ProofExports
     }
 }
 
-[Register("dev/netlift/workloadlibrarymode/ManagedProofBridge")]
-public sealed class ManagedProofBridge : Java.Lang.Object
+[Register("dev/netlift/workloadlibrarymode/ManagedNetLiftBridge")]
+public sealed class ManagedNetLiftBridge : Java.Lang.Object
 {
     private const string JniClassName =
-        "dev/netlift/workloadlibrarymode/ManagedProofBridge";
+        "dev/netlift/workloadlibrarymode/ManagedNetLiftBridge";
     private static readonly IOrdersService OrdersService = new OrdersService();
+    private static readonly NetLiftEndpointHost Endpoint =
+        new(new ContractDispatcherAdapter(OrdersService));
     private static readonly JsonSerializerOptions BridgeJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -45,8 +48,9 @@ public sealed class ManagedProofBridge : Java.Lang.Object
             EchoViewCallbackInstance),
     ];
     private static int nativeMethodsRegistered;
+    private static long nextOperationToken;
 
-    public ManagedProofBridge()
+    public ManagedNetLiftBridge()
     {
         if (Interlocked.Exchange(ref nativeMethodsRegistered, 1) != 0)
         {
@@ -68,8 +72,8 @@ public sealed class ManagedProofBridge : Java.Lang.Object
         try
         {
             ArgumentNullException.ThrowIfNull(payload);
-            var response = ContractDispatcher.DispatchBytesAsync(
-                    OrdersService,
+            var result = Endpoint.InvokeAsync(
+                    checked((ulong)Interlocked.Increment(ref nextOperationToken)),
                     checked((uint)serviceId),
                     checked((uint)memberId),
                     Encoding.UTF8.GetBytes(payload.ToString()),
@@ -77,11 +81,25 @@ public sealed class ManagedProofBridge : Java.Lang.Object
                 .AsTask()
                 .GetAwaiter()
                 .GetResult();
-            return CreateBridgeResponse(new(true, Convert.ToBase64String(response), null));
+            return result.Status == NetLiftStatus.Success
+                ? CreateBridgeResponse(new(
+                    true,
+                    Convert.ToBase64String(result.Payload.Span),
+                    null,
+                    (int)result.Status))
+                : CreateBridgeResponse(new(
+                    false,
+                    null,
+                    result.Error,
+                    (int)result.Status));
         }
         catch (Exception error)
         {
-            return CreateBridgeResponse(new(false, null, error.Message));
+            return CreateBridgeResponse(new(
+                false,
+                null,
+                error.Message,
+                (int)NetLiftStatus.InvalidArgument));
         }
     }
 
@@ -101,7 +119,7 @@ public sealed class ManagedProofBridge : Java.Lang.Object
     {
         try
         {
-            var bridge = GetObject<ManagedProofBridge>(self, JniHandleOwnership.DoNotTransfer)
+            var bridge = GetObject<ManagedNetLiftBridge>(self, JniHandleOwnership.DoNotTransfer)
                 ?? throw new InvalidOperationException("Managed bridge peer was unavailable.");
             var request = GetObject<Java.Lang.String>(payload, JniHandleOwnership.DoNotTransfer)
                 ?? throw new ArgumentNullException(nameof(payload));
@@ -110,14 +128,18 @@ public sealed class ManagedProofBridge : Java.Lang.Object
         }
         catch (Exception error)
         {
-            using var response = CreateBridgeResponse(new(false, null, error.Message));
+            using var response = CreateBridgeResponse(new(
+                false,
+                null,
+                error.Message,
+                (int)NetLiftStatus.HandlerFailure));
             return JNIEnv.ToLocalJniHandle(response);
         }
     }
 
     private static nint EchoViewFromJava(nint environment, nint self, nint view)
     {
-        var bridge = GetObject<ManagedProofBridge>(self, JniHandleOwnership.DoNotTransfer)
+        var bridge = GetObject<ManagedNetLiftBridge>(self, JniHandleOwnership.DoNotTransfer)
             ?? throw new InvalidOperationException("Managed bridge peer was unavailable.");
         var request = GetObject<View>(view, JniHandleOwnership.DoNotTransfer)
             ?? throw new ArgumentNullException(nameof(view));
@@ -136,7 +158,11 @@ public sealed class ManagedProofBridge : Java.Lang.Object
     private static Java.Lang.String CreateBridgeResponse(BridgeResponse response) =>
         new(JsonSerializer.Serialize(response, BridgeJsonOptions));
 
-    private sealed record BridgeResponse(bool Success, string? Payload, string? Error);
+    private sealed record BridgeResponse(
+        bool Success,
+        string? Payload,
+        string? Error,
+        int Status);
 }
 
 internal sealed class OrdersService : IOrdersService

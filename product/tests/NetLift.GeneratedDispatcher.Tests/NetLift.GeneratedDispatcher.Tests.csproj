@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../samples/Orders.Contracts/Orders.Contracts.csproj" />
+    <ProjectReference Include="../../src/NetLift.Runtime/NetLift.Runtime.csproj" />
     <ProjectReference Include="../../src/NetLift.Tool/NetLift.Tool.csproj"
                       ReferenceOutputAssembly="false" />
     <Compile Include="../../artifacts/generated/NetLiftDispatcher.g.cs"
@@ -12,7 +13,7 @@
   </ItemGroup>
   <Target Name="GenerateNetLiftDispatcher"
           BeforeTargets="CoreCompile"
-          Inputs="../../netlift.json;../../samples/Orders.Contracts/bin/$(Configuration)/net11.0/Orders.Contracts.dll"
+          Inputs="../../netlift.json;../../samples/Orders.Contracts/bin/$(Configuration)/net10.0/Orders.Contracts.dll"
           Outputs="../../artifacts/generated/NetLiftDispatcher.g.cs">
     <Exec Command="dotnet run --project ../../src/NetLift.Tool --no-build --configuration $(Configuration) -- ../../netlift.json" />
   </Target>

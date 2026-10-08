@@ -141,7 +141,7 @@ def main() -> int:
     }
     required_runtime_classes = {
         "dev.netlift.workloadlibrarymode.DotnetAndroidRuntime",
-        "dev.netlift.workloadlibrarymode.ManagedProofBridge",
+        "dev.netlift.workloadlibrarymode.ManagedNetLiftBridge",
         "net.dot.android.crypto.DotnetProxyTrustManager",
         "net.dot.jni.ManagedPeer",
     }

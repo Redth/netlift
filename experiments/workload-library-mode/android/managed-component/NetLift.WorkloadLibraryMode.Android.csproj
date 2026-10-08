@@ -16,6 +16,7 @@
     <TrimMode>copy</TrimMode>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../../product/src/NetLift.Runtime/NetLift.Runtime.csproj" />
     <ProjectReference Include="../../../../product/samples/Orders.Contracts/Orders.Contracts.csproj" />
     <Compile Include="../../../../product/artifacts/generated/NetLiftDispatcher.g.cs"
              Link="Generated/NetLiftDispatcher.g.cs" />

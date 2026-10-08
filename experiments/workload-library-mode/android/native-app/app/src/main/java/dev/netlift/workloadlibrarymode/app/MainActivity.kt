@@ -7,7 +7,7 @@ import dev.netlift.orders.OrderPriority
 import dev.netlift.orders.OrderRequest
 import dev.netlift.orders.OrdersServiceClient
 import dev.netlift.workloadlibrarymode.DotnetAndroidRuntime
-import dev.netlift.workloadlibrarymode.ManagedProofBridge
+import dev.netlift.workloadlibrarymode.ManagedNetLiftBridge
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
@@ -29,7 +29,7 @@ class MainActivity : Activity() {
                 ".NET Android workload component did not report ready."
             }
 
-            val bridge = ManagedProofBridge()
+            val bridge = ManagedNetLiftBridge()
             val transport = ManagedNetLiftTransport(bridge)
             val orders = OrdersServiceClient(transport)
             val result = runImmediate {

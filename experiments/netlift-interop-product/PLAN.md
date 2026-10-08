@@ -1252,6 +1252,25 @@ or schema-diff model and no fixture-specific code path.
 
 ### W3 - Freeze the first product host and generic ABI
 
+**Implementation status:** accepted first request/response revision.
+
+The accepted V1 surface is intentionally narrower than the original candidate
+list below. It freezes host/endpoint creation, numeric byte invocation,
+operation-token cancellation, outstanding-work observation, drain/close, and
+owned-buffer release in one 80-byte function table. Callback registration,
+streaming, and asynchronous completion extend the size-versioned table in W8;
+they are not speculative V1 slots. App-private dynamic module loading remains
+in W6. Mobile V1 attaches through the workload-owned component closure and
+does not start or load a second runtime.
+
+The implementation is under `product/include/netlift.h`,
+`product/src/NetLift.NativeCore`, and `product/src/NetLift.Runtime`. C11/C++17
+layout and lifecycle tests cover negotiation, malformed capacity, stale
+handles, double close/release, owned error buffers, concurrent cancellation,
+busy drain, and zero-work close. The Android workload proof consumes the same
+managed endpoint authority through a generated contract adapter; Orders
+remains an acceptance fixture rather than runtime logic.
+
 **Primary owner:** native core and managed host.
 
 **Depends on:** W2.

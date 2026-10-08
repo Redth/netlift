@@ -2,11 +2,11 @@ package dev.netlift.workloadlibrarymode.app
 
 import android.util.Base64
 import dev.netlift.orders.NetLiftTransport
-import dev.netlift.workloadlibrarymode.ManagedProofBridge
+import dev.netlift.workloadlibrarymode.ManagedNetLiftBridge
 import org.json.JSONObject
 
 internal class ManagedNetLiftTransport(
-    private val bridge: ManagedProofBridge = ManagedProofBridge(),
+    private val bridge: ManagedNetLiftBridge = ManagedNetLiftBridge(),
 ) : NetLiftTransport {
     override suspend fun invoke(
         serviceId: UInt,
@@ -21,7 +21,8 @@ internal class ManagedNetLiftTransport(
             )
         )
         check(response.getBoolean("success")) {
-            response.optString("error", "Managed NetLift call failed.")
+            "NetLift status ${response.optInt("status", -1)}: " +
+                response.optString("error", "Managed NetLift call failed.")
         }
         return Base64.decode(response.getString("payload"), Base64.DEFAULT)
     }

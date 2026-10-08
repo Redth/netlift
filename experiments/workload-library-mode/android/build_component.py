@@ -165,7 +165,7 @@ def main() -> int:
         / "dev"
         / "netlift"
         / "workloadlibrarymode"
-        / "ManagedProofBridge.class",
+        / "ManagedNetLiftBridge.class",
         apk,
         INITIALIZER_SOURCE,
     ]
@@ -291,7 +291,7 @@ def main() -> int:
 </manifest>
 """
     consumer_rules = b"""-keep class dev.netlift.workloadlibrarymode.DotnetAndroidRuntime { *; }
--keep class dev.netlift.workloadlibrarymode.ManagedProofBridge { *; }
+-keep class dev.netlift.workloadlibrarymode.ManagedNetLiftBridge { *; }
 -keep class mono.** { *; }
 -keep class net.dot.** { *; }
 """
@@ -321,7 +321,7 @@ def main() -> int:
         ) as classes_archive:
             required_classes = {
                 "dev/netlift/workloadlibrarymode/DotnetAndroidRuntime.class",
-                "dev/netlift/workloadlibrarymode/ManagedProofBridge.class",
+                "dev/netlift/workloadlibrarymode/ManagedNetLiftBridge.class",
                 "mono/MonoPackageManager.class",
                 "mono/MonoPackageManager_Resources.class",
                 "mono/android/TypeManager.class",

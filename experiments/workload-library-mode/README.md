@@ -66,9 +66,11 @@ Both platform apps have run successfully on local simulator/emulator targets.
 Each reports explicit CoreCLR initialization and native object peer identity
 preservation. The Android app compiles the canonical compiler's generated
 Kotlin client into the real Gradle build, sends an `OrderRequest` as UTF-8 JSON
-bytes, dispatches through the generated managed route table, and displays the
-returned `order-customer-42`. Managed failures use an explicit response
-envelope and are surfaced as Kotlin exceptions. The proof also verifies
+bytes, dispatches through the product `NetLiftEndpointHost` and generated managed
+route adapter, and displays the returned `order-customer-42`. The
+contract-neutral `ManagedNetLiftBridge` returns an explicit status-bearing
+response envelope, so managed failures are surfaced as Kotlin exceptions.
+The proof also verifies
 idempotent initialization, survives Activity recreation without restarting
 CoreCLR, and runs from an R8-minified release APK.
 
