@@ -78,6 +78,10 @@ def write_component_project(
     native_callbacks: Path | None,
 ) -> None:
     runtime_project = PRODUCT / "src" / "NetLift.Runtime" / "NetLift.Runtime.csproj"
+    apple_platform_project = (
+        PRODUCT / "apple" / "src" / "NetLift.ApplePlatform" /
+        "NetLift.ApplePlatform.csproj"
+    )
     native_reference = (
         f'\n    <NativeReference Include="{native_callbacks}" Kind="Static" />'
         if native_callbacks is not None
@@ -107,6 +111,7 @@ def write_component_project(
       <SetTargetFramework>TargetFramework={managed_framework}</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="{runtime_project}" />
+    <ProjectReference Include="{apple_platform_project}" />
     <Compile Include="{generated / "NetLiftDispatcher.g.cs"}" Link="Generated/NetLiftDispatcher.g.cs" />
     <Compile Include="{generated / "NetLiftAppleBridge.g.cs"}" Link="Generated/NetLiftAppleBridge.g.cs" />
     {native_reference}
@@ -383,6 +388,7 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
             / "NetLiftRuntime.swift"
         ),
         str(generated / "NetLiftContracts.swift"),
+        str(generated / "NetLiftApplePlatform.swift"),
         str(native_source_root / "NativeApp.swift"),
         "-o",
         str(swift_object),
@@ -484,6 +490,7 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         output_app / f"{COMPONENT_NAME}.dll",
         output_app / managed_assembly.name,
         output_app / "NetLift.Runtime.dll",
+        output_app / "NetLift.ApplePlatform.dll",
         output_app / "libcoreclr.dylib",
         output_app / "libxamarin-dotnet-coreclr-debug.dylib",
         output_app
@@ -503,6 +510,12 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         "runtimeFlavor": "CoreCLR",
         "targetFramework": TFM,
         "runtimeIdentifier": RID,
+        "platformObjectProjection": {
+            "enabled": True,
+            "adapter": "netlift.apple.uiview",
+            "ownership": ["borrowed", "retained"],
+            "threadAffinity": "main",
+        },
         "minimumOSVersion": DEPLOYMENT_TARGET,
         "contractSchemaHash": json.loads(
             (generated / "netlift.manifest.json").read_text(encoding="utf-8")

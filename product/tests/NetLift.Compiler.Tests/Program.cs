@@ -180,6 +180,30 @@ Require(
     appleBridge.Contains("new global::Orders.Contracts.OrdersService()", StringComparison.Ordinal),
     "Generated Apple bridge omitted deterministic service construction.");
 Require(
+    appleBridge.Contains(
+        "NetLiftAppleViewAdapter.Borrow(view)",
+        StringComparison.Ordinal) &&
+    appleBridge.Contains(
+        "NetLiftAppleViewAdapter.Retain(view)",
+        StringComparison.Ordinal) &&
+    appleBridge.Contains(
+        "RetainedViews.TryRemove",
+        StringComparison.Ordinal),
+    "Generated Apple bridge omitted UIView ownership paths.");
+var applePlatformFacade = ProjectionEmitter.EmitApplePlatformFacade(
+    androidCompilation.Manifest);
+Require(
+    applePlatformFacade.Contains(
+        "@MainActor",
+        StringComparison.Ordinal) &&
+    applePlatformFacade.Contains(
+        "public func roundTripBorrowed(_ view: UIView) -> UIView",
+        StringComparison.Ordinal) &&
+    applePlatformFacade.Contains(
+        "public func retain(_ view: UIView) -> Int64",
+        StringComparison.Ordinal),
+    "Generated Apple UIView facade omitted typing or main-actor isolation.");
+Require(
     appleBridge.Contains("[global::Foundation.Register(\"NetLiftManagedBridge\")]", StringComparison.Ordinal),
     "Generated Apple bridge omitted its Objective-C registration.");
 Require(

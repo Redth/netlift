@@ -88,9 +88,14 @@ try
             Path.Combine(outputPath, "NetLiftAndroidBridge.g.cs"),
             ProjectionEmitter.EmitAndroidBridge(manifest, compilation.Implementations));
     if (configuration.EmitAppleBridge)
+    {
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftAppleBridge.g.cs"),
             ProjectionEmitter.EmitAppleBridge(manifest, compilation.Implementations));
+        WriteIfChanged(
+            Path.Combine(outputPath, "NetLiftApplePlatform.swift"),
+            ProjectionEmitter.EmitApplePlatformFacade(manifest));
+    }
 
     Console.WriteLine($"Generated NetLift contract {manifest.SchemaHash} in {outputPath}");
     return 0;

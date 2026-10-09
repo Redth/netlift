@@ -1964,8 +1964,13 @@ backend-specific one-off type mappings outside adapter modules.
 **Progress:** The workload-owned `NetLift.ApplePlatform` foundation now
 provides main-thread validation, same-peer lookup through the shared
 Objective-C runtime, borrowed leases, retained reference-counted leases, and
-generation-safe cleanup. Generated `UIView` facade wiring and simulator/device
-acceptance remain before this slice can be advertised as supported.
+generation-safe cleanup. The package is included in the app-wide
+registrar/linker/R2R closure, and the generated `@MainActor` Swift facade has
+passed ARM64 simulator acceptance for borrowed same-peer identity, wrong-class
+rejection, retained identity across forced GC, exactly-once release,
+stale-token rejection, and cleanup to the baseline peer count. Signed
+physical-device acceptance remains before this slice can be advertised as
+supported.
 
 #### Android `View` slice
 

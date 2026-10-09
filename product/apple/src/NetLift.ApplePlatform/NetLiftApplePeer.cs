@@ -14,13 +14,18 @@ public sealed class NetLiftApplePeerLease<T> : IDisposable
     where T : NSObject
 {
     private readonly nint handle;
+    private readonly ulong generation;
     private readonly bool retained;
     private int disposed;
 
-    internal NetLiftApplePeerLease(T value, NetLiftApplePeerOwnership ownership)
+    internal NetLiftApplePeerLease(
+        T value,
+        NetLiftApplePeerOwnership ownership,
+        ulong generation = 0)
     {
         Value = value;
         handle = value.Handle;
+        this.generation = generation;
         retained = ownership == NetLiftApplePeerOwnership.Retained;
     }
 
@@ -34,7 +39,7 @@ public sealed class NetLiftApplePeerLease<T> : IDisposable
         if (Interlocked.Exchange(ref disposed, 1) != 0 || !retained)
             return;
 
-        NetLiftApplePeerRegistry.Release(handle);
+        NetLiftApplePeerRegistry.Release(handle, generation);
     }
 }
 
@@ -78,23 +83,28 @@ public static class NetLiftApplePeerRegistry
         where T : NSObject
     {
         var value = Resolve<T>(native);
+        ulong generation;
         lock (Gate)
         {
             if (RetainedPeers.TryGetValue(value.Handle, out var existing))
             {
                 existing.RefCount++;
+                generation = existing.Generation;
             }
             else
             {
-                var generation = Generations.TryGetValue(value.Handle, out var previous)
-                    ? checked(previous + 1)
+                generation = Generations.TryGetValue(value.Handle, out var previous)
+                    ? previous == ulong.MaxValue ? 1 : previous + 1
                     : 1;
                 Generations[value.Handle] = generation;
                 RetainedPeers.Add(value.Handle, new RetainedPeer(value, generation));
             }
         }
 
-        return new NetLiftApplePeerLease<T>(value, NetLiftApplePeerOwnership.Retained);
+        return new NetLiftApplePeerLease<T>(
+            value,
+            NetLiftApplePeerOwnership.Retained,
+            generation);
     }
 
     public static T Resolve<T>(NSObject native)
@@ -121,11 +131,12 @@ public static class NetLiftApplePeerRegistry
             throw new InvalidOperationException("Apple platform peers must be accessed on the main thread.");
     }
 
-    internal static void Release(nint handle)
+    internal static void Release(nint handle, ulong generation)
     {
         lock (Gate)
         {
-            if (!RetainedPeers.TryGetValue(handle, out var retained))
+            if (!RetainedPeers.TryGetValue(handle, out var retained) ||
+                retained.Generation != generation)
                 return;
 
             if (--retained.RefCount > 0)

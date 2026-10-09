@@ -116,6 +116,13 @@ The adapter remains experimental until simulator and physical-device tests
 verify same-peer identity, wrong-class rejection, ARC/GC pressure, and cleanup
 back to the baseline retained-peer count.
 
+The generated Apple bridge and `@MainActor` Swift facade now exercise this
+adapter in the workload-built simulator app. The acceptance covers borrowed
+same-peer round trips, wrong-class rejection, retained identity across forced
+managed GC, exactly-once release, stale-token rejection, and retained-peer
+counts returning to baseline. Physical-device execution is still required
+before `UIView` projection is listed as supported.
+
 ## Generic runtime and native ABI
 
 `include/netlift.h` is the first product ABI. `netlift_get_api` negotiates one
