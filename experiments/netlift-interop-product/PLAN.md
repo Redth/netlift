@@ -1961,6 +1961,12 @@ backend-specific one-off type mappings outside adapter modules.
 5. Test managed `[Export]`/subclass support separately; do not imply it from
    accepting an existing UIKit object.
 
+**Progress:** The workload-owned `NetLift.ApplePlatform` foundation now
+provides main-thread validation, same-peer lookup through the shared
+Objective-C runtime, borrowed leases, retained reference-counted leases, and
+generation-safe cleanup. Generated `UIView` facade wiring and simulator/device
+acceptance remain before this slice can be advertised as supported.
+
 #### Android `View` slice
 
 1. Add a first-party `net11.0-android` adapter to the app-wide workload

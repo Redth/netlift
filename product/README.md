@@ -97,6 +97,25 @@ The cross-version fixture matrix runs through the generated package consumers:
 | Either peer lacks `optional-fields-v1` | Added optional field | Compatibility check fails |
 | Adapter version, ownership, or capability differs | Mismatched peer | Compatibility check fails with adapter diagnostics |
 
+## Apple platform-peer adapter (W10 foundation)
+
+`NetLift.ApplePlatform` is the workload-owned foundation for the optional
+Apple `UIView` adapter. It is intentionally separate from the portable
+adapter registry and does not load a second runtime or binding assembly set.
+The first slice exposes only existing Objective-C peers:
+
+- `NetLiftApplePeerRegistry.Resolve<T>` validates the native class and resolves
+  the workload-managed peer by Objective-C handle.
+- `Borrow` creates a call-scoped, non-retaining lease.
+- `Retain` creates a reference-counted lease with generation-safe cleanup.
+- all peer access is main-thread-only.
+
+Managed-created `[Export]` subclasses, callback targets, and arbitrary
+Objective-C object graphs are not implied by accepting an existing `UIView`.
+The adapter remains experimental until simulator and physical-device tests
+verify same-peer identity, wrong-class rejection, ARC/GC pressure, and cleanup
+back to the baseline retained-peer count.
+
 ## Generic runtime and native ABI
 
 `include/netlift.h` is the first product ABI. `netlift_get_api` negotiates one
