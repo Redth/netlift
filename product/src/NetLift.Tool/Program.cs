@@ -84,9 +84,16 @@ try
                  manifest, configuration.KotlinPackage, configuration.SwiftModule))
         WriteIfChanged(Path.Combine(outputPath, name), content);
     if (configuration.EmitAndroidBridge)
+    {
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftAndroidBridge.g.cs"),
             ProjectionEmitter.EmitAndroidBridge(manifest, compilation.Implementations));
+        WriteIfChanged(
+            Path.Combine(outputPath, "NetLiftAndroidPlatform.kt"),
+            ProjectionEmitter.EmitAndroidPlatformFacade(
+                manifest,
+                configuration.KotlinPackage));
+    }
     if (configuration.EmitAppleBridge)
     {
         WriteIfChanged(

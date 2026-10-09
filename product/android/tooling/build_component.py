@@ -213,6 +213,12 @@ def main() -> int:
         "requiredRuntimeVersion": args.runtime_version,
         "minimumAndroidSdk": args.minimum_sdk,
         "typemapMode": "llvm-ir",
+        "platformObjectProjection": {
+            "enabled": True,
+            "adapter": "netlift.android.view",
+            "ownership": ["borrowed", "retained"],
+            "threadAffinity": "main",
+        },
         "files": files,
     }
     manifest = (json.dumps(component_manifest, indent=2, sort_keys=True) + "\n").encode()

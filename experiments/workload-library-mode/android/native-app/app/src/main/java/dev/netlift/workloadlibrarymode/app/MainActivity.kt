@@ -14,6 +14,7 @@ import dev.netlift.orders.UuidRoundTripRequest
 import dev.netlift.runtime.NetLiftRemoteException
 import dev.netlift.runtime.NetLiftRuntime
 import dev.netlift.orders.NetLiftTransport
+import dev.netlift.orders.NetLiftAndroidViewClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,48 @@ class MainActivity : Activity() {
             check(NetLiftRuntime.diagnostics().globalReferenceCount == 2) {
                 "NetLift retained an unexpected number of JNI global references."
             }
+            val androidViews = NetLiftAndroidViewClient()
+            val retainedBaseline = androidViews.liveRetainedViewCount
+            val borrowedView = android.view.View(this@MainActivity)
+            check(androidViews.roundTripBorrowed(borrowedView) === borrowedView) {
+                "Borrowed Android View identity was not preserved."
+            }
+            check(androidViews.acceptsViewPeer(borrowedView)) {
+                "Android View peer was rejected."
+            }
+            check(!androidViews.acceptsViewPeer(android.graphics.drawable.ColorDrawable())) {
+                "Wrong Android peer class was accepted as a View."
+            }
+            var retainedSource: android.view.View? = android.view.View(this@MainActivity)
+            val weakRetainedView = java.lang.ref.WeakReference(retainedSource)
+            val retainedIdentity = System.identityHashCode(retainedSource)
+            val retainedToken = androidViews.retain(retainedSource!!)
+            retainedSource = null
+            androidViews.collectManagedGarbage()
+            System.gc()
+            delay(10)
+            val retainedView = checkNotNull(androidViews.retainedView(retainedToken)) {
+                "Retained Android View was released early."
+            }
+            check(System.identityHashCode(retainedView) == retainedIdentity)
+            check(weakRetainedView.get() === retainedView)
+            check(androidViews.liveRetainedViewCount == retainedBaseline + 1)
+            check(androidViews.release(retainedToken) == 0)
+            check(androidViews.release(retainedToken) == 6)
+            check(androidViews.liveRetainedViewCount == retainedBaseline)
+            check(
+                withContext(Dispatchers.Default) {
+                    runCatching {
+                        androidViews.roundTripBorrowed(borrowedView)
+                    }.isFailure
+                }
+            ) {
+                "Android View access was not rejected off the main thread."
+            }
+            check(NetLiftRuntime.diagnostics().globalReferenceCount == 2) {
+                "Android View leases did not return JNI global references to baseline."
+            }
+            Log.i("NetLiftAcceptance", "NETLIFT_ANDROID_VIEW_PASSED")
 
             val transport = ManagedNetLiftTransport()
             val orders = OrdersServiceClient(transport, transport)

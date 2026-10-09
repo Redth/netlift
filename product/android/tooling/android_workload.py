@@ -58,13 +58,21 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def select_manifest(dotnet_root: Path, sdk_major: int) -> tuple[Path, Path]:
+def select_manifest(dotnet_root: Path, sdk_version: str) -> tuple[Path, Path]:
+    sdk_major = version_key(sdk_version)[0]
     manifests = list(
         (dotnet_root / "sdk-manifests").glob(
             f"{sdk_major}.*{os.sep}microsoft.net.sdk.android{os.sep}*"
             f"{os.sep}WorkloadManifest.json"
         )
     )
+    matching_band = [
+        path
+        for path in manifests
+        if sdk_version.startswith(path.parents[2].name)
+    ]
+    if matching_band:
+        manifests = matching_band
     compatible = [
         (version_key(str(load_jsonc(path)["version"])), path, path.with_name("WorkloadDependencies.json"))
         for path in manifests
@@ -112,7 +120,7 @@ def inspect_environment() -> dict[str, Any]:
         raise RuntimeError(f"Unsupported Android component build host: {sys.platform}/{machine}")
 
     manifest_path, dependencies_path = select_manifest(
-        dotnet_root, version_key(sdk_version)[0]
+        dotnet_root, sdk_version
     )
     manifest = load_jsonc(manifest_path)
     dependencies = load_jsonc(dependencies_path)["microsoft.net.sdk.android"]

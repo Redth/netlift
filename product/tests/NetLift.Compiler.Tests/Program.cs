@@ -173,6 +173,31 @@ Require(
         "new(\"n_Cancel\", \"(J)I\", CancelCallbackInstance)",
         StringComparison.Ordinal),
     "Generated Android bridge omitted JNI cancellation registration.");
+Require(
+    androidBridge.Contains(
+        "NetLiftAndroidViewAdapter.Borrow(view)",
+        StringComparison.Ordinal) &&
+    androidBridge.Contains(
+        "NetLiftAndroidViewAdapter.Retain(view)",
+        StringComparison.Ordinal) &&
+    androidBridge.Contains(
+        "RetainedViews.TryRemove",
+        StringComparison.Ordinal),
+    "Generated Android bridge omitted View ownership paths.");
+var androidPlatformFacade = ProjectionEmitter.EmitAndroidPlatformFacade(
+    androidCompilation.Manifest,
+    "dev.netlift.orders");
+Require(
+    androidPlatformFacade.Contains(
+        "class NetLiftAndroidViewClient",
+        StringComparison.Ordinal) &&
+    androidPlatformFacade.Contains(
+        "Looper.myLooper() == Looper.getMainLooper()",
+        StringComparison.Ordinal) &&
+    androidPlatformFacade.Contains(
+        "fun roundTripBorrowed(view: View): View",
+        StringComparison.Ordinal),
+    "Generated Android View facade omitted typing or main-thread isolation.");
 var appleBridge = ProjectionEmitter.EmitAppleBridge(
     androidCompilation.Manifest,
     androidCompilation.Implementations);

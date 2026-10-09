@@ -64,9 +64,41 @@ val prepareNetLiftRuntime by tasks.registering(Exec::class) {
     )
 }
 
+val prepareNetLiftAndroidPlatform by tasks.registering(Exec::class) {
+    inputs.dir(rootProject.file("src/NetLift.AndroidPlatform"))
+    outputs.file(
+        rootProject.file(
+            "src/NetLift.AndroidPlatform/bin/Release/net11.0-android/" +
+                "NetLift.AndroidPlatform.dll"
+        )
+    )
+    commandLine(
+        "dotnet",
+        "build",
+        rootProject.file("src/NetLift.AndroidPlatform/NetLift.AndroidPlatform.csproj"),
+        "-c",
+        "Release",
+        "-f",
+        "net11.0-android",
+        "-v:minimal",
+    )
+}
+
 tasks.processResources {
-    dependsOn(prepareNetLiftTool, prepareNetLiftRuntime)
+    dependsOn(
+        prepareNetLiftTool,
+        prepareNetLiftRuntime,
+        prepareNetLiftAndroidPlatform,
+    )
     from(layout.buildDirectory.dir("generated-resources"))
+    from(
+        rootProject.file(
+            "src/NetLift.AndroidPlatform/bin/Release/net11.0-android/" +
+                "NetLift.AndroidPlatform.dll"
+        )
+    ) {
+        into("netlift/android-platform")
+    }
     from(rootProject.file("tooling")) {
         into("netlift/tooling")
     }

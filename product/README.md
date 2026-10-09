@@ -123,6 +123,16 @@ managed GC, exactly-once release, stale-token rejection, and retained-peer
 counts returning to baseline. Physical-device execution is still required
 before `UIView` projection is listed as supported.
 
+`NetLift.AndroidPlatform` provides the corresponding workload-owned existing
+`android.view.View` peer path. The generated Kotlin facade enforces main-thread
+access, and the managed bridge provides borrowed round trips plus explicit
+retained-token lookup and release. ARM64 API 36 emulator acceptance covers
+same-peer identity, wrong-class rejection, off-main-thread rejection, retained
+identity across GC pressure, stale-token rejection, JNI global-reference
+return to baseline, and all existing W8/W9 behaviors. Physical-device
+execution remains required before Android `View` projection is listed as
+supported.
+
 ## Generic runtime and native ABI
 
 `include/netlift.h` is the first product ABI. `netlift_get_api` negotiates one

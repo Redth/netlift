@@ -22,7 +22,7 @@ class NetLiftPlugin : Plugin<Project> {
         )
         extension.swiftModule.convention("NetLiftContracts")
         extension.contractTargetFramework.convention("net10.0")
-        extension.componentTargetFramework.convention("net10.0-android")
+        extension.componentTargetFramework.convention("net11.0-android")
         extension.runtimeIdentifier.convention("android-arm64")
         extension.runtimeVersion.convention("0.1.0-alpha.3")
         extension.componentApplicationId.convention("${project.name}.netlift.component")

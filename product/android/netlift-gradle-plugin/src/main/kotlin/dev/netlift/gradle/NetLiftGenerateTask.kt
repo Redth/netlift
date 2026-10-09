@@ -137,6 +137,7 @@ abstract class NetLiftGenerateTask @Inject constructor(
             managed,
             generated,
             tooling.resolve("runtime/NetLift.Runtime.dll"),
+            tooling.resolve("android-platform/NetLift.AndroidPlatform.dll"),
         )
         execOperations.exec { spec ->
             spec.workingDir(component.parentFile)
@@ -168,9 +169,13 @@ abstract class NetLiftGenerateTask @Inject constructor(
         managedProjectFile: File,
         generated: File,
         runtimeAssembly: File,
+        androidPlatformAssembly: File,
     ): File {
         require(runtimeAssembly.isFile) {
             "Bundled NetLift managed runtime was not found: $runtimeAssembly"
+        }
+        require(androidPlatformAssembly.isFile) {
+            "Bundled NetLift Android platform adapter was not found: $androidPlatformAssembly"
         }
         directory.mkdirs()
         return directory.resolve("NetLift.Generated.Android.csproj").also { projectFile ->
@@ -197,6 +202,10 @@ abstract class NetLiftGenerateTask @Inject constructor(
     <ProjectReference Include="${xml(managedProjectFile.absolutePath)}" />
     <Reference Include="NetLift.Runtime">
       <HintPath>${xml(runtimeAssembly.absolutePath)}</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="NetLift.AndroidPlatform">
+      <HintPath>${xml(androidPlatformAssembly.absolutePath)}</HintPath>
       <Private>true</Private>
     </Reference>
     <Compile Include="${xml(generated.resolve("NetLiftDispatcher.g.cs").absolutePath)}"

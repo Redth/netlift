@@ -1993,6 +1993,14 @@ supported.
 5. Test managed Java-callable subclasses separately; do not imply them from
    accepting an existing `View`.
 
+**Progress:** The workload-owned `NetLift.AndroidPlatform` package is included
+in the .NET 11 Android component closure, and the generated Kotlin facade has
+passed ARM64 API 36 emulator acceptance for same-peer identity, wrong-class
+rejection, main-thread enforcement, retained identity across GC pressure,
+exactly-once release, stale-token rejection, and JNI global-reference cleanup
+to baseline. Release/R8 packaging is validated separately. Physical-device
+acceptance remains before this slice can be advertised as supported.
+
 **Deliverables:**
 
 - optional `NetLift.ApplePlatform` and/or `NetLift.AndroidPlatform` adapter
