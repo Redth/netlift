@@ -1,7 +1,37 @@
 {
-  "formatVersion": 1,
-  "schemaHash": "c04facd03c6b76a41ed53b4530b36421f2a36d629c9dc56ff8a4cd065d2c3f4c",
+  "formatVersion": 2,
+  "schemaHash": "8ce4b1a507e8f53583b9e79e79f44f275320c52dd8bb94e73af05ddb0fd2521f",
   "entries": [
+    {
+      "kind": "adapter",
+      "id": 182351154,
+      "name": "netlift.result-error",
+      "signature": "netlift.result-error:1:NetLift.Runtime.NetLiftStatus:dev.netlift.runtime.NetLiftRemoteException:NetLiftRemoteError:transport-envelope:status-message:value:result-errors-v1"
+    },
+    {
+      "kind": "adapter",
+      "id": 468931074,
+      "name": "netlift.bytes",
+      "signature": "netlift.bytes:1:System.Byte[]:kotlin.ByteArray:Foundation.Data:json-string:base64:value:bytes-v1"
+    },
+    {
+      "kind": "adapter",
+      "id": 963747359,
+      "name": "netlift.uri",
+      "signature": "netlift.uri:1:System.Uri:java.net.URI:Foundation.URL:json-string:uri:value:uri-v1"
+    },
+    {
+      "kind": "adapter",
+      "id": 1484137375,
+      "name": "netlift.timestamp",
+      "signature": "netlift.timestamp:1:System.DateTimeOffset:java.time.OffsetDateTime:Foundation.Date:json-string:rfc3339-offset:value:timestamp-v1"
+    },
+    {
+      "kind": "adapter",
+      "id": 1865659066,
+      "name": "netlift.uuid",
+      "signature": "netlift.uuid:1:System.Guid:java.util.UUID:Foundation.UUID:json-string:uuid-lowercase:value:uuid-v1"
+    },
     {
       "kind": "dto",
       "id": 249840796,
@@ -10,9 +40,69 @@
     },
     {
       "kind": "dto",
+      "id": 616105388,
+      "name": "Orders.Contracts.OrderConfirmationResult",
+      "signature": "Orders.Contracts.OrderConfirmationResult:dto:641448933:Confirmed:bool:-:!"
+    },
+    {
+      "kind": "dto",
+      "id": 661666557,
+      "name": "Orders.Contracts.AdapterRoundTripRequest",
+      "signature": "Orders.Contracts.AdapterRoundTripRequest:dto:598889897:Payload:adapter:netlift.bytes:!,1824381186:Timestamp:adapter:netlift.timestamp:!,1840365707:Resource:adapter:netlift.uri:!"
+    },
+    {
+      "kind": "dto",
+      "id": 737288000,
+      "name": "Orders.Contracts.OrderStatusUpdate",
+      "signature": "Orders.Contracts.OrderStatusUpdate:dto:374504165:OrderId:string:-:!,1774355106:Message:string:-:!,1848246321:Sequence:int32:-:!"
+    },
+    {
+      "kind": "dto",
       "id": 779267412,
       "name": "Orders.Contracts.OrderRequest",
       "signature": "Orders.Contracts.OrderRequest:dto:25135561:CustomerId:string:-:!,388580559:Quantity:int32:-:!,1217124482:Priority:enum:1442367054:!,1263479496:Note:string:-:?"
+    },
+    {
+      "kind": "dto",
+      "id": 930336728,
+      "name": "Orders.Contracts.UuidRoundTripResult",
+      "signature": "Orders.Contracts.UuidRoundTripResult:dto:856436795:Value:adapter:netlift.uuid:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1068679489,
+      "name": "Orders.Contracts.CollectionRoundTripRequest",
+      "signature": "Orders.Contracts.CollectionRoundTripRequest:dto:1095059515:Values:list:[int32:-:!]:!,1771771326:Priorities:list:[enum:1442367054:!]:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1474343361,
+      "name": "Orders.Contracts.UuidRoundTripRequest",
+      "signature": "Orders.Contracts.UuidRoundTripRequest:dto:982253368:Value:adapter:netlift.uuid:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1849873319,
+      "name": "Orders.Contracts.AdapterRoundTripResult",
+      "signature": "Orders.Contracts.AdapterRoundTripResult:dto:695352206:Timestamp:adapter:netlift.timestamp:!,1203475341:Resource:adapter:netlift.uri:!,1921902468:Payload:adapter:netlift.bytes:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1883918602,
+      "name": "Orders.Contracts.OrderConfirmationRequest",
+      "signature": "Orders.Contracts.OrderConfirmationRequest:dto:65908095:OrderId:string:-:!,1814357458:Message:string:-:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1959000564,
+      "name": "Orders.Contracts.CollectionRoundTripResult",
+      "signature": "Orders.Contracts.CollectionRoundTripResult:dto:1080551486:Priorities:list:[enum:1442367054:!]:!,1649898377:Values:list:[int32:-:!]:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1985009960,
+      "name": "Orders.Contracts.OrderStatusRequest",
+      "signature": "Orders.Contracts.OrderStatusRequest:dto:1700579706:OrderId:string:-:!"
     },
     {
       "kind": "enum",
@@ -28,15 +118,75 @@
     },
     {
       "kind": "field",
+      "id": 65908095,
+      "name": "Orders.Contracts.OrderConfirmationRequest.OrderId",
+      "signature": "Orders.Contracts.OrderConfirmationRequest.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
       "id": 300439661,
       "name": "Orders.Contracts.OrderResult.Message",
       "signature": "Orders.Contracts.OrderResult.Message:string:-:?"
     },
     {
       "kind": "field",
+      "id": 374504165,
+      "name": "Orders.Contracts.OrderStatusUpdate.OrderId",
+      "signature": "Orders.Contracts.OrderStatusUpdate.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
       "id": 388580559,
       "name": "Orders.Contracts.OrderRequest.Quantity",
       "signature": "Orders.Contracts.OrderRequest.Quantity:int32:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 598889897,
+      "name": "Orders.Contracts.AdapterRoundTripRequest.Payload",
+      "signature": "Orders.Contracts.AdapterRoundTripRequest.Payload:adapter:netlift.bytes:!"
+    },
+    {
+      "kind": "field",
+      "id": 641448933,
+      "name": "Orders.Contracts.OrderConfirmationResult.Confirmed",
+      "signature": "Orders.Contracts.OrderConfirmationResult.Confirmed:bool:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 695352206,
+      "name": "Orders.Contracts.AdapterRoundTripResult.Timestamp",
+      "signature": "Orders.Contracts.AdapterRoundTripResult.Timestamp:adapter:netlift.timestamp:!"
+    },
+    {
+      "kind": "field",
+      "id": 856436795,
+      "name": "Orders.Contracts.UuidRoundTripResult.Value",
+      "signature": "Orders.Contracts.UuidRoundTripResult.Value:adapter:netlift.uuid:!"
+    },
+    {
+      "kind": "field",
+      "id": 982253368,
+      "name": "Orders.Contracts.UuidRoundTripRequest.Value",
+      "signature": "Orders.Contracts.UuidRoundTripRequest.Value:adapter:netlift.uuid:!"
+    },
+    {
+      "kind": "field",
+      "id": 1080551486,
+      "name": "Orders.Contracts.CollectionRoundTripResult.Priorities",
+      "signature": "Orders.Contracts.CollectionRoundTripResult.Priorities:list:[enum:1442367054:!]:!"
+    },
+    {
+      "kind": "field",
+      "id": 1095059515,
+      "name": "Orders.Contracts.CollectionRoundTripRequest.Values",
+      "signature": "Orders.Contracts.CollectionRoundTripRequest.Values:list:[int32:-:!]:!"
+    },
+    {
+      "kind": "field",
+      "id": 1203475341,
+      "name": "Orders.Contracts.AdapterRoundTripResult.Resource",
+      "signature": "Orders.Contracts.AdapterRoundTripResult.Resource:adapter:netlift.uri:!"
     },
     {
       "kind": "field",
@@ -52,6 +202,60 @@
     },
     {
       "kind": "field",
+      "id": 1649898377,
+      "name": "Orders.Contracts.CollectionRoundTripResult.Values",
+      "signature": "Orders.Contracts.CollectionRoundTripResult.Values:list:[int32:-:!]:!"
+    },
+    {
+      "kind": "field",
+      "id": 1700579706,
+      "name": "Orders.Contracts.OrderStatusRequest.OrderId",
+      "signature": "Orders.Contracts.OrderStatusRequest.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 1771771326,
+      "name": "Orders.Contracts.CollectionRoundTripRequest.Priorities",
+      "signature": "Orders.Contracts.CollectionRoundTripRequest.Priorities:list:[enum:1442367054:!]:!"
+    },
+    {
+      "kind": "field",
+      "id": 1774355106,
+      "name": "Orders.Contracts.OrderStatusUpdate.Message",
+      "signature": "Orders.Contracts.OrderStatusUpdate.Message:string:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 1814357458,
+      "name": "Orders.Contracts.OrderConfirmationRequest.Message",
+      "signature": "Orders.Contracts.OrderConfirmationRequest.Message:string:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 1824381186,
+      "name": "Orders.Contracts.AdapterRoundTripRequest.Timestamp",
+      "signature": "Orders.Contracts.AdapterRoundTripRequest.Timestamp:adapter:netlift.timestamp:!"
+    },
+    {
+      "kind": "field",
+      "id": 1840365707,
+      "name": "Orders.Contracts.AdapterRoundTripRequest.Resource",
+      "signature": "Orders.Contracts.AdapterRoundTripRequest.Resource:adapter:netlift.uri:!"
+    },
+    {
+      "kind": "field",
+      "id": 1848246321,
+      "name": "Orders.Contracts.OrderStatusUpdate.Sequence",
+      "signature": "Orders.Contracts.OrderStatusUpdate.Sequence:int32:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 1921902468,
+      "name": "Orders.Contracts.AdapterRoundTripResult.Payload",
+      "signature": "Orders.Contracts.AdapterRoundTripResult.Payload:adapter:netlift.bytes:!"
+    },
+    {
+      "kind": "field",
       "id": 1922247558,
       "name": "Orders.Contracts.OrderResult.OrderId",
       "signature": "Orders.Contracts.OrderResult.OrderId:string:-:!"
@@ -64,15 +268,54 @@
     },
     {
       "kind": "method",
+      "id": 298076936,
+      "name": "Orders.Contracts.IOrderConfirmationService.ConfirmOrderAsync",
+      "signature": "Orders.Contracts.IOrderConfirmationService.ConfirmOrderAsync(request:dto:1883918602:!)-\u003Edto:616105388:!:True:True"
+    },
+    {
+      "kind": "method",
+      "id": 449250680,
+      "name": "Orders.Contracts.IOrdersService.RoundTripCollectionsAsync",
+      "signature": "Orders.Contracts.IOrdersService.RoundTripCollectionsAsync(request:dto:1068679489:!)-\u003Edto:1959000564:!:True:True"
+    },
+    {
+      "kind": "method",
       "id": 479762786,
       "name": "Orders.Contracts.IOrdersService.SubmitOrderAsync",
       "signature": "Orders.Contracts.IOrdersService.SubmitOrderAsync(request:dto:779267412:!)-\u003Edto:249840796:!:True:True"
+    },
+    {
+      "kind": "method",
+      "id": 1312867528,
+      "name": "Orders.Contracts.IOrdersService.RoundTripUuidAsync",
+      "signature": "Orders.Contracts.IOrdersService.RoundTripUuidAsync(request:dto:1474343361:!)-\u003Edto:930336728:!:True:True"
+    },
+    {
+      "kind": "method",
+      "id": 1850717709,
+      "name": "Orders.Contracts.IOrdersService.RoundTripAdaptersAsync",
+      "signature": "Orders.Contracts.IOrdersService.RoundTripAdaptersAsync(request:dto:661666557:!)-\u003Edto:1849873319:!:True:True"
+    },
+    {
+      "kind": "method",
+      "id": 2000763694,
+      "name": "Orders.Contracts.IOrdersService.WatchOrderStatusAsync",
+      "signature": "Orders.Contracts.IOrdersService.WatchOrderStatusAsync(request:dto:1985009960:!)-\u003Edto:737288000:!:True:True:stream"
     },
     {
       "kind": "service",
       "id": 335637873,
       "name": "Orders.Contracts.IOrdersService",
       "signature": "service:Orders.Contracts.IOrdersService"
+    },
+    {
+      "kind": "service",
+      "id": 1188707185,
+      "name": "Orders.Contracts.IOrderConfirmationService",
+      "signature": "service:Orders.Contracts.IOrderConfirmationService:native"
     }
+  ],
+  "capabilities": [
+    "optional-fields-v1"
   ]
 }

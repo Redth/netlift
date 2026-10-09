@@ -12,7 +12,7 @@ APPLE_ROOT = Path(__file__).resolve().parent
 PROJECT = APPLE_ROOT / "src" / "NetLift.SwiftDriver" / "NetLift.SwiftDriver.csproj"
 ARTIFACTS = APPLE_ROOT / "netlift-swift" / "artifacts"
 BUNDLE = ARTIFACTS / "netlift-swift-tools.artifactbundle"
-VERSION = "0.1.0-alpha.4"
+VERSION = "0.1.0-alpha.6"
 
 
 def main() -> int:

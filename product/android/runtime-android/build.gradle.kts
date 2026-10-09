@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "io.github.redth.netlift"
-version = providers.gradleProperty("netliftVersion").getOrElse("0.1.0-alpha.1")
+version = providers.gradleProperty("netliftVersion").getOrElse("0.1.0-alpha.3")
 
 android {
     namespace = "dev.netlift.runtime"
@@ -55,6 +55,10 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
 
 publishing {

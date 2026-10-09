@@ -4,6 +4,9 @@
   "contractRoots": [
     "Orders.Contracts.IOrdersService"
   ],
+  "nativeContractRoots": [
+    "Orders.Contracts.IOrderConfirmationService"
+  ],
   "kotlinPackage": "dev.netlift.orders",
   "swiftModule": "OrdersNetLift",
   "output": "artifacts/generated",

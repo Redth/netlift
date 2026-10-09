@@ -1,9 +1,37 @@
 using System.Text.Json;
 using NetLift.Compiler;
 
+if (args is ["compatibility", var previousPath, var currentPath])
+{
+    try
+    {
+        var previous = ContractCompiler.DeserializeLock(File.ReadAllText(previousPath));
+        var current = ContractCompiler.DeserializeLock(File.ReadAllText(currentPath));
+        var errors = ContractCompiler.Compare(previous, current);
+        if (errors.Count == 0)
+        {
+            Console.WriteLine("Compatible.");
+            return 0;
+        }
+
+        Console.Error.WriteLine("Incompatible:");
+        foreach (var error in errors)
+            Console.Error.WriteLine("  - " + error);
+        return 1;
+    }
+    catch (Exception exception) when (exception is IOException or JsonException or ContractCompilerException)
+    {
+        Console.Error.WriteLine($"netlift: {exception.Message}");
+        return 2;
+    }
+}
+
 if (args.Length != 1)
 {
-    Console.Error.WriteLine("Usage: netlift <netlift.json>");
+    Console.Error.WriteLine(
+        "Usage:" + Environment.NewLine +
+        "  netlift <netlift.json>" + Environment.NewLine +
+        "  netlift compatibility <previous-lock.json> <current-lock.json>");
     return 2;
 }
 
@@ -20,10 +48,17 @@ try
 
     var assemblyPath = Path.GetFullPath(configuration.Assembly, configurationDirectory);
     var outputPath = Path.GetFullPath(configuration.Output, configurationDirectory);
+    var nativeContractRoots = configuration.NativeContractRoots ?? [];
     var compilation = configuration.EmitAndroidBridge || configuration.EmitAppleBridge
-        ? ContractCompiler.CompileWithImplementations(assemblyPath, configuration.ContractRoots)
+        ? ContractCompiler.CompileWithImplementations(
+            assemblyPath,
+            configuration.ContractRoots,
+            nativeContractRoots)
         : new ContractCompilation(
-            ContractCompiler.Compile(assemblyPath, configuration.ContractRoots),
+            ContractCompiler.Compile(
+                assemblyPath,
+                configuration.ContractRoots,
+                nativeContractRoots),
             []);
     var manifest = compilation.Manifest;
     var contractLock = ContractCompiler.CreateLock(manifest);

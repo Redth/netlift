@@ -36,6 +36,9 @@ abstract class NetLiftGenerateTask @Inject constructor(
     abstract val contractRoots: ListProperty<String>
 
     @get:Input
+    abstract val nativeContractRoots: ListProperty<String>
+
+    @get:Input
     abstract val kotlinPackage: Property<String>
 
     @get:Input
@@ -102,6 +105,13 @@ abstract class NetLiftGenerateTask @Inject constructor(
         val lockLine = compatibilityLock.orNull?.asFile?.let {
             ",\n  \"compatibilityLock\": \"${jsonPath(it)}\""
         }.orEmpty()
+        val nativeRootsLine = if (nativeContractRoots.get().isEmpty()) {
+            ""
+        } else {
+            ",\n  \"nativeContractRoots\": [" +
+                nativeContractRoots.get().joinToString(", ") { "\"${json(it)}\"" } +
+                "]"
+        }
         config.writeText(
             """{
   "version": 1,
@@ -110,7 +120,7 @@ abstract class NetLiftGenerateTask @Inject constructor(
   "kotlinPackage": "${json(kotlinPackage.get())}",
   "swiftModule": "${json(swiftModule.get())}",
   "output": "${jsonPath(generated)}",
-  "emitAndroidBridge": true$lockLine
+  "emitAndroidBridge": true$lockLine$nativeRootsLine
 }
 """
         )

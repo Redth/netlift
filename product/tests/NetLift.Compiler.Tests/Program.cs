@@ -28,10 +28,53 @@ Require(
     ContractCompiler.Serialize(first) == ContractCompiler.Serialize(relocated),
     "Absolute assembly location changed the canonical contract.");
 Require(first.Services.Count == 1, "Expected one service.");
-Require(first.Services[0].Methods.Count == 1, "Expected one method.");
-Require(first.Services[0].Methods[0].IsAsync, "Expected an async method.");
-Require(first.Services[0].Methods[0].SupportsCancellation, "Expected cancellation support.");
-Require(first.Types.Count == 3, "Expected two DTOs and one enum.");
+Require(first.Services[0].Methods.Count == 5, "Expected unary, streaming, adapter, and collection methods.");
+var submitOrderMethod = first.Services[0].Methods.Single(
+    method => method.Name == nameof(IOrdersService.SubmitOrderAsync));
+var watchOrderStatusMethod = first.Services[0].Methods.Single(
+    method => method.Name == nameof(IOrdersService.WatchOrderStatusAsync));
+var roundTripUuidMethod = first.Services[0].Methods.Single(
+    method => method.Name == nameof(IOrdersService.RoundTripUuidAsync));
+Require(submitOrderMethod.IsAsync, "Expected an async unary method.");
+Require(!submitOrderMethod.IsStreaming, "Unary method was marked as streaming.");
+Require(watchOrderStatusMethod.IsStreaming, "Expected a streaming method.");
+Require(
+    submitOrderMethod.SupportsCancellation && watchOrderStatusMethod.SupportsCancellation,
+    "Expected cancellation support.");
+Require(first.Types.Count == 11, "Expected ten DTOs and one enum.");
+Require(
+    first.Adapters.Count == 5 &&
+    first.Adapters.Any(adapter =>
+        adapter is
+        {
+            Id: "netlift.uuid",
+            Version: 1,
+            DotNetType: "System.Guid",
+            KotlinType: "java.util.UUID",
+            SwiftType: "Foundation.UUID",
+            WireShape: "json-string:uuid-lowercase",
+            Ownership: "value",
+            RequiredCapability: "uuid-v1"
+        }) &&
+    first.Adapters.Any(adapter =>
+        adapter is
+        {
+            Id: "netlift.result-error",
+            Version: 1,
+            DotNetType: "NetLift.Runtime.NetLiftStatus",
+            KotlinType: "dev.netlift.runtime.NetLiftRemoteException",
+            SwiftType: "NetLiftRemoteError",
+            WireShape: "transport-envelope:status-message",
+            Ownership: "value",
+            RequiredCapability: "result-errors-v1"
+        }) &&
+    first.Adapters.Select(adapter => adapter.Id).SequenceEqual(
+        ["netlift.bytes", "netlift.result-error", "netlift.timestamp", "netlift.uri", "netlift.uuid"]),
+    "Expected the built-in adapter metadata.");
+Require(
+    roundTripUuidMethod.Parameters[0].Type.Kind == "dto" &&
+    roundTripUuidMethod.Result.Kind == "dto",
+    "UUID method did not retain DTO request/result boundaries.");
 
 var projections = ProjectionEmitter.Emit(first, "dev.netlift.orders", "OrdersNetLift");
 Require(projections.Count == 3, "Expected Kotlin, Swift, and managed outputs.");
@@ -43,9 +86,64 @@ Require(
     "Generated Kotlin client omitted its public service ID.");
 Require(
     kotlin.Contains(
-        $"const val SubmitOrderAsyncId: UInt = {first.Services[0].Methods[0].Id}u",
+        $"const val SubmitOrderAsyncId: UInt = {submitOrderMethod.Id}u",
         StringComparison.Ordinal),
     "Generated Kotlin client omitted its public member ID.");
+Require(
+    kotlin.Contains(
+        "fun watchOrderStatus(request: OrderStatusRequest): kotlinx.coroutines.flow.Flow<OrderStatusUpdate>",
+        StringComparison.Ordinal),
+    "Generated Kotlin client omitted its Flow projection.");
+Require(
+    kotlin.Contains("val value: java.util.UUID", StringComparison.Ordinal) &&
+    kotlin.Contains("java.util.UUID.fromString(json.getString(\"Value\"))", StringComparison.Ordinal) &&
+    kotlin.Contains("value.value.toString()", StringComparison.Ordinal),
+    "Generated Kotlin omitted the UUID adapter.");
+Require(
+    kotlin.Contains("val timestamp: java.time.OffsetDateTime", StringComparison.Ordinal) &&
+    kotlin.Contains("val payload: ByteArray", StringComparison.Ordinal) &&
+    kotlin.Contains("val resource: java.net.URI", StringComparison.Ordinal) &&
+    kotlin.Contains("netLiftDecodeBase64", StringComparison.Ordinal) &&
+    kotlin.Contains("Invalid base64 adapter value.", StringComparison.Ordinal),
+    "Generated Kotlin omitted value adapters.");
+Require(
+    kotlin.Contains("val values: List<Int>", StringComparison.Ordinal) &&
+    kotlin.Contains("val priorities: List<OrderPriority>", StringComparison.Ordinal) &&
+    kotlin.Contains("org.json.JSONArray", StringComparison.Ordinal),
+    "Generated Kotlin omitted bounded collections.");
+var swift = projections["NetLiftContracts.swift"];
+Require(
+    swift.Contains(
+        "func watchOrderStatus(request: OrderStatusRequest) -> AsyncThrowingStream<OrderStatusUpdate, Error>",
+        StringComparison.Ordinal),
+    "Generated Swift client omitted its AsyncSequence projection.");
+Require(
+    swift.Contains($"public static let serviceId: UInt32 = {first.Services[0].Id}", StringComparison.Ordinal) &&
+    swift.Contains($"public static let submitOrderId: UInt32 = {submitOrderMethod.Id}", StringComparison.Ordinal),
+    "Generated Swift client omitted its public route IDs.");
+Require(
+    swift.Contains("public struct NetLiftRemoteError: Error, Sendable, Equatable", StringComparison.Ordinal),
+    "Generated Swift omitted the typed result error.");
+Require(
+    swift.Contains("public let value: UUID", StringComparison.Ordinal) &&
+    swift.Contains("UUID(uuidString:", StringComparison.Ordinal) &&
+    swift.Contains("value.uuidString.lowercased()", StringComparison.Ordinal),
+    "Generated Swift omitted canonical UUID coding.");
+Require(
+    swift.Contains("public let timestamp: Date", StringComparison.Ordinal) &&
+    swift.Contains("public let payload: Data", StringComparison.Ordinal) &&
+    swift.Contains("public let resource: URL", StringComparison.Ordinal) &&
+    swift.Contains("NetLiftAdapterCodec.decodeTimestamp", StringComparison.Ordinal),
+    "Generated Swift omitted value adapters.");
+Require(
+    swift.Contains("public let values: [Int32]", StringComparison.Ordinal) &&
+    swift.Contains("public let priorities: [OrderPriority]", StringComparison.Ordinal),
+    "Generated Swift omitted bounded collections.");
+var managed = projections["NetLiftDispatcher.g.cs"];
+Require(
+    managed.Contains("DispatchStreamBytesAsync(", StringComparison.Ordinal) &&
+    managed.Contains("INetLiftStreamDispatcher", StringComparison.Ordinal),
+    "Generated managed output omitted its stream dispatcher.");
 var androidCompilation = ContractCompiler.CompileWithImplementations(
     assemblyPath, ["Orders.Contracts.IOrdersService"]);
 Require(
@@ -60,6 +158,21 @@ var androidBridge = ProjectionEmitter.EmitAndroidBridge(
 Require(
     androidBridge.Contains("new global::Orders.Contracts.OrdersService()", StringComparison.Ordinal),
     "Generated Android bridge omitted deterministic service construction.");
+Require(
+    androidBridge.Contains(
+        "Invoke(long operationToken, int serviceId, int memberId",
+        StringComparison.Ordinal),
+    "Generated Android bridge did not accept the native operation token.");
+Require(
+    androidBridge.Contains(
+        "public int Cancel(long operationToken)",
+        StringComparison.Ordinal),
+    "Generated Android bridge omitted unary cancellation.");
+Require(
+    androidBridge.Contains(
+        "new(\"n_Cancel\", \"(J)I\", CancelCallbackInstance)",
+        StringComparison.Ordinal),
+    "Generated Android bridge omitted JNI cancellation registration.");
 var appleBridge = ProjectionEmitter.EmitAppleBridge(
     androidCompilation.Manifest,
     androidCompilation.Implementations);
@@ -70,11 +183,227 @@ Require(
     appleBridge.Contains("[global::Foundation.Register(\"NetLiftManagedBridge\")]", StringComparison.Ordinal),
     "Generated Apple bridge omitted its Objective-C registration.");
 Require(
+    appleBridge.Contains(
+        "Invoke(long operationToken, uint serviceId, uint memberId",
+        StringComparison.Ordinal),
+    "Generated Apple bridge did not accept the native operation token.");
+Require(
+    appleBridge.Contains(
+        "public int Cancel(long operationToken)",
+        StringComparison.Ordinal),
+    "Generated Apple bridge omitted unary cancellation.");
+Require(
     appleBridge.Contains("netlift_native_ui_main", StringComparison.Ordinal),
     "Generated Apple bridge omitted the native-owned UI handoff.");
 
+var bidirectionalCompilation = ContractCompiler.CompileWithImplementations(
+    assemblyPath,
+    ["Orders.Contracts.IOrdersService"],
+    ["Orders.Contracts.IOrderConfirmationService"]);
+Require(
+    bidirectionalCompilation.Manifest.Services.Count == 2 &&
+    bidirectionalCompilation.Manifest.Services.Single(
+        service => service.Name == "Orders.Contracts.IOrderConfirmationService").Owner == "native" &&
+    bidirectionalCompilation.Manifest.Services.Single(
+        service => service.Name == "Orders.Contracts.IOrdersService").Owner == "managed",
+    "Bidirectional compilation did not preserve service ownership.");
+Require(
+    bidirectionalCompilation.Implementations is
+    [
+        {
+            Service: "Orders.Contracts.IOrdersService",
+            Implementation: "Orders.Contracts.OrdersService",
+            NativeServiceDependencies: ["Orders.Contracts.IOrderConfirmationService"]
+        }
+    ],
+    "Native-owned services incorrectly required managed implementations.");
+
+var bidirectionalProjections = ProjectionEmitter.Emit(
+    bidirectionalCompilation.Manifest,
+    "dev.netlift.orders",
+    "OrdersNetLift");
+var bidirectionalKotlin = bidirectionalProjections["NetLiftContracts.kt"];
+Require(
+    bidirectionalKotlin.Contains("interface OrderConfirmationService", StringComparison.Ordinal),
+    "Generated Kotlin omitted the native-owned service interface.");
+Require(
+    !bidirectionalKotlin.Contains("class OrderConfirmationServiceClient", StringComparison.Ordinal),
+    "Generated Kotlin incorrectly emitted a client for a native-owned service.");
+Require(
+    bidirectionalKotlin.Contains("fun registerOrderConfirmationService(", StringComparison.Ordinal),
+    "Generated Kotlin omitted native-service registration.");
+var bidirectionalSwift = bidirectionalProjections["NetLiftContracts.swift"];
+Require(
+    bidirectionalSwift.Contains("public protocol OrderConfirmationService", StringComparison.Ordinal),
+    "Generated Swift omitted the native-owned service protocol.");
+Require(
+    bidirectionalSwift.Contains("public enum OrderConfirmationServiceRoutes", StringComparison.Ordinal),
+    "Generated Swift omitted native-service route constants.");
+Require(
+    !bidirectionalSwift.Contains("public struct OrderConfirmationServiceClient", StringComparison.Ordinal),
+    "Generated Swift incorrectly emitted a client for a native-owned service.");
+var bidirectionalManaged = bidirectionalProjections["NetLiftDispatcher.g.cs"];
+Require(
+    bidirectionalManaged.Contains(
+        "public sealed class OrderConfirmationServiceNativeProxy",
+        StringComparison.Ordinal),
+    "Generated managed output omitted the typed native-service proxy.");
+var nativeService = bidirectionalCompilation.Manifest.Services.Single(service => service.Owner == "native");
+Require(
+    !bidirectionalManaged.Contains($"case {nativeService.Id}u:", StringComparison.Ordinal),
+    "Generated managed dispatcher accepted a native-owned service route.");
+
+var bidirectionalAndroidBridge = ProjectionEmitter.EmitAndroidBridge(
+    bidirectionalCompilation.Manifest,
+    bidirectionalCompilation.Implementations);
+Require(
+    bidirectionalAndroidBridge.Contains(
+        "new global::Orders.Contracts.OrdersService(new global::NetLift.Generated.OrderConfirmationServiceNativeProxy(AndroidNativeServiceTransport.Instance))",
+        StringComparison.Ordinal),
+    "Bidirectional Android bridge omitted its managed service.");
+Require(
+    !bidirectionalAndroidBridge.Contains(
+        "new global::Orders.Contracts.IOrderConfirmationService",
+        StringComparison.Ordinal),
+    "Bidirectional Android bridge tried to construct a native-owned service.");
+Require(
+    bidirectionalAndroidBridge.Contains(
+        "netlift_android_native_service_invoke",
+        StringComparison.Ordinal),
+    "Bidirectional Android bridge omitted the native-service transport entry point.");
+var bidirectionalAppleBridge = ProjectionEmitter.EmitAppleBridge(
+    bidirectionalCompilation.Manifest,
+    bidirectionalCompilation.Implementations);
+Require(
+    bidirectionalAppleBridge.Contains(
+        "new global::Orders.Contracts.OrdersService(new global::NetLift.Generated.OrderConfirmationServiceNativeProxy(AppleNativeServiceTransport.Instance))",
+        StringComparison.Ordinal),
+    "Bidirectional Apple bridge omitted its managed service.");
+Require(
+    bidirectionalAppleBridge.Contains(
+        "netlift_apple_native_service_invoke",
+        StringComparison.Ordinal),
+    "Bidirectional Apple bridge omitted the native-service transport entry point.");
+
+try
+{
+    ContractCompiler.Compile(
+        assemblyPath,
+        ["Orders.Contracts.IOrdersService"],
+        ["Orders.Contracts.IOrdersService"]);
+    throw new InvalidOperationException("Overlapping service ownership did not fail.");
+}
+catch (ContractCompilerException exception)
+{
+    Require(
+        exception.Message.Contains("both managed-owned and native-owned", StringComparison.Ordinal),
+        "Overlapping service ownership produced an unclear diagnostic.");
+}
+
+var managedConfirmationLock = ContractCompiler.CreateLock(
+    ContractCompiler.Compile(assemblyPath, ["Orders.Contracts.IOrderConfirmationService"]));
+var nativeConfirmationLock = ContractCompiler.CreateLock(
+    ContractCompiler.Compile(
+        assemblyPath,
+        [],
+        ["Orders.Contracts.IOrderConfirmationService"]));
+var nativeOnlyManifest = ContractCompiler.Compile(
+    assemblyPath,
+    [],
+    ["Orders.Contracts.IOrderConfirmationService"]);
+Require(
+    ProjectionEmitter.EmitAndroidBridge(nativeOnlyManifest, [])
+        .Contains("new global::NetLift.Generated.ContractDispatcherAdapter()", StringComparison.Ordinal),
+    "Native-only Android bridge did not emit a valid empty managed dispatcher.");
+Require(
+    ProjectionEmitter.EmitAppleBridge(nativeOnlyManifest, [])
+        .Contains("new global::NetLift.Generated.ContractDispatcherAdapter()", StringComparison.Ordinal),
+    "Native-only Apple bridge did not emit a valid empty managed dispatcher.");
+Require(
+    ContractCompiler.Compare(managedConfirmationLock, nativeConfirmationLock)
+        .Any(error => error.Contains("changed", StringComparison.Ordinal)),
+    "Changing service ownership was not compatibility-significant.");
+
 var contractLock = ContractCompiler.CreateLock(first);
 Require(ContractCompiler.Compare(contractLock, contractLock).Count == 0, "Identical locks were incompatible.");
+var preUuidLock = contractLock with
+{
+    Entries = contractLock.Entries
+        .Where(entry =>
+            entry.Kind != "adapter" &&
+            !entry.Name.Contains("Uuid", StringComparison.Ordinal))
+        .ToArray()
+};
+Require(
+    ContractCompiler.Compare(preUuidLock, contractLock).Count == 0,
+    "An additive UUID method and adapter were not backward compatible.");
+var changedAdapterLock = contractLock with
+{
+    Entries = contractLock.Entries
+        .Select(entry => entry.Kind == "adapter" && entry.Name == "netlift.result-error"
+            ? entry with { Signature = entry.Signature.Replace(":1:", ":2:", StringComparison.Ordinal) }
+            : entry)
+        .ToArray()
+};
+Require(
+    ContractCompiler.Compare(contractLock, changedAdapterLock)
+        .Any(error => error.Contains("adapter", StringComparison.Ordinal) &&
+            error.Contains("changed signature", StringComparison.Ordinal)),
+    "An adapter version change was not compatibility-significant.");
+var changedAdapterOwnershipLock = contractLock with
+{
+    Entries = contractLock.Entries
+        .Select(entry => entry.Kind == "adapter" && entry.Name == "netlift.result-error"
+            ? entry with
+            {
+                Signature = entry.Signature.Replace(
+                    ":value:result-errors-v1",
+                    ":borrowed:result-errors-v1",
+                    StringComparison.Ordinal)
+            }
+            : entry)
+        .ToArray()
+};
+Require(
+    ContractCompiler.Compare(contractLock, changedAdapterOwnershipLock)
+        .Any(error => error.Contains("netlift.result-error", StringComparison.Ordinal) &&
+            error.Contains("changed signature", StringComparison.Ordinal)),
+    "A result-error ownership change was not compatibility-significant.");
+var noteField = contractLock.Entries.Single(entry =>
+    entry.Kind == "field" &&
+    entry.Name == "Orders.Contracts.OrderRequest.Note");
+var beforeOptionalNoteLock = contractLock with
+{
+    Entries = contractLock.Entries
+        .Where(entry => entry != noteField)
+        .ToArray()
+};
+Require(
+    ContractCompiler.Compare(beforeOptionalNoteLock, contractLock).Count == 0,
+    "A bilaterally negotiated optional field addition was incompatible.");
+var unnegotiatedOptionalLock = beforeOptionalNoteLock with { Capabilities = [] };
+Require(
+    ContractCompiler.Compare(unnegotiatedOptionalLock, contractLock)
+        .Any(error => error.Contains("bilateral optional-fields-v1", StringComparison.Ordinal)),
+    "An unnegotiated optional field addition was accepted.");
+Require(
+    ContractCompiler.Compare(contractLock, contractLock with { Capabilities = [] })
+        .Any(error => error.Contains("required capability", StringComparison.Ordinal)),
+    "A required capability removal was accepted.");
+var requiredFieldLock = contractLock with
+{
+    Entries = contractLock.Entries
+        .Append(new ContractLockEntry(
+            "field",
+            1,
+            "Orders.Contracts.OrderRequest.RequiredAddition",
+            "Orders.Contracts.OrderRequest.RequiredAddition:string:-:!"))
+        .ToArray()
+};
+Require(
+    ContractCompiler.Compare(contractLock, requiredFieldLock)
+        .Any(error => error.Contains("required field", StringComparison.Ordinal)),
+    "A required field addition was accepted.");
 var changedLock = contractLock with
 {
     Entries = contractLock.Entries
@@ -101,7 +430,7 @@ try
 }
 catch (ContractCompilerException exception)
 {
-    Require(exception.Message.Contains("not a supported scalar, enum, or DTO", StringComparison.Ordinal),
+    Require(exception.Message.Contains("must contain a non-null scalar or enum", StringComparison.Ordinal),
         "Unsupported signature produced an unclear diagnostic.");
 }
 

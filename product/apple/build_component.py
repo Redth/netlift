@@ -75,8 +75,14 @@ def write_component_project(
     managed_project: Path,
     managed_framework: str,
     generated: Path,
+    native_callbacks: Path | None,
 ) -> None:
     runtime_project = PRODUCT / "src" / "NetLift.Runtime" / "NetLift.Runtime.csproj"
+    native_reference = (
+        f'\n    <NativeReference Include="{native_callbacks}" Kind="Static" />'
+        if native_callbacks is not None
+        else ""
+    )
     project.write_text(
         f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -103,6 +109,7 @@ def write_component_project(
     <ProjectReference Include="{runtime_project}" />
     <Compile Include="{generated / "NetLiftDispatcher.g.cs"}" Link="Generated/NetLiftDispatcher.g.cs" />
     <Compile Include="{generated / "NetLiftAppleBridge.g.cs"}" Link="Generated/NetLiftAppleBridge.g.cs" />
+    {native_reference}
   </ItemGroup>
 </Project>
 """,
@@ -115,6 +122,7 @@ def main() -> int:
     parser.add_argument("--managed-project", type=Path, required=True)
     parser.add_argument("--managed-framework", default="net10.0")
     parser.add_argument("--contract-root", action="append", required=True)
+    parser.add_argument("--native-contract-root", action="append", default=[])
     parser.add_argument("--swift-module", default="NetLiftGenerated")
     parser.add_argument("--native-source-root", type=Path, required=True)
     parser.add_argument("--swift-contracts", type=Path)
@@ -177,6 +185,7 @@ def main() -> int:
         "version": 1,
         "assembly": str(managed_assembly),
         "contractRoots": args.contract_root,
+        "nativeContractRoots": args.native_contract_root,
         "kotlinPackage": "dev.netlift.generated",
         "swiftModule": args.swift_module,
         "output": str(generated),
@@ -203,12 +212,58 @@ def main() -> int:
 
     component_project_root = artifact_root / "component-project"
     component_project_root.mkdir()
+    callback_library = None
+    if args.native_contract_root:
+        callback_source = component_project_root / "callback-stubs.c"
+        callback_object = component_project_root / "callback-stubs.o"
+        callback_library = component_project_root / "libnetlift-callback-stubs.a"
+        callback_source.write_text(
+            """#include <stddef.h>
+#include <stdint.h>
+__attribute__((weak)) int32_t netlift_apple_native_service_invoke(
+    uint32_t service_id, uint32_t member_id, uint64_t operation_token,
+    const uint8_t* request, size_t request_length,
+    uint8_t** response, size_t* response_length,
+    uint8_t** error, size_t* error_length)
+{
+    (void)service_id; (void)member_id; (void)operation_token;
+    (void)request; (void)request_length; (void)response;
+    (void)response_length; (void)error; (void)error_length;
+    return 4;
+}
+__attribute__((weak)) int32_t netlift_apple_native_service_cancel(
+    uint64_t operation_token)
+{
+    (void)operation_token;
+    return 7;
+}
+__attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
+{
+    (void)buffer;
+}
+""",
+            encoding="utf-8",
+        )
+        run(
+            "xcrun",
+            "--sdk",
+            "iphonesimulator",
+            "clang",
+            "-target",
+            f"arm64-apple-ios{DEPLOYMENT_TARGET}-simulator",
+            "-c",
+            str(callback_source),
+            "-o",
+            str(callback_object),
+        )
+        run("xcrun", "ar", "rcs", str(callback_library), str(callback_object))
     component_project = component_project_root / f"{COMPONENT_NAME}.csproj"
     write_component_project(
         component_project,
         managed_project,
         args.managed_framework,
         generated,
+        callback_library,
     )
     run(
         "dotnet",
@@ -303,6 +358,7 @@ def main() -> int:
     )
 
     swift_object = objects / "NativeApp.o"
+    swift_defines = ["-D", "NETLIFT_NATIVE_CALLBACKS"] if args.native_contract_root else []
     run(
         "xcrun",
         "swiftc",
@@ -315,6 +371,7 @@ def main() -> int:
         str(runtime_framework.parent),
         "-import-objc-header",
         str(native_source_root / "ManagedBridge.h"),
+        *swift_defines,
         "-whole-module-optimization",
         "-emit-object",
         str(

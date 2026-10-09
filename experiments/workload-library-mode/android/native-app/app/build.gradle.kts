@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.6"
+    id("io.github.redth.netlift") version "0.1.0-alpha.9"
 }
 
 netlift {
@@ -34,6 +34,10 @@ android {
         versionName = "0.1"
         ndk {
             abiFilters += "arm64-v8a"
+        }
+
+        if (providers.gradleProperty("netliftNativeContractRoots").isPresent) {
+            sourceSets["main"].java.srcDir("src/callback/java")
         }
 
     }
@@ -70,4 +74,5 @@ kotlin {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }

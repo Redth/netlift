@@ -18,7 +18,7 @@ TOOL = (
     / "netlift-swift"
     / "artifacts"
     / "netlift-swift-tools.artifactbundle"
-    / "netlift-swift-0.1.0-alpha.4-macos"
+    / "netlift-swift-0.1.0-alpha.6-macos"
     / "bin"
     / "netlift-swift"
 )
@@ -77,6 +77,20 @@ def main() -> int:
     generated = WORK / "generated"
     run(config, package, generated)
     swift = generated / "NetLiftContracts.swift"
+    decoding_test = APPLE_ROOT / "tests" / "AdapterDecodingTests.swift"
+    decoding_executable = WORK / "adapter-decoding-tests"
+    subprocess.run(
+        [
+            "xcrun",
+            "swiftc",
+            str(swift),
+            str(decoding_test),
+            "-o",
+            str(decoding_executable),
+        ],
+        check=True,
+    )
+    subprocess.run([str(decoding_executable)], check=True)
     original = swift.read_bytes()
     original_mtime = swift.stat().st_mtime_ns
 

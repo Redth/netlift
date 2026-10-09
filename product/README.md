@@ -11,6 +11,8 @@ without NetLift attributes into:
 - stable content-derived service, method, type, and field IDs
 - generated Kotlin DTOs and async client
 - generated Swift DTOs and async client
+- generated Kotlin native-owner interfaces and Swift native-owner protocols
+- generated typed managed proxies for native-owned services
 - a managed dispatcher and contract-neutral runtime adapter that invoke the
   same service/member IDs
 - a versioned C11 ABI and platform-neutral native core
@@ -45,6 +47,56 @@ changing projected Kotlin/Swift APIs or stable route IDs. The Android workload
 adapter wraps each managed response in an explicit success/error envelope so
 managed exceptions become Kotlin exceptions instead of crossing JNI.
 
+## Type adapters and compatibility
+
+Manifest format 3 records every built-in adapter used by the contract,
+including its stable ID, version, .NET/Kotlin/Swift types, wire shape,
+ownership, and required runtime capability. The first adapter is
+`netlift.uuid` version 1:
+
+| Adapter | .NET | Kotlin | Swift | JSON wire shape |
+|---|---|---|---|---|
+| `netlift.uuid` | `System.Guid` | `java.util.UUID` | `Foundation.UUID` | Lowercase UUID string |
+| `netlift.timestamp` | `DateTimeOffset` | `OffsetDateTime` | `Date` | RFC 3339 string |
+| `netlift.bytes` | `byte[]` | `ByteArray` | `Data` | Base64 string |
+| `netlift.uri` | `Uri` | `URI` | `URL` | URI string |
+| `netlift.result-error` | `NetLiftStatus` | `NetLiftRemoteException` | `NetLiftRemoteError` | Transport status plus message |
+
+Generated Kotlin and Swift codecs reject malformed adapter values. DTO fields
+also support non-null lists of scalar or enum elements, projected as Kotlin
+`List<T>` and Swift `[T]`; nested and nullable collection elements remain
+rejected rather than receiving backend-specific behavior. The Orders
+acceptance contract exercises UUID, timestamp, byte-buffer, URI, integer-list,
+enum-list, and typed result-error round trips through the managed dispatcher,
+Android emulator, and iOS simulator. Handler failures preserve their numeric
+status and message; cancellation remains the platform-native cancellation
+error rather than becoming a remote failure.
+
+Compatibility locks include adapter metadata, so changing an adapter version,
+wire shape, ownership, or capability is a breaking change. Compare two locks
+in CI with:
+
+```bash
+dotnet run --project product/src/NetLift.Tool -- \
+  compatibility previous.netlift.lock.json current.netlift.lock.json
+```
+
+The command exits zero for compatible additions and nonzero with
+service/member/type diagnostics for removals, renames, ID changes, signature
+changes, and adapter changes. Adding a required field is always breaking.
+Adding a nullable field is compatible only when both locks advertise the
+`optional-fields-v1` capability; peers without that bilateral opt-in retain
+exact compatibility behavior.
+
+The cross-version fixture matrix runs through the generated package consumers:
+
+| Client shape | Runtime shape | Expected result |
+|---|---|---|
+| Legacy request without the optional field | Current managed runtime | Accepted |
+| Current generated client | Legacy response without the optional field | Accepted with `null` |
+| Either peer lacks `optional-fields-v1` | Added optional field | Compatibility check fails |
+| Adapter version, ownership, or capability differs | Mismatched peer | Compatibility check fails with adapter diagnostics |
+
 ## Generic runtime and native ABI
 
 `include/netlift.h` is the first product ABI. `netlift_get_api` negotiates one
@@ -71,13 +123,40 @@ the ABI.
 `NetLift.Runtime` is the corresponding managed endpoint authority. Its
 `INetLiftDispatcher` contract accepts only service ID, member ID, payload
 bytes, and cancellation. `NetLiftEndpointHost` owns operation registration,
-cancellation, drain/close state, and exception-to-status translation. The
-compiler emits `ContractDispatcherAdapter`, which is the only contract-aware
-piece required to connect a generated service dispatcher.
+cancellation, drain/close state, and exception-to-status translation.
+`RequestClose` is nonblocking: it rejects new work and requests cancellation
+for every active operation. An external owner then awaits `AwaitClosedAsync`;
+a handler may request close but is rejected if it tries to await its own
+endpoint. `DisposeAsync` performs both phases and does not return while
+operations remain registered. The compiler emits `ContractDispatcherAdapter`,
+which is the only contract-aware piece required to connect a generated service
+dispatcher.
+
+`NetLiftNativeServiceRegistry` is the shared callback-registration authority.
+Each registration has an opaque token and monotonically increasing generation.
+Revocation is nonblocking, rejects new calls immediately, and allows an
+external owner to await final release after active callbacks drain. Replies
+that complete after revocation are rejected as stale. A handler may revoke
+itself but cannot await its own release, and disposable platform transports
+are finalized exactly once. Runtime tests cover generation reuse, stale
+replies, self-wait rejection, bounded registration overflow, and 10,000
+register/invoke/revoke/release cycles.
+
+`NetLiftStreamRegistry` is the shared managed-stream lifecycle authority.
+Opening a subscription allocates only its token and generation; the dispatcher
+and async enumerator remain cold until the first read. Each read requests
+exactly one item, concurrent reads and capacity overflow return `BUSY`, and
+completion, producer failure, cancellation, or revoke terminally releases the
+generation. Revocation cancels an active read, waits for it to finish before
+disposing the enumerator, and disposes exactly once. Runtime tests cover cold
+start, bounded demand, stale-generation rejection, terminal failures, and
+10,000 open/read/revoke cycles.
 
 V1 intentionally freezes the request/response path used by generated clients.
-Later callback, stream, and asynchronous completion operations extend the
-table through `struct_size` and a new ABI version rather than changing the V1
+Callbacks and streams are implemented by the generated Android and Apple
+platform adapters without changing that table. A future contract-neutral C ABI
+for callbacks, streams, or asynchronous completion will extend the table
+through `struct_size` and a new ABI version rather than changing the V1
 layout. Mobile runtime adapters attach to the workload-initialized runtime;
 they never start a second CLR.
 
@@ -87,7 +166,7 @@ they never start a second CLR.
 project. It produces:
 
 ```text
-io.github.redth.netlift:runtime-android:0.1.0-alpha.1
+io.github.redth.netlift:runtime-android:0.1.0-alpha.3
 ```
 
 The checked-in Gradle wrapper makes the package independent of the workload
@@ -100,7 +179,7 @@ product/android/gradlew -p product/android \
   --no-daemon
 python3 product/android/runtime-android/audit_runtime_aar.py \
   product/artifacts/maven/io/github/redth/netlift/runtime-android/\
-0.1.0-alpha.1/runtime-android-0.1.0-alpha.1.aar
+0.1.0-alpha.3/runtime-android-0.1.0-alpha.3.aar
 ```
 
 The runtime AAR contains only the Kotlin API, generic JNI adapter,
@@ -136,7 +215,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.6"
+    id("io.github.redth.netlift") version "0.1.0-alpha.9"
 }
 
 netlift {
@@ -147,7 +226,7 @@ netlift {
 }
 ```
 
-The plugin adds runtime `0.1.0-alpha.1` automatically. Its implementation JAR
+The plugin adds runtime `0.1.0-alpha.3` automatically. Its implementation JAR
 contains the matching compiler and deterministic Android component packager,
 so projection does not depend on a NetLift source checkout. The plugin finds
 exactly one public, parameterless implementation for each rooted service and
@@ -172,7 +251,32 @@ required ABI, and NetLift version before attaching the managed bridge. The JNI
 adapter uses the application class loader, preserves arbitrary UTF-8 payloads,
 propagates Java and managed failures, attaches and detaches native threads
 through the cached `JavaVM`, and exposes a global-reference diagnostic used by
-the package-consuming acceptance app.
+the package-consuming acceptance app. Generated calls carry a unique operation
+token from Kotlin through JNI into `NetLiftEndpointHost`. The runtime executes
+the blocking JNI entry on `Dispatchers.IO`; cancelling the calling coroutine
+routes the same token back through JNI so the managed `CancellationToken` is
+signalled instead of blocking the UI caller until the managed task completes.
+The package-consuming API 36 ARM64 emulator app cancels a real 30-second
+managed Orders delay, reports `Cancellation: passed`, and returns JNI global
+references to the process baseline of two.
+
+Managed-owned streaming methods project as cold Kotlin `Flow<T>` values. The
+runtime opens a generation on collection, performs one JNI read for each
+downstream demand, decodes each item through the generated codec, and revokes
+the generation when collection is cancelled or terminated. The
+package-consuming emulator proof receives the three Orders status updates,
+cancels a pending 30-second stream, and reports `Stream: passed`.
+
+Source builds also support native-owned Android services through
+`nativeContractRoots`. The generated Kotlin owner interface includes a typed
+registration helper, while managed service implementations may receive typed
+native-service proxies through constructor injection. The Android adapter
+retains one JNI global reference per registration, carries operation identity
+through managed-to-Kotlin calls, propagates cancellation, rejects replies from
+revoked generations, and deletes the reference after the last callback
+returns. The package-consuming emulator proof covers confirm, decline, native
+handler failure, cancellation, and revoke while pending, then returns the JNI
+reference count to its baseline.
 
 The preview is published from the root of the public `Redth/netlift-sdk`
 Pages repository; `maven/` is a directory beneath that root, not a selectable
@@ -188,13 +292,13 @@ unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
 The contract-neutral runtime and projection plugin are published in Swift
-package `NetLift` `0.1.0-alpha.4`:
+package `NetLift` `0.1.0-alpha.6`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.4"
+        exact: "0.1.0-alpha.6"
     ),
 ]
 ```
@@ -257,3 +361,30 @@ archive to an app target's link inputs. The plugin owns source projection;
 the explicit package-owned component command owns platform-bound
 registrar/R2R/CoreCLR construction and Xcode linking. The component command
 rejects plugin output that does not exactly match its managed contract.
+
+The package-owned component transport also carries a unique operation token
+from Swift into the generated Objective-C managed bridge. Its blocking bridge
+entry runs in a detached task rather than on the calling actor; cancelling the
+Swift task sends the same token through `cancelOperation:` so
+`NetLiftEndpointHost` signals the managed `CancellationToken`. The generated
+bridge and Swift-owned app are compiled together by `build_component.py`.
+The package-owned iOS 26.5 ARM64 simulator app cancels the same real managed
+Orders delay and reports `Cancellation: passed` alongside the successful and
+typed-error calls.
+
+Source builds with `--native-contract-root` also generate typed managed
+proxies for Swift-owned services. The Swift runtime exports registration,
+invoke, cancellation, revoke, and buffer-release entry points from the final
+native app. Registrations reuse stable tokens with increasing generations,
+retain in-flight tasks until drain, reject stale replies after revoke, and
+release handlers exactly once. The simulator acceptance app covers confirm,
+decline, native failure, cancellation, and revoke while pending, then reports
+`Callback: passed` after its live registration count returns to zero.
+
+Managed-owned streaming methods project as cold
+`AsyncThrowingStream<Element, Error>` values. The generated transport encodes
+the request and decodes each element directly in the unfolding consumer task,
+so every `next()` maps to one managed read and consumer cancellation reliably
+revokes the active generation without an intermediate producer task. The
+iOS 26.5 ARM64 simulator proof receives the three Orders status updates,
+cancels a pending 30-second stream, and reports `Stream: passed`.

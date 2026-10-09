@@ -11,7 +11,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/Redth/netlift-sdk.git",
-            exact: "0.1.0-alpha.4"
+            exact: "0.1.0-alpha.6"
         ),
     ],
     targets: [

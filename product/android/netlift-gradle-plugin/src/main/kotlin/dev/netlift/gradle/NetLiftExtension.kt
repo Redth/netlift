@@ -10,6 +10,7 @@ import javax.inject.Inject
 abstract class NetLiftExtension @Inject constructor(objects: ObjectFactory) {
     val managedProject: RegularFileProperty = objects.fileProperty()
     val contractRoots: ListProperty<String> = objects.listProperty(String::class.java)
+    val nativeContractRoots: ListProperty<String> = objects.listProperty(String::class.java)
     val kotlinPackage: Property<String> = objects.property(String::class.java)
     val swiftModule: Property<String> = objects.property(String::class.java)
     val contractTargetFramework: Property<String> = objects.property(String::class.java)

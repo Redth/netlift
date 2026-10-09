@@ -11,6 +11,15 @@ public interface INetLiftDispatcher
         CancellationToken cancellationToken);
 }
 
+public interface INetLiftNativeServiceTransport
+{
+    ValueTask<ReadOnlyMemory<byte>> InvokeAsync(
+        uint serviceId,
+        uint memberId,
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken);
+}
+
 public enum NetLiftStatus
 {
     Success = 0,
@@ -42,9 +51,13 @@ public readonly record struct NetLiftInvocationResult(
 
 public sealed class NetLiftEndpointHost : IAsyncDisposable
 {
+    private static readonly AsyncLocal<DispatchScope?> CurrentDispatch = new();
+
     private readonly INetLiftDispatcher _dispatcher;
     private readonly ConcurrentDictionary<ulong, CancellationTokenSource> _operations = new();
     private readonly object _lifecycleGate = new();
+    private readonly TaskCompletionSource _drained =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _state;
 
     public NetLiftEndpointHost(INetLiftDispatcher dispatcher)
@@ -88,13 +101,24 @@ public sealed class NetLiftEndpointHost : IAsyncDisposable
 
         try
         {
-            var result = await _dispatcher.DispatchAsync(
-                    serviceId,
-                    memberId,
-                    payload,
-                    operation.Token)
-                .ConfigureAwait(false);
-            return NetLiftInvocationResult.Success(result.ToArray());
+            var previousDispatch = CurrentDispatch.Value;
+            var dispatch = new DispatchScope(this);
+            CurrentDispatch.Value = dispatch;
+            try
+            {
+                var result = await _dispatcher.DispatchAsync(
+                        serviceId,
+                        memberId,
+                        payload,
+                        operation.Token)
+                    .ConfigureAwait(false);
+                return NetLiftInvocationResult.Success(result.ToArray());
+            }
+            finally
+            {
+                dispatch.Active = false;
+                CurrentDispatch.Value = previousDispatch;
+            }
         }
         catch (OperationCanceledException) when (operation.IsCancellationRequested)
         {
@@ -120,6 +144,8 @@ public sealed class NetLiftEndpointHost : IAsyncDisposable
             {
                 _operations.TryRemove(
                     new KeyValuePair<ulong, CancellationTokenSource>(operationToken, operation));
+                if (_state != 0 && _operations.IsEmpty)
+                    _drained.TrySetResult();
                 operation.Dispose();
             }
         }
@@ -149,7 +175,71 @@ public sealed class NetLiftEndpointHost : IAsyncDisposable
             if (_state == 2)
                 return NetLiftStatus.Unavailable;
             _state = 1;
-            return _operations.IsEmpty ? NetLiftStatus.Success : NetLiftStatus.Busy;
+            if (_operations.IsEmpty)
+            {
+                _drained.TrySetResult();
+                return NetLiftStatus.Success;
+            }
+            return NetLiftStatus.Busy;
+        }
+    }
+
+    public NetLiftStatus RequestClose()
+    {
+        CancellationTokenSource[] operations;
+        NetLiftStatus status;
+        lock (_lifecycleGate)
+        {
+            if (_state == 2)
+                return NetLiftStatus.Unavailable;
+            _state = 1;
+            operations = _operations.Values.ToArray();
+            if (operations.Length == 0)
+                _drained.TrySetResult();
+            status = operations.Length == 0 ? NetLiftStatus.Success : NetLiftStatus.Busy;
+        }
+        foreach (var operation in operations)
+        {
+            try
+            {
+                operation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Completion won the race and already released the operation.
+            }
+        }
+        return status;
+    }
+
+    public async ValueTask<NetLiftStatus> AwaitClosedAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (CurrentDispatch.Value is { Active: true } dispatch &&
+            ReferenceEquals(dispatch.Host, this))
+            throw new InvalidOperationException(
+                "A NetLift handler may request close but cannot await its own endpoint.");
+
+        Task drained;
+        lock (_lifecycleGate)
+        {
+            if (_state == 0)
+                throw new InvalidOperationException(
+                    "Request close or begin draining before awaiting endpoint closure.");
+            if (_state == 2)
+                return NetLiftStatus.Success;
+            drained = _drained.Task;
+        }
+
+        await drained.WaitAsync(cancellationToken).ConfigureAwait(false);
+        lock (_lifecycleGate)
+        {
+            if (_state == 2)
+                return NetLiftStatus.Success;
+            if (!_operations.IsEmpty)
+                return NetLiftStatus.Busy;
+            _state = 2;
+            return NetLiftStatus.Success;
         }
     }
 
@@ -164,11 +254,16 @@ public sealed class NetLiftEndpointHost : IAsyncDisposable
         }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        BeginDrain();
-        foreach (var operation in _operations.Values)
-            operation.Cancel();
-        return ValueTask.CompletedTask;
+        RequestClose();
+        await AwaitClosedAsync().ConfigureAwait(false);
+    }
+
+    private sealed class DispatchScope(NetLiftEndpointHost host)
+    {
+        public NetLiftEndpointHost Host { get; } = host;
+
+        public bool Active { get; set; } = true;
     }
 }

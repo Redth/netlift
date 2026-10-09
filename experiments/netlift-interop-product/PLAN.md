@@ -1555,10 +1555,9 @@ covered by the generated client.
   parameterized Android workload component packager. It no longer invokes the
   proof-only builder or requires a NetLift checkout for those tools.
 - The public Pages Maven repository serves the implementation JAR and standard
-  plugin marker. `0.1.0-alpha.6` is the current plugin preview and selects
-  runtime `0.1.0-alpha.1`. `0.1.0-alpha.5` remains immutable; `alpha.6`
-  isolates bundled-tool extraction per variant and supports parallel
-  Debug/Release generation in one Gradle invocation.
+  plugin marker. `0.1.0-alpha.7` is the current plugin preview and selects
+  runtime `0.1.0-alpha.2`; it adds cancellable unary calls, native-owned
+  callbacks, and demand-aware streams. Earlier previews remain immutable.
 - The Android sample has no handwritten Gradle execution task, generated
   source directory, runtime dependency, or file AAR dependency. Applying and
   configuring the published plugin owns those integrations.
@@ -1708,8 +1707,10 @@ plugin/package regression tests.
 
 **Completed Swift preview:**
 
-- Published immutable `0.1.0-alpha.4` in `Redth/netlift-sdk` with the generic
+- Published immutable `0.1.0-alpha.5` in `Redth/netlift-sdk` with the generic
   runtime XCFramework and self-contained `osx-arm64` compiler artifact bundle.
+  It adds cancellable unary calls, native-owned callbacks, and demand-aware
+  streams; `0.1.0-alpha.4` remains immutable.
 - Added `NetLiftPlugin`, strict target-owned `netlift.json` parsing, package
   boundary enforcement, sandbox-safe managed build output, and generated
   Swift/manifest outputs.
@@ -1765,6 +1766,88 @@ plugin/package regression tests.
 **Cleanup gate:** delete handwritten generated-facade substitutes and all
 default-off product feature forks; one lifecycle is selected by the package.
 
+**Completed W8 lifecycle foundation:**
+
+- Added nonblocking managed endpoint close requests that reject new work and
+  cancel every registered unary operation.
+- Added externally awaited drain completion; `DisposeAsync` now waits until
+  operation ownership returns to baseline instead of returning after only
+  requesting cancellation.
+- Rejected close waits from inside the endpoint's own handler while preserving
+  the safe request-close-from-handler path.
+- Carried Android unary operation tokens from the coroutine through JNI into
+  the generated managed bridge, moved the blocking JNI entry off the caller
+  dispatcher, and routed coroutine cancellation back to the endpoint token.
+- Carried Apple unary operation tokens from Swift into the generated
+  Objective-C bridge, moved the blocking managed entry off the calling actor,
+  and routed Swift task cancellation back to the endpoint token.
+- Executed real 30-second managed Orders delays from the clean consumers,
+  cancelled them after 100 ms, and observed `Cancellation: passed` on the API
+  36 ARM64 emulator and iOS 26.5 ARM64 simulator. Android JNI global
+  references returned to the process baseline of two.
+- Covered pending close, cancellation, self-wait rejection, and 10,000
+  sequential operation lifetimes in the product runtime tests.
+- Added explicit managed-owned and native-owned contract roots. The compiler
+  now emits Kotlin owner interfaces, Swift owner protocols, and typed managed
+  native-service proxies while limiting managed implementation discovery and
+  dispatch bridges to managed-owned roots.
+- Added registration token + generation lifecycle in the shared runtime:
+  nonblocking revoke, external release waits, stale-generation reply
+  rejection, handler self-wait rejection, bounded overflow, and exactly-once
+  transport release.
+- Covered native registration reuse and 10,000
+  register/invoke/revoke/release cycles with a platform-neutral fake
+  transport, and type-checked the generated Swift native-owner protocol.
+- Connected Android native-owned services end to end: generated Kotlin
+  registration helpers, managed constructor injection and typed proxies,
+  adapter-specific P/Invoke, JNI global-reference registrations, operation
+  cancellation, generation-safe revoke, and final reference release.
+- Executed confirm, decline, native failure, cancellation, and
+  revoke-while-pending callback paths on the API 36 ARM64 emulator. The JNI
+  global-reference count returned to the process baseline after final release.
+- Connected Apple native-owned services through generated route constants,
+  constructor-injected managed proxies, exported Swift C entry points,
+  cancellation-aware task registrations, generation-safe revoke, and weak
+  component-link stubs replaced by the final app's strong symbols.
+- Executed confirm, decline, native failure, cancellation, and
+  revoke-while-pending callback paths on the iOS 26.5 ARM64 simulator. The
+  live Swift registration count returned to zero after final release.
+
+- Added a shared pull-based stream registry with cold subscription creation,
+  one item per explicit read, one active read per generation, bounded
+  capacity, stale-generation rejection, terminal failure propagation,
+  cancellation-aware revoke, and exactly-once async-enumerator disposal.
+- Covered cold start, demand, concurrent-read and capacity overflow,
+  completion, producer failure, cancellation, stale token reuse, and 10,000
+  open/read/revoke cycles in the platform-neutral runtime tests.
+- Added `IAsyncEnumerable<T>` contract discovery, manifest and compatibility
+  metadata, generated byte-stream dispatch, Kotlin `Flow<T>`, and Swift
+  `AsyncThrowingStream<T, Error>` projection. Native-owned streaming remains
+  rejected until its reverse transport is implemented.
+- Connected Android stream open/read/revoke through JNI and the generated
+  managed bridge. The package-consuming API 36 ARM64 emulator received the
+  three Orders status updates, cancelled a pending 30-second stream, and
+  reported `NETLIFT_ANDROID_STREAM_PASSED`.
+- Connected Apple stream open/read/revoke through the generated Objective-C
+  bridge. The generic Swift unfolding transport performs each read in the
+  consumer task, so cancellation revokes the managed subscription without a
+  detached producer. The iOS 26.5 ARM64 simulator received the three Orders
+  status updates, cancelled a pending 30-second stream, and reported
+  `NETLIFT_APPLE_STREAM_PASSED`.
+
+**Completed W8 release:**
+
+- Published Android runtime `0.1.0-alpha.2`, Gradle plugin
+  `0.1.0-alpha.7`, and Swift package `0.1.0-alpha.5` through
+  `Redth/netlift-sdk`.
+- Rebuilt the Android consumer from an empty Gradle home using only the public
+  Pages Maven feed, then reran the emulator stream, callback, and cancellation
+  acceptance.
+- Resolved the Swift package from the public `0.1.0-alpha.5` tag in a clean
+  package checkout, compiled its generated streaming and native-owner
+  projections, and reran the iOS simulator stream, callback, and cancellation
+  acceptance with that remotely generated contract.
+
 ### W9 - Expand types and enforce compatibility
 
 **Primary owner:** compiler/type system.
@@ -1800,6 +1883,57 @@ default-off product feature forks; one lifecycle is selected by the package.
 
 **Cleanup gate:** every adapter is implemented through the registry; reject
 backend-specific one-off type mappings outside adapter modules.
+
+**Completed W9 foundation:**
+
+- Added manifest format 3 adapter metadata with stable adapter ID/version,
+  .NET/Kotlin/Swift type names, canonical wire shape, ownership, and required
+  runtime capability.
+- Added `netlift.uuid` version 1 for `System.Guid`, `java.util.UUID`, and
+  `Foundation.UUID`, encoded as a lowercase JSON UUID string.
+- Added versioned timestamp, byte-buffer, and URI adapters for
+  `DateTimeOffset`/`OffsetDateTime`/`Date`, `byte[]`/`ByteArray`/`Data`, and
+  `Uri`/`URI`/`URL`.
+- Added bounded non-null scalar and enum collection fields projected as Kotlin
+  `List<T>` and Swift `[T]`, while explicitly rejecting nested DTO,
+  adapter-element, nullable-element, and nested-list shapes.
+- Added an additive Orders UUID round-trip method without changing existing
+  service/member IDs, and recorded the adapter in compatibility lock format 2.
+- Added `netlift compatibility <previous-lock> <current-lock>` with nonzero
+  failure and source/member/type/adapter diagnostics.
+- Added bilateral `optional-fields-v1` lock negotiation: nullable additions
+  are compatible only when both peers opt in, while required additions remain
+  breaking. Managed old-request/new-runtime and new-response/old-client
+  fixtures verify the JSON boundary behavior.
+- Verified managed dispatch plus real Android emulator and iOS simulator UUID,
+  timestamp, byte-buffer, URI, integer-list, and enum-list round trips while
+  retaining the stream, callback, and cancellation gates.
+- Added `netlift.result-error` version 1. Android surfaces handler failures as
+  `NetLiftRemoteException`; Swift surfaces them as `NetLiftRemoteError`. Both
+  preserve the managed status and message while cancellation remains native.
+- Added executable malformed UUID, timestamp, base64, and URI decoding tests
+  for Swift and Android. Kotlin base64 decoding now validates the canonical
+  alphabet and padding before using the Android decoder.
+- Added package-consumer cross-version fixtures on Android and Apple:
+  legacy requests without the optional field execute against the current
+  runtime, and current generated clients decode legacy responses without the
+  optional field. Lock tests reject unnegotiated optional additions plus
+  adapter version, ownership, and capability mismatches.
+
+**W9 implementation and release complete:**
+
+- Published Android runtime `0.1.0-alpha.3`, corrected Gradle plugin
+  `0.1.0-alpha.9`, and Swift package `0.1.0-alpha.6` through
+  `Redth/netlift-sdk`. Plugin `0.1.0-alpha.8` remains immutable but is
+  superseded because its default runtime selection still referenced
+  `0.1.0-alpha.2`.
+- Rebuilt the Android consumer from an empty Gradle home using only the public
+  Pages Maven feed, then reran typed-error, cross-version, malformed-adapter,
+  value-adapter, collection, stream, callback, and cancellation acceptance.
+- Resolved the Swift package from the public `0.1.0-alpha.6` tag in a clean
+  package checkout, ran its generated client, and rebuilt the iOS simulator
+  component using the remotely generated Swift contract. All W9 and W8
+  acceptance markers passed.
 
 ### W10 - Add optional platform-object adapters
 
