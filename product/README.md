@@ -196,6 +196,25 @@ through `struct_size` and a new ABI version rather than changing the V1
 layout. Mobile runtime adapters attach to the workload-initialized runtime;
 they never start a second CLR.
 
+## Release trust metadata
+
+`support-matrix.json` is the machine-readable authority for preview and
+experimental support claims. Audit it before packaging:
+
+```bash
+python3 product/audit_support_matrix.py
+```
+
+Release candidates use `generate_release_provenance.py` with explicit
+`--package-version name=value` and `--artifact name=path` arguments. The
+result contains deterministic repository-relative artifact hashes, package
+versions, the full source commit, and support evidence without timestamps or
+host paths. Verify a generated manifest with:
+
+```bash
+python3 product/audit_release_provenance.py path/to/release-provenance.json
+```
+
 ## Android Gradle plugin and runtime
 
 `android/runtime-android` is the standalone, publishable Android runtime

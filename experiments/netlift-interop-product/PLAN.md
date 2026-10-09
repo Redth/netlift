@@ -2052,6 +2052,17 @@ focused tests.
 - release manifest/provenance and support matrix
 - physical-device and remote-consumer release evidence
 
+**Progress:** A machine-audited support matrix now keeps portable profiles at
+preview support and both platform-peer profiles at
+`experimental-device-required`, with managed-created subclass/callback
+capabilities explicitly excluded. Component audits verify the adapter,
+ownership, and thread-affinity metadata in Android and Apple package
+manifests. Deterministic release provenance records repository-relative
+artifact paths and hashes, the full source commit, package versions, the
+support-matrix hash, and the exact evidence status for every profile without
+timestamps or host-specific paths. Signed physical-device matrices and
+stable-byte promotion remain.
+
 **Exit criteria:**
 
 - all advertised platforms pass signed physical-device execution

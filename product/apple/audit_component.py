@@ -29,6 +29,13 @@ def main() -> int:
         raise RuntimeError("Apple component claims an unvalidated target")
     if manifest["runtimeIdentifier"] != "iossimulator-arm64":
         raise RuntimeError("Apple component has an unexpected runtime identifier")
+    if manifest["platformObjectProjection"] != {
+        "enabled": True,
+        "adapter": "netlift.apple.uiview",
+        "ownership": ["borrowed", "retained"],
+        "threadAffinity": "main",
+    }:
+        raise RuntimeError("Apple component platform-object metadata is invalid")
 
     for item in manifest["files"]:
         path = app / item["path"]
@@ -66,6 +73,7 @@ def main() -> int:
         "Orders.Contracts.dll",
         "NetLift.Generated.Apple.dll",
         "NetLift.Runtime.dll",
+        "NetLift.ApplePlatform.dll",
     }
     leaked = forbidden.intersection(generic_files)
     if leaked:

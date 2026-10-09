@@ -132,16 +132,30 @@ def main() -> int:
             raise RuntimeError(f"Package does not exist: {path}")
 
     inventory_path = PROOF_ROOT / ".artifacts" / "workload-inventory.json"
-    inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
-    sdk_root = Path(
-        os.environ.get("ANDROID_SDK_ROOT", inventory["android"]["sdkRoot"])
-    )
+    sdk_root_value = os.environ.get("ANDROID_SDK_ROOT")
+    if sdk_root_value is None and inventory_path.is_file():
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        sdk_root_value = inventory["android"]["sdkRoot"]
+    if sdk_root_value is None:
+        raise RuntimeError(
+            "Set ANDROID_SDK_ROOT or generate .artifacts/workload-inventory.json."
+        )
+    sdk_root = Path(sdk_root_value)
     apkanalyzer = find_apkanalyzer(sdk_root)
 
     with zipfile.ZipFile(args.aar) as aar:
         require_unique_entries(aar)
         aar_names = set(aar.namelist())
         manifest = json.loads(aar.read(COMPONENT_MANIFEST))
+        if manifest["platformObjectProjection"] != {
+            "enabled": True,
+            "adapter": "netlift.android.view",
+            "ownership": ["borrowed", "retained"],
+            "threadAffinity": "main",
+        }:
+            raise RuntimeError(
+                "Android component platform-object metadata is invalid"
+            )
         if "provider" in aar.read("AndroidManifest.xml").decode("utf-8"):
             raise RuntimeError("Component AAR registers an automatic runtime provider")
         with zipfile.ZipFile(aar.open("classes.jar")) as component_classes:
@@ -210,6 +224,7 @@ def main() -> int:
         "dev.netlift.orders.OrderRequest",
         "dev.netlift.orders.OrderResult",
         "dev.netlift.orders.OrdersServiceClient",
+        "dev.netlift.orders.NetLiftAndroidViewClient",
     }
     required_runtime_classes = {
         "dev.netlift.runtime.NetLiftRuntime",
