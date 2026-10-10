@@ -21,6 +21,7 @@ PASSED_GATES = {
     "android-signed-bundle-delivery",
     "android-dependency-license-symbol-closure",
     "apple-simulator-release-lifecycle",
+    "remote-preview-consumer",
 }
 
 
@@ -37,8 +38,6 @@ def main() -> int:
         gate = gates[gate_id]
         if gate["status"] != "passed" or not gate["evidence"]:
             raise RuntimeError(f"Passed release gate lacks evidence: {gate_id}")
-    if gates["remote-preview-consumer"]["status"] != "blocked-next-immutable-preview":
-        raise RuntimeError("Remote preview must remain blocked until a new version exists.")
     for gate_id in ("android-physical-device", "apple-physical-device"):
         if gates[gate_id]["status"] != "blocked-device-unavailable":
             raise RuntimeError(f"Physical-device gate has an invalid status: {gate_id}")

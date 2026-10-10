@@ -279,7 +279,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.9"
+    id("io.github.redth.netlift") version "0.1.0-alpha.10"
 }
 
 netlift {

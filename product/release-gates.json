@@ -36,8 +36,15 @@
     },
     {
       "id": "remote-preview-consumer",
-      "status": "blocked-next-immutable-preview",
-      "reason": "The published 0.1.0-alpha.9 Gradle plugin predates active-SDK workload-manifest selection and the release trimming fixes. The source fix is complete, but immutable public coordinates require a new version."
+      "status": "passed",
+      "evidence": [
+        "gradle-plugin-0.1.0-alpha.10",
+        "github-pages-http-200",
+        "fresh-gradle-cache",
+        "public-feed-only-consumer-build",
+        "public-feed-only-emulator-acceptance",
+        "process-relaunch"
+      ]
     },
     {
       "id": "android-physical-device",

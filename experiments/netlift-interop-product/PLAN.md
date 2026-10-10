@@ -2066,10 +2066,10 @@ launch, same-signer updates, dependency/license closure, and native symbol
 archives now pass on the API 36 ARM64 emulator. The Apple release workload
 closure passes complete simulator acceptance twice across process
 termination/relaunch. Release execution exposed and fixed trimmed JSON
-metadata and reflective R8 callback preservation defects. The current public
-Gradle preview predates these fixes and cannot consume the installed .NET 11
-RC workload when a newer preview manifest is also installed, so the clean
-remote-consumer gate requires a new immutable preview version. Signed
+metadata and reflective R8 callback preservation defects. Gradle plugin
+`0.1.0-alpha.10` publishes those fixes immutably; its Pages deployment,
+artifact URLs, fresh-cache public-feed-only consumer build, and full Android
+acceptance twice across process relaunch pass. Signed
 physical-device matrices, release-candidate publication, remote RC consumers,
 and stable-byte promotion remain.
 
