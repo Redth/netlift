@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import urllib.request
 import zipfile
@@ -99,6 +100,25 @@ def run(*args: str) -> str:
     ).stdout
 
 
+def find_llvm_readelf(android_sdk_root: Path) -> Path:
+    candidates = sorted(
+        android_sdk_root.glob(
+            "ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-readelf"
+        )
+    )
+    if not candidates:
+        raise RuntimeError(f"llvm-readelf was not found under {android_sdk_root}")
+    return candidates[-1]
+
+
+def build_id(readelf: Path, path: Path) -> str:
+    output = run(str(readelf), "--notes", str(path))
+    match = re.search(r"Build ID: ([0-9a-f]+)", output)
+    if match is None:
+        raise RuntimeError(f"ELF file has no Build ID: {path}")
+    return match.group(1)
+
+
 def require_unique_entries(archive: zipfile.ZipFile) -> None:
     names = [info.filename for info in archive.infolist()]
     duplicates = sorted({name for name in names if names.count(name) > 1})
@@ -122,6 +142,7 @@ def main() -> int:
     parser.add_argument("--aar", type=Path, default=DEFAULT_AAR)
     parser.add_argument("--runtime-aar", type=Path, default=DEFAULT_RUNTIME_AAR)
     parser.add_argument("--apk", type=Path, default=DEFAULT_APK)
+    parser.add_argument("--allow-stripped-native-libraries", action="store_true")
     args = parser.parse_args()
 
     if args.runtime_aar == DEFAULT_RUNTIME_AAR:
@@ -142,7 +163,9 @@ def main() -> int:
         )
     sdk_root = Path(sdk_root_value)
     apkanalyzer = find_apkanalyzer(sdk_root)
+    llvm_readelf = find_llvm_readelf(sdk_root)
 
+    component_payloads: dict[str, bytes] = {}
     with zipfile.ZipFile(args.aar) as aar:
         require_unique_entries(aar)
         aar_names = set(aar.namelist())
@@ -168,7 +191,8 @@ def main() -> int:
             path = file["path"]
             if path not in aar_names:
                 raise RuntimeError(f"Component manifest payload is missing: {path}")
-            actual = digest(aar.read(path))
+            component_payloads[path] = aar.read(path)
+            actual = digest(component_payloads[path])
             if actual != file["sha256"]:
                 raise RuntimeError(f"Component manifest hash mismatch: {path}")
 
@@ -211,8 +235,27 @@ def main() -> int:
             apk_path = file["path"].replace("jni/", "lib/", 1)
             if apk_path not in apk_names:
                 raise RuntimeError(f"APK is missing component payload: {apk_path}")
-            if digest(apk.read(apk_path)) != file["sha256"]:
+            apk_data = apk.read(apk_path)
+            if digest(apk_data) == file["sha256"]:
+                continue
+            if not args.allow_stripped_native_libraries:
                 raise RuntimeError(f"APK component hash mismatch: {apk_path}")
+            component_data = component_payloads[file["path"]]
+            work = PROOF_ROOT / ".artifacts" / "audit-package"
+            if work.exists():
+                shutil.rmtree(work)
+            work.mkdir(parents=True)
+            component_path = work / "component.so"
+            apk_library_path = work / "apk.so"
+            component_path.write_bytes(component_data)
+            apk_library_path.write_bytes(apk_data)
+            if build_id(llvm_readelf, component_path) != build_id(
+                llvm_readelf, apk_library_path
+            ):
+                raise RuntimeError(
+                    f"Stripped APK library Build ID mismatch: {apk_path}"
+                )
+            shutil.rmtree(work)
 
     merged_manifest = run(str(apkanalyzer), "manifest", "print", str(args.apk))
     if "MonoRuntimeProvider" in merged_manifest or "__mono_init__" in merged_manifest:

@@ -111,12 +111,17 @@ def main() -> int:
 
     support_matrix_path = PRODUCT / "support-matrix.json"
     support_matrix = json.loads(support_matrix_path.read_text(encoding="utf-8"))
+    release_gates_path = PRODUCT / "release-gates.json"
     provenance = {
         "schemaVersion": 1,
         "sourceCommit": source_commit,
         "supportMatrix": {
             "path": support_matrix_path.relative_to(ROOT).as_posix(),
             "sha256": sha256(support_matrix_path),
+        },
+        "releaseGates": {
+            "path": release_gates_path.relative_to(ROOT).as_posix(),
+            "sha256": sha256(release_gates_path),
         },
         "packageVersions": dict(sorted(package_versions.items())),
         "artifacts": artifacts,

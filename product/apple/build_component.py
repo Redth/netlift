@@ -105,11 +105,13 @@ def write_component_project(
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="{managed_project}">
       <SetTargetFramework>TargetFramework={managed_framework}</SetTargetFramework>
     </ProjectReference>
+    <TrimmerRootAssembly Include="{managed_project.stem}" />
     <ProjectReference Include="{runtime_project}" />
     <ProjectReference Include="{apple_platform_project}" />
     <Compile Include="{generated / "NetLiftDispatcher.g.cs"}" Link="Generated/NetLiftDispatcher.g.cs" />

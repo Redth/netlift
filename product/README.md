@@ -208,11 +208,20 @@ python3 product/audit_support_matrix.py
 Release candidates use `generate_release_provenance.py` with explicit
 `--package-version name=value` and `--artifact name=path` arguments. The
 result contains deterministic repository-relative artifact hashes, package
-versions, the full source commit, and support evidence without timestamps or
-host paths. Verify a generated manifest with:
+versions, the full source commit, support evidence, and release-gate state
+without timestamps or host paths. Verify a generated manifest with:
 
 ```bash
 python3 product/audit_release_provenance.py path/to/release-provenance.json
+```
+
+`release-gates.json` records passed and externally blocked release gates. Its
+audit prevents simulator evidence from promoting either physical-device
+profile and prevents stable-byte promotion while device and remote-RC gates
+remain unresolved:
+
+```bash
+python3 product/audit_release_gates.py
 ```
 
 ## Android Gradle plugin and runtime

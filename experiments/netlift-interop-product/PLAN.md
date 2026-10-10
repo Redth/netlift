@@ -2060,8 +2060,18 @@ ownership, and thread-affinity metadata in Android and Apple package
 manifests. Deterministic release provenance records repository-relative
 artifact paths and hashes, the full source commit, package versions, the
 support-matrix hash, and the exact evidence status for every profile without
-timestamps or host-specific paths. Signed physical-device matrices and
-stable-byte promotion remain.
+timestamps or host-specific paths. Android signed AAB generation, ARM64 split
+installation, R8 release execution, offline cold starts, repeated process
+launch, same-signer updates, dependency/license closure, and native symbol
+archives now pass on the API 36 ARM64 emulator. The Apple release workload
+closure passes complete simulator acceptance twice across process
+termination/relaunch. Release execution exposed and fixed trimmed JSON
+metadata and reflective R8 callback preservation defects. The current public
+Gradle preview predates these fixes and cannot consume the installed .NET 11
+RC workload when a newer preview manifest is also installed, so the clean
+remote-consumer gate requires a new immutable preview version. Signed
+physical-device matrices, release-candidate publication, remote RC consumers,
+and stable-byte promotion remain.
 
 **Exit criteria:**
 

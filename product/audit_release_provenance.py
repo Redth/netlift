@@ -58,6 +58,13 @@ def main() -> int:
     if manifest["evidence"] != expected_evidence:
         raise RuntimeError("Release evidence does not match the support matrix.")
 
+    release_gates = manifest["releaseGates"]
+    release_gates_path = resolve_repository_path(release_gates["path"])
+    if not HASH_PATTERN.fullmatch(release_gates["sha256"]):
+        raise RuntimeError("Release-gate hash is invalid.")
+    if sha256(release_gates_path) != release_gates["sha256"]:
+        raise RuntimeError("Release-gate hash does not match.")
+
     ids: set[str] = set()
     for artifact in manifest["artifacts"]:
         artifact_id = artifact["id"]

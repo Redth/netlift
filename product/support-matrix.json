@@ -6,7 +6,8 @@
       "platform": "android",
       "status": "supported-preview",
       "validatedEnvironments": [
-        "api-36-arm64-emulator"
+        "api-36-arm64-emulator",
+        "api-36-arm64-emulator-signed-split-release"
       ],
       "physicalDeviceRequiredForStable": true
     },
@@ -30,7 +31,8 @@
       "platform": "ios",
       "status": "supported-preview",
       "validatedEnvironments": [
-        "ios-arm64-simulator"
+        "ios-arm64-simulator",
+        "ios-arm64-simulator-release-relaunch"
       ],
       "physicalDeviceRequiredForStable": true
     },

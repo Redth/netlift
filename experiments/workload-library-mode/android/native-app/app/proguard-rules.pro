@@ -6,3 +6,7 @@
 -dontwarn android.telephony.TelephonyCallback$CarrierRoamingNtnListener
 -dontwarn android.telephony.satellite.NtnSignalStrength
 -dontwarn android.view.View$CalledFromWrongThreadListener
+
+-keep class dev.netlift.workloadlibrarymode.app.CallbackAcceptance {
+    public static java.lang.AutoCloseable register();
+}

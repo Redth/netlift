@@ -381,8 +381,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let receipt = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-42",
-                        priority: .expedited,
                         quantity: 2,
+                        priority: .expedited,
                         note: "NETLIFT-IOS"
                     )
                 )
@@ -409,8 +409,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let legacyResponse = try await legacyClient.submitOrder(
                     request: OrderRequest(
                         customerId: "new-client",
-                        priority: .standard,
                         quantity: 1,
+                        priority: .standard,
                         note: "optional"
                     )
                 )
@@ -423,8 +423,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     _ = try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-42",
-                            priority: .standard,
                             quantity: 1,
+                            priority: .standard,
                             note: "NETLIFT-ERROR"
                         )
                     )
@@ -438,8 +438,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-cancel",
-                            priority: .standard,
                             quantity: 1,
+                            priority: .standard,
                             note: "NETLIFT-CANCEL"
                         )
                     )
@@ -465,9 +465,9 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let resource = URL(string: "https://example.test/orders/42?mode=adapter")!
                 let adapterResult = try await client.roundTripAdapters(
                     request: AdapterRoundTripRequest(
-                        resource: resource,
+                        payload: adapterPayload,
                         timestamp: timestamp,
-                        payload: adapterPayload
+                        resource: resource
                     )
                 )
                 precondition(abs(adapterResult.timestamp.timeIntervalSince(timestamp)) < 0.001)
@@ -518,8 +518,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let confirmed = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-confirm",
-                        priority: .expedited,
                         quantity: 3,
+                        priority: .expedited,
                         note: "NETLIFT-CONFIRM"
                     )
                 )
@@ -527,8 +527,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let declined = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-decline",
-                        priority: .standard,
                         quantity: 3,
+                        priority: .standard,
                         note: "NETLIFT-CONFIRM"
                     )
                 )
@@ -537,8 +537,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     _ = try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-native-failure",
-                            priority: .standard,
                             quantity: 1,
+                            priority: .standard,
                             note: "NETLIFT-CONFIRM"
                         )
                     )
@@ -549,8 +549,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-native-cancel",
-                            priority: .standard,
                             quantity: 1,
+                            priority: .standard,
                             note: "NETLIFT-CONFIRM"
                         )
                     )
@@ -566,8 +566,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-revoke",
-                            priority: .standard,
                             quantity: 1,
+                            priority: .standard,
                             note: "NETLIFT-CONFIRM"
                         )
                     )

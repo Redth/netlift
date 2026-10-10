@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "gates": [
+    {
+      "id": "android-signed-bundle-delivery",
+      "status": "passed",
+      "evidence": [
+        "signed-aab",
+        "arm64-split-install",
+        "r8-release-execution",
+        "offline-cold-start",
+        "process-relaunch",
+        "same-signer-version-update"
+      ]
+    },
+    {
+      "id": "android-dependency-license-symbol-closure",
+      "status": "passed",
+      "evidence": [
+        "sdk-dependency-inventory",
+        "license-inventory",
+        "app-native-symbols",
+        "runtime-native-symbols",
+        "app-payload-isolation"
+      ]
+    },
+    {
+      "id": "apple-simulator-release-lifecycle",
+      "status": "passed",
+      "evidence": [
+        "release-workload-closure",
+        "simulator-install",
+        "process-terminate-relaunch",
+        "repeated-full-acceptance"
+      ]
+    },
+    {
+      "id": "remote-preview-consumer",
+      "status": "blocked-next-immutable-preview",
+      "reason": "The published 0.1.0-alpha.9 Gradle plugin predates active-SDK workload-manifest selection and the release trimming fixes. The source fix is complete, but immutable public coordinates require a new version."
+    },
+    {
+      "id": "android-physical-device",
+      "status": "blocked-device-unavailable"
+    },
+    {
+      "id": "apple-physical-device",
+      "status": "blocked-device-unavailable"
+    },
+    {
+      "id": "remote-release-candidate-consumers",
+      "status": "blocked-prerequisites"
+    },
+    {
+      "id": "stable-byte-promotion",
+      "status": "blocked-prerequisites"
+    }
+  ]
+}

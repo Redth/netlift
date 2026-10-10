@@ -195,11 +195,13 @@ abstract class NetLiftGenerateTask @Inject constructor(
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     <TrimMode>copy</TrimMode>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="${xml(managedProjectFile.absolutePath)}" />
+    <TrimmerRootAssembly Include="${xml(managedProjectFile.nameWithoutExtension)}" />
     <Reference Include="NetLift.Runtime">
       <HintPath>${xml(runtimeAssembly.absolutePath)}</HintPath>
       <Private>true</Private>

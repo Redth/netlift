@@ -6,6 +6,11 @@ plugins {
     id("io.github.redth.netlift") version "0.1.0-alpha.9"
 }
 
+val netliftReleaseStoreFile = providers.gradleProperty("netliftReleaseStoreFile")
+val netliftReleaseStorePassword = providers.gradleProperty("netliftReleaseStorePassword")
+val netliftReleaseKeyAlias = providers.gradleProperty("netliftReleaseKeyAlias")
+val netliftReleaseKeyPassword = providers.gradleProperty("netliftReleaseKeyPassword")
+
 netlift {
     managedProject.set(
         rootProject.file(
@@ -26,14 +31,33 @@ android {
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
+    signingConfigs {
+        if (
+            netliftReleaseStoreFile.isPresent &&
+            netliftReleaseStorePassword.isPresent &&
+            netliftReleaseKeyAlias.isPresent &&
+            netliftReleaseKeyPassword.isPresent
+        ) {
+            create("netliftRelease") {
+                storeFile = rootProject.file(netliftReleaseStoreFile.get())
+                storePassword = netliftReleaseStorePassword.get()
+                keyAlias = netliftReleaseKeyAlias.get()
+                keyPassword = netliftReleaseKeyPassword.get()
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "dev.netlift.workloadlibrarymode.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = providers.gradleProperty("netliftVersionCode")
+            .map(String::toInt)
+            .getOrElse(1)
+        versionName = providers.gradleProperty("netliftVersionName").getOrElse("0.1")
         ndk {
             abiFilters += "arm64-v8a"
+            debugSymbolLevel = "FULL"
         }
 
         if (providers.gradleProperty("netliftNativeContractRoots").isPresent) {
@@ -45,6 +69,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.findByName("netliftRelease")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -58,7 +83,6 @@ android {
 
     packaging {
         jniLibs {
-            keepDebugSymbols += "**/*.so"
             useLegacyPackaging = true
         }
     }
