@@ -443,37 +443,50 @@ Install the host transport once with
 clients with `try OrdersServiceClient()`. The registry is scoped to the
 generated module and rejects missing or repeated installation. Explicit
 transport injection remains available for custom hosts and isolated tests.
-This registry does not start .NET or replace the component build below.
+This registry does not start .NET; the Xcode app target owns the managed
+component build described below.
 
-The current package-owned Xcode build integration is the deterministic
-`product/apple/build_component.py` command. It accepts a portable managed
-project and contract root, runs the compiler, generates Swift contracts and
-the managed Apple adapter, synthesizes the `net11.0-ios` workload project in
-ignored output, and links its app-specific registrar/R2R/CoreCLR closure into
-the Swift-owned executable:
+The checked-in `apple/samples/OrdersHost/OrdersHost.xcodeproj` owns the
+workload build. Open it in Xcode and run on an Apple Silicon simulator, or
+use the regular native build:
 
 ```bash
-python3 product/apple/build_component.py \
-  --managed-project product/apple/samples/OrdersPreview/Managed/Orders/Orders.csproj \
-  --contract-root Orders.Preview.IOrdersService \
-  --swift-module OrdersPreview \
-  --native-source-root experiments/workload-library-mode/apple/native-app \
-  --swift-contracts product/apple/samples/OrdersPreview/.build/plugins/outputs/orderspreview/OrdersPreview/destination/NetLiftPlugin/Generated/NetLiftContracts.swift \
-  --output experiments/workload-library-mode/.artifacts/apple-swiftpm-slice
+xcodebuild \
+  -project product/apple/samples/OrdersHost/OrdersHost.xcodeproj \
+  -scheme OrdersHost \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
 ```
 
 SwiftPM build-tool plugins cannot dynamically add a generated framework or
-archive to an app target's link inputs. The plugin owns source projection;
-the explicit package-owned component command owns platform-bound
-registrar/R2R/CoreCLR construction and Xcode linking. The component command
-rejects plugin output that does not exactly match its managed contract.
+archive to an app target's link inputs. The source-checkout
+`apple/NetLiftWorkload.yml` template wires two Xcode phases through
+`apple/xcode_workload.py`: build the managed component before compiling
+native sources, then embed its payload before Xcode signs the app.
+Its `netlift.json` selects the managed project, roots, and Swift module.
+Generated source references and a linker response file let Xcode compile
+and link its own executable, without a manual list of workload libraries.
+The embed phase preserves the native executable, Info.plist, and resources,
+rejects resource collisions, and removes only stale payload files it owned.
+
+`apple/build_component.py --component-only --reuse-output` is the internal
+build mechanism for these phases, not a prerequisite command for app users.
+It evaluates the linked project, generates Swift contracts and the managed
+Apple adapter, synthesizes the `net11.0-ios` workload project, and supplies
+the registrar/R2R/CoreCLR link inputs plus managed payload. Standalone app
+mode remains available for engineering audits. The current Xcode integration
+accepts Debug ARM64 simulators and rejects unvalidated configurations.
+Regenerate checked-in projects after changing their specs with
+`xcodegen generate --spec <sample>/project.yml`; ordinary app builds do not
+require XcodeGen.
 
 The package-owned component transport also carries a unique operation token
 from Swift into the generated Objective-C managed bridge. Its blocking bridge
 entry runs in a detached task rather than on the calling actor; cancelling the
 Swift task sends the same token through `cancelOperation:` so
 `NetLiftEndpointHost` signals the managed `CancellationToken`. The generated
-bridge and Swift-owned app are compiled together by `build_component.py`.
+bridge is built by the pre-build phase and the Swift-owned app is compiled
+and linked by Xcode.
 The package-owned iOS 26.5 ARM64 simulator app cancels the same real managed
 Orders delay and reports `Cancellation: passed` alongside the successful and
 typed-error calls.

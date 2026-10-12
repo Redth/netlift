@@ -5,7 +5,8 @@ while consuming a multi-target .NET library that contains MAUI controls.
 It uses the **workload host**, not the portable NativeAOT bridge.
 Android framework selection and view-factory options are published in
 Gradle plugin alpha.13. Swift package alpha.9 updates its bundled compiler;
-Apple workload hosting remains in the source-owned builder.
+Apple workload hosting is wired into the sample Xcode target and remains a
+source-checkout integration, not a Swift package feature.
 
 | Requirement | Sample evidence |
 | --- | --- |
@@ -68,23 +69,29 @@ navigation, Shell, XAML resource dictionaries, or arbitrary MAUI controls.
 ## SwiftUI
 
 Prerequisites: the repository's compatible .NET 11 SDK and iOS/MAUI
-workloads, Apple Silicon simulator, and the builder's configured Xcode
-installation at `/Applications/Xcode_26.6.app`.
+workloads, compatible Xcode, and an Apple Silicon simulator.
 
-Run from the repository root:
+Open `SwiftUI/MauiEmbedding.xcodeproj`, select an Apple Silicon simulator,
+and press Run. There is no separate host-build step: the Xcode target
+builds the managed library, generates Swift sources, links the workload's
+native inputs, embeds its runtime/assembly payload, and signs the app.
+From the repository root, the equivalent build is:
 
 ```bash
-python3 product/apple/build_component.py \
-  --managed-project product/samples/MauiEmbedding/Managed/MauiEmbedding.csproj \
-  --contract-root NetLift.MauiEmbedding.IEmbeddingService \
-  --platform-view-factory NetLift.MauiEmbedding.PlatformViews \
-  --native-source-root product/samples/MauiEmbedding/SwiftUI \
-  --bundle-identifier dev.netlift.maui.swiftui \
-  --output .artifacts/maui-ios
-xcrun simctl install <simulator-udid> \
-  .artifacts/maui-ios/NetLift.Generated.Apple.app
-xcrun simctl launch --console-pty <simulator-udid> dev.netlift.maui.swiftui
+xcodebuild \
+  -project product/samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj \
+  -scheme MauiEmbedding \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
 ```
+
+`SwiftUI/netlift.json` selects the managed project, service, and view factory.
+`project.yml` includes the shared `product/apple/NetLiftWorkload.yml` build
+template; the generated Xcode project is checked in, so XcodeGen is needed
+only to change that project definition. Changes to C# are picked up on
+the next native build, with .NET incremental build outputs reused.
+The Xcode integration supports Debug/ARM64 iOS Simulator and fails for
+unvalidated Release, Intel-simulator, or device configurations.
 
 `SwiftUI/NativeApp.swift` contains the unary workload transport, greeting
 check, lifecycle acceptance, and native screen. `MauiLabel` returns a
@@ -99,9 +106,11 @@ as `IUIApplicationDelegate`; adapt this binding when renaming an existing
 app's delegate. Do not replace an existing app delegate or its lifecycle
 behavior just to host a label.
 
-The Apple builder relinks the workload-resolved native dependencies,
-including MAUI's native framework, and preserves the generated registrar.
-SwiftPM generation alone cannot perform this host integration.
+The Xcode pre-build phase supplies the workload-resolved native dependencies,
+including MAUI's native framework and generated registrar, through a linker
+response file. The embed phase copies only the managed payload, preserving
+Xcode's native executable, Info.plist, and resources. SwiftPM generation
+alone cannot perform this host integration.
 
 ## Compose
 
@@ -150,7 +159,8 @@ The source builders evaluate MSBuild, including imports and conditions.
 They prefer one compatible same-platform TFM, otherwise one portable
 `netX.Y` TFM, and fail on ambiguity/incompatibility. Override with Apple's
 `--managed-framework` or Gradle's `contractTargetFramework`; the override
-must be declared and compatible. Contract generation uses evaluated
+must be declared and compatible. In Xcode, set `managedFramework` in
+`netlift.json` for an override. Contract generation uses evaluated
 `TargetPath`, and the host's `ProjectReference` forces the same selected
 TFM. `UseMaui` propagates into the internal host with its evaluated
 `MauiVersion`.
@@ -171,5 +181,6 @@ Run the non-device regressions from the repository root:
 
 ```bash
 python3 -B -m unittest discover -s product/tests -p test_managed_project.py
+python3 -B -m unittest discover -s product/apple/tests -p test_xcode_workload.py
 dotnet run --project product/tests/NetLift.Compiler.Tests -c Release
 ```

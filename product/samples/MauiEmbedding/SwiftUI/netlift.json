@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "managedProject": "../Managed/MauiEmbedding.csproj",
+  "contractRoots": ["NetLift.MauiEmbedding.IEmbeddingService"],
+  "platformViewFactory": "NetLift.MauiEmbedding.PlatformViews",
+  "swiftModule": "MauiEmbedding"
+}

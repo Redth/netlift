@@ -10,10 +10,10 @@ This page contains the setup, .NET code, and native examples in one place:
 [.NET](#1-write-your-net-service), [Android](#2-connect-kotlin--android),
 [Swift](#3-connect-swift), and [iOS runtime](#run-managed-code-in-an-ios-app).
 
-> **Preview:** Android packages the managed component automatically. SwiftPM
-> generates clients; running C# in an iOS app still requires a separate
-> source-owned component build. Verified runtime targets are API 36 ARM64
-> Android emulators and Apple Silicon iOS simulators, not physical devices.
+> **Preview:** Build the native app normally: Gradle and the checked-in Xcode
+> targets build and package the managed component automatically. SwiftPM alone
+> generates clients, not an iOS app host. Verified runtime targets are API 36
+> ARM64 Android emulators and Apple Silicon iOS simulators, not physical devices.
 
 ## Packages and prerequisites
 
@@ -46,8 +46,8 @@ adb devices
 
 For Swift generation, use an Apple Silicon Mac with Swift tools 6.0 or later
 and the same .NET SDK. iOS component execution additionally requires the
-`ios` workload and compatible Xcode; the current source builder uses
-`/Applications/Xcode_26.6.app`.
+`ios` workload and compatible Xcode. Xcode 26.6 is verified; the Xcode build
+phases use the developer directory selected by Xcode.
 
 ## 1. Write your .NET service
 
@@ -500,7 +500,7 @@ runtime support it needs, including garbage collection. It does not mean
 | --- | --- | --- |
 | Best fit | Existing .NET code that needs workload integration, native callbacks, or Apple platform peers. | Portable, AOT-compatible business logic embedded in a Swift-owned app. |
 | Integration benefit | Reuses the workload's runtime, bindings, and registrar machinery. | Produces an app-specific XCFramework and Swift sources to link without the workload-host bootstrap. |
-| Integration cost | Packages a runtime/managed-assembly closure and requires workload-specific startup, registrar, and linker integration. The current builder is simulator-only. | Builds a native library per architecture; generated sources, embedding, and signing still need integration into the native target. Changes to C# require rebuilding the framework. |
+| Integration cost | One-time Xcode build-phase/source wiring packages the runtime, assemblies, and registrar automatically. Current Xcode integration is Debug/ARM64 simulator-only. | One-time Xcode build-phase/source wiring publishes, links, and embeds the selected native framework automatically. |
 | Managed-library compatibility | Does not require the portable library to pass NativeAOT publication, but trimming, platform restrictions, and the chosen runtime still apply. | The reachable implementation **and its dependencies** must support trimming and NativeAOT; reflection-heavy libraries can require changes or replacements. |
 | Serialization and reflection | Reflection-based code may work when required metadata is preserved; this is not a guarantee for every library or device target. | Prefer source-generated JSON metadata and statically known types. Unbounded reflection, runtime code generation, and dynamic assembly loading are unsuitable. |
 | Current NetLift features | Unary calls, cancellation, streams, managed-to-native callbacks, and the experimental `UIView` peer adapter. | Unary calls, cancellation, and streams. Managed-to-native callbacks are rejected; `UIView` peer projection is not supported by this bridge. |
@@ -550,17 +550,15 @@ xcodebuild \
   build
 ```
 
-For an existing Xcode or SwiftPM app, add the generated
-`NetLiftAppleAot.xcframework` and the two generated Swift source files, then
-install `NetLiftAppleAotTransport` once with `NetLiftClientRuntime.install`.
-To make generation part of that app's normal Xcode build, add the sample's
+For an existing Xcode app, add the sample's
 `Build managed NativeAOT component` pre-build phase and `Embed managed
 NativeAOT framework` phase, plus the generated Swift source references and
 framework link settings from
 [`project.yml`](product/apple/samples/NativeAotHelloWorld/project.yml).
 Set `NETLIFT_MANAGED_PROJECT`, semicolon-separated `NETLIFT_CONTRACT_ROOTS`,
 `NETLIFT_SWIFT_MODULE`, and `NETLIFT_REPOSITORY_ROOT` in the target's build
-settings. After this one-time wiring, building the native target rebuilds
+settings, and install `NetLiftAppleAotTransport` once at app startup.
+After this one-time wiring, building the native target rebuilds
 the managed component automatically. It currently runs the generator and
 publish step on each Xcode build; .NET's incremental build reuses unchanged
 outputs. The selected-target build produces only the slice Xcode needs;
@@ -571,46 +569,62 @@ contains both simulator and device slices, but only the simulator app has
 been run. Physical-device execution, callback services, and Apple `UIView`
 peer projection are not verified on this path.
 
-#### Build the workload host
+#### Build a workload-host app
 
 For callback services and the existing Apple `UIView` peer adapter, use the
-.NET iOS workload-host path below. It builds the app-specific CoreCLR/R2R
-closure into a Swift-owned simulator app. Unlike the NativeAOT sample, that
-workload-host builder still produces a separate app and is not yet integrated
-into an arbitrary existing Xcode target's regular build.
+.NET iOS workload-host target. Open
+[`OrdersHost.xcodeproj`](product/apple/samples/OrdersHost/OrdersHost.xcodeproj)
+in Xcode, select an Apple Silicon simulator, and press **Run**.
+Xcode builds the C# project, generates the Swift clients, links the workload
+registrar/CoreCLR/R2R inputs into the native executable, embeds the managed
+payload, and signs the app. There is no separate host-building command.
 
-From this source repository, install the `ios` workload and build the
-complete integration sample:
-
-```bash
-dotnet workload install ios
-python3 product/apple/build_component.py \
-  --managed-project product/apple/samples/OrdersPreview/Managed/Orders/Orders.csproj \
-  --contract-root Orders.Preview.IOrdersService \
-  --native-contract-root Orders.Preview.IOrderConfirmationService \
-  --swift-module OrdersPreview \
-  --native-source-root experiments/workload-library-mode/apple/native-app \
-  --output .artifacts/apple-orders-component
-```
-
-This source-owned command uses the compiler in the checkout. For an existing
-iOS app, retain its entry point and adapt the component/native-source
-integration; adding the Swift package alone is not sufficient. The
-sample's `ManagedTransport` bridges generated clients to the workload host,
-handles cancellation and errors, and is installed once at app startup.
-
-Choose a booted Apple Silicon simulator's UDID from
-`xcrun simctl list devices booted`, then install and launch:
+From the command line, use the same native build:
 
 ```bash
-xcrun simctl install <simulator-udid> \
-  .artifacts/apple-orders-component/NetLift.Generated.Apple.app
-xcrun simctl launch <simulator-udid> dev.netlift.workloadlibrarymode.nativeapp
+xcodebuild \
+  -project product/apple/samples/OrdersHost/OrdersHost.xcodeproj \
+  -scheme OrdersHost \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
 ```
+
+For an existing Xcode target, copy the one-time build wiring from the shared
+[`NetLiftWorkload.yml`](product/apple/NetLiftWorkload.yml) template and the
+[sample project](product/apple/samples/OrdersHost/project.yml). This means
+two build phases, three generated Swift source references, the framework
+search path, and the linker response-file setting; no manual runtime-file
+or library list to maintain. Set `NETLIFT_REPOSITORY_ROOT` to the checkout.
+The phases use Xcode's selected `DEVELOPER_DIR` and keep intermediate
+outputs under the target's ignored `Build/` directory.
+They discover common SDK installation locations even when GUI Xcode has a
+minimal `PATH`; set `NETLIFT_DOTNET` to the executable for a custom SDK location.
+
+Put a workload-host `netlift.json` beside the Xcode project (or set
+`NETLIFT_CONFIG` to its path):
+
+```json
+{
+  "version": 1,
+  "managedProject": "../OrdersPreview/Managed/Orders/Orders.csproj",
+  "contractRoots": ["Orders.Preview.IOrdersService"],
+  "nativeContractRoots": ["Orders.Preview.IOrderConfirmationService"],
+  "swiftModule": "OrdersPreview"
+}
+```
+
+Paths are relative to that configuration file. Framework selection is
+automatic; use `managedFramework` only to resolve an ambiguous project.
+Retain your native app delegate and UI lifecycle, adapting the sample's
+one-time startup/bridge wiring. The host transport handles cancellation
+and errors and is installed once at app startup. SwiftPM source generation
+alone cannot add the workload's linker inputs and app payload to an Xcode
+target; this source-checkout integration does.
 
 The app reports a real managed Orders response and successful cancellation,
-callback, and stream checks. This is currently an explicit source integration,
-not a one-step SwiftPM/Xcode app template or a validated physical-device path.
+callback, and stream checks. The workload Xcode integration currently accepts
+**Debug + ARM64 iOS Simulator**; Release, Intel simulator, and physical-device
+builds fail explicitly rather than silently substituting another host.
 
 ## Optional: embed MAUI views in native UI
 
@@ -621,6 +635,13 @@ Your app and navigation remain SwiftUI/Compose-owned; you can opt into a
 MAUI-containing library for individual native views.
 The [MAUI embedding sample](product/samples/MauiEmbedding/README.md) contains
 the complete C#, SwiftUI, and Compose implementations.
+
+| iOS / SwiftUI | Android / Compose |
+| :---: | :---: |
+| <img src="docs/images/maui-ios.png" alt="A C# MAUI label hosted in the native SwiftUI app" width="280"> | <img src="docs/images/maui-android.png" alt="A C# MAUI label hosted in the native Compose app" width="280"> |
+
+Both screenshots show a real C#-created MAUI label inside the native app.
+The native button detaches/releases the view and creates a new one.
 
 Use a mobile **library**, not a second MAUI application project:
 
@@ -644,9 +665,10 @@ The source builders evaluate the linked `.csproj` through MSBuild. They
 prefer its matching mobile TFM over a portable TFM, use its evaluated
 `TargetPath` (including custom assembly/output names), and reference that
 **same TFM** from the managed host. Multiple compatible choices require an
-explicit `--managed-framework` on Apple or `contractTargetFramework` in
-Gradle. A project marked `UseMaui` also enables MAUI in the generated host.
-Other platforms and arbitrary binding-object DTO projection are not implied.
+explicit `managedFramework` in the Xcode configuration or
+`contractTargetFramework` in Gradle. A project marked `UseMaui` also enables
+MAUI in the generated host. Other platforms and arbitrary binding-object DTO
+projection are not implied.
 
 Keep the async service/DTO boundary separate from native views. An optional
 `PlatformViews` factory in the library receives and returns real
@@ -658,22 +680,24 @@ serialization of the view. On iOS the sample includes a managed wrapper
 for its Swift app delegate. On Android use the host's Activity context,
 not application context, for view construction.
 
-Build the checked-in SwiftUI consumer:
+Open
+[`MauiEmbedding.xcodeproj`](product/samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj)
+and run on an Apple Silicon simulator. The normal Xcode build also builds
+the MAUI library and packages its workload host automatically.
+The equivalent command-line build is:
 
 ```bash
-python3 product/apple/build_component.py \
-  --managed-project product/samples/MauiEmbedding/Managed/MauiEmbedding.csproj \
-  --contract-root NetLift.MauiEmbedding.IEmbeddingService \
-  --platform-view-factory NetLift.MauiEmbedding.PlatformViews \
-  --native-source-root product/samples/MauiEmbedding/SwiftUI \
-  --bundle-identifier dev.netlift.maui.swiftui \
-  --output .artifacts/maui-ios
-xcrun simctl install <simulator-udid> \
-  .artifacts/maui-ios/NetLift.Generated.Apple.app
-xcrun simctl launch <simulator-udid> dev.netlift.maui.swiftui
+xcodebuild \
+  -project product/samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj \
+  -scheme MauiEmbedding \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
 ```
 
-Build the Compose consumer against the published plugin and runtime:
+The sample's `netlift.json` selects the shared project and
+`platformViewFactory`. For Compose, open the `Compose/` directory in
+Android Studio and run; Gradle owns the managed build too. Its command-line
+equivalent, using the published plugin and runtime, is:
 
 ```bash
 product/android/gradlew -p product/samples/MauiEmbedding/Compose :app:assembleDebug

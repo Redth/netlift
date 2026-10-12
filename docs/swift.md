@@ -11,8 +11,9 @@ installation throws; explicit initializer injection remains available.
 
 **Source generation is not runtime hosting.** The
 [iOS component steps](../README.md#run-managed-code-in-an-ios-app) describe
-the separate source-owned build required to execute C# on an Apple Silicon
-simulator. SwiftPM alone does not package the managed app or supply a host.
+the Xcode build integration that generates, links, and embeds the managed
+component automatically. SwiftPM alone does not package the managed app
+or supply a host.
 
 ## Choosing the execution mode
 
@@ -43,8 +44,9 @@ managed-to-native callbacks or `UIView` peers.
 Both execution paths have been run on Apple Silicon simulators only.
 NativeAOT device slices build, but device execution is unverified. No
 comparative size, startup, memory, or throughput claims are established.
-The workload-host sample still requires its separate builder invocation;
-Xcode-owned build integration currently exists only for the NativeAOT sample.
+Both checked-in execution paths build their managed component as part of
+the normal Xcode app build. Workload hosting currently supports Debug on
+ARM64 simulators; unsupported target/configuration selections fail explicitly.
 
 The [Orders package example](../product/apple/samples/OrdersPreview/README.md)
 uses an in-memory transport and verifies clients, callbacks, and streams.
@@ -55,7 +57,7 @@ It does not execute C#. Platform packaging details remain in the
 
 The [MAUI embedding sample](../product/samples/MauiEmbedding/README.md)
 uses a `net11.0-ios;net11.0-android` MAUI library and the workload host.
-The Apple source builder selects the iOS TFM, enables MAUI in the internal
+Its Xcode target selects the iOS TFM, enables MAUI in the internal
 component, and links the workload-resolved native framework dependencies.
 Its SwiftUI `UIViewRepresentable` hosts a real `Label.ToPlatformEmbedded`
 result and detaches it before releasing its MAUI handler.
