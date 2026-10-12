@@ -715,14 +715,41 @@ public static class ProjectionEmitter
         var nativeServices = manifest.Services
             .Where(service => service.Owner == "native")
             .ToArray();
+        var jsonTypes = manifest.Services
+            .SelectMany(service => service.Methods)
+            .SelectMany(method => method.Parameters
+                .Select(parameter => parameter.Type.TypeName)
+                .Append(method.Result.TypeName))
+            .Where(typeName => !string.IsNullOrWhiteSpace(typeName))
+            .Select(typeName => typeName!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(typeName => typeName, StringComparer.Ordinal)
+            .ToArray();
         var builder = GeneratedHeader("//", manifest)
             .AppendLine("#nullable enable")
             .AppendLine("namespace NetLift.Generated;")
             .AppendLine()
+            .AppendLine("[global::System.Text.Json.Serialization.JsonSourceGenerationOptions(UseStringEnumConverter = true)]");
+        foreach (var typeName in jsonTypes)
+            builder.Append("[global::System.Text.Json.Serialization.JsonSerializable(typeof(global::")
+                .Append(typeName).AppendLine("))]");
+        builder.AppendLine("internal partial class ContractPayloadJsonContext : global::System.Text.Json.Serialization.JsonSerializerContext { }")
+            .AppendLine()
             .AppendLine("public static class ContractDispatcher")
             .AppendLine("{")
             .Append("    public const string SchemaHash = \"").Append(manifest.SchemaHash).AppendLine("\";")
-            .AppendLine("    internal static readonly global::System.Text.Json.JsonSerializerOptions JsonOptions = CreateJsonOptions();");
+            .AppendLine("    private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> GetJsonTypeInfo<T>()")
+            .AppendLine("    {")
+            .AppendLine("        return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)")
+            .AppendLine("            (ContractPayloadJsonContext.Default.GetTypeInfo(typeof(T)) ??")
+            .AppendLine("                throw new global::System.InvalidOperationException($\"No NetLift JSON metadata is registered for {typeof(T)}.\"));")
+            .AppendLine("    }")
+            .AppendLine()
+            .AppendLine("    internal static byte[] Serialize<T>(T value) =>")
+            .AppendLine("        global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value, GetJsonTypeInfo<T>());")
+            .AppendLine()
+            .AppendLine("    internal static T? Deserialize<T>(global::System.ReadOnlySpan<byte> payload) =>")
+            .AppendLine("        global::System.Text.Json.JsonSerializer.Deserialize(payload, GetJsonTypeInfo<T>());");
         foreach (var service in manifest.Services)
         {
             var serviceName = TrimInterfacePrefix(ShortName(service.Name));
@@ -781,9 +808,9 @@ public static class ProjectionEmitter
             foreach (var method in service.Methods.Where(method => !method.IsStreaming))
             {
                 builder.Append("            (").Append(service.Id).Append("u, ").Append(method.Id)
-                    .Append("u) => global::System.Text.Json.JsonSerializer.Deserialize<global::")
+                    .Append("u) => Deserialize<global::")
                     .Append(method.Parameters[0].Type.TypeName)
-                    .AppendLine(">(payload, JsonOptions)")
+                    .AppendLine(">(payload)")
                     .AppendLine("                ?? throw new global::System.Text.Json.JsonException(\"NetLift request payload decoded to null.\"),");
             }
         }
@@ -791,7 +818,20 @@ public static class ProjectionEmitter
             .AppendLine("        };")
             .AppendLine("        var result = await DispatchAsync(service, serviceId, memberId, request, cancellationToken)")
             .AppendLine("            .ConfigureAwait(false);")
-            .AppendLine("        return global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(result, result.GetType(), JsonOptions);")
+            .AppendLine("        return (serviceId, memberId, result) switch")
+            .AppendLine("        {");
+        foreach (var service in managedServices)
+        {
+            foreach (var method in service.Methods.Where(method => !method.IsStreaming))
+            {
+                builder.Append("            (").Append(service.Id).Append("u, ").Append(method.Id)
+                    .Append("u, global::").Append(method.Result.TypeName)
+                    .Append(" typedResult) => Serialize(typedResult),")
+                    .AppendLine();
+            }
+        }
+        builder.AppendLine("            _ => throw new global::System.InvalidOperationException($\"Unknown NetLift result route {serviceId}/{memberId}.\")")
+            .AppendLine("        };")
             .AppendLine("    }")
             .AppendLine()
             .AppendLine("    public static async global::System.Collections.Generic.IAsyncEnumerable<global::System.ReadOnlyMemory<byte>> DispatchStreamBytesAsync(")
@@ -814,14 +854,14 @@ public static class ProjectionEmitter
             {
                 var requestType = method.Parameters[0].Type.TypeName!;
                 builder.Append("                    case ").Append(method.Id).AppendLine("u:")
-                    .Append("                        var request = global::System.Text.Json.JsonSerializer.Deserialize<global::")
-                    .Append(requestType).AppendLine(">(payload, JsonOptions)")
+                    .Append("                        var request = Deserialize<global::")
+                    .Append(requestType).AppendLine(">(payload)")
                     .AppendLine("                            ?? throw new global::System.Text.Json.JsonException(\"NetLift stream request payload decoded to null.\");")
                     .Append("                        await foreach (var item in typedService.")
                     .Append(method.Name).AppendLine("(request, cancellationToken)")
                     .AppendLine("                            .WithCancellation(cancellationToken).ConfigureAwait(false))")
                     .AppendLine("                        {")
-                    .AppendLine("                            yield return global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(item, item.GetType(), JsonOptions);")
+                    .AppendLine("                            yield return Serialize(item);")
                     .AppendLine("                        }")
                     .AppendLine("                        yield break;");
             }
@@ -835,13 +875,6 @@ public static class ProjectionEmitter
             .AppendLine("#pragma warning disable CS0162")
             .AppendLine("        yield break;")
             .AppendLine("#pragma warning restore CS0162")
-            .AppendLine("    }")
-            .AppendLine()
-            .AppendLine("    private static global::System.Text.Json.JsonSerializerOptions CreateJsonOptions()")
-            .AppendLine("    {")
-            .AppendLine("        var options = new global::System.Text.Json.JsonSerializerOptions();")
-            .AppendLine("        options.Converters.Add(new global::System.Text.Json.Serialization.JsonStringEnumConverter());")
-            .AppendLine("        return options;")
             .AppendLine("    }")
             .AppendLine("}")
             .AppendLine()
@@ -931,15 +964,15 @@ public static class ProjectionEmitter
                     .Append(request.Name)
                     .AppendLine(", global::System.Threading.CancellationToken cancellationToken = default)")
                     .AppendLine("    {")
-                    .Append("        var payload = global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(")
-                    .Append(request.Name).AppendLine(", ContractDispatcher.JsonOptions);")
+                    .Append("        var payload = ContractDispatcher.Serialize(")
+                    .Append(request.Name).AppendLine(");")
                     .Append("        var response = await transport.InvokeAsync(")
                     .Append(service.Id).Append("u, ").Append(method.Id)
                     .AppendLine("u, payload, cancellationToken)")
                     .AppendLine("            .ConfigureAwait(false);")
-                    .Append("        return global::System.Text.Json.JsonSerializer.Deserialize<global::")
+                    .Append("        return ContractDispatcher.Deserialize<global::")
                     .Append(method.Result.TypeName)
-                    .AppendLine(">(response.Span, ContractDispatcher.JsonOptions)")
+                    .AppendLine(">(response.Span)")
                     .AppendLine("            ?? throw new global::System.Text.Json.JsonException(\"NetLift native service response decoded to null.\");")
                     .AppendLine("    }")
                     .AppendLine();

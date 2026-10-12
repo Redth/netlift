@@ -180,6 +180,19 @@ Require(
     managed.Contains("DispatchStreamBytesAsync(", StringComparison.Ordinal) &&
     managed.Contains("INetLiftStreamDispatcher", StringComparison.Ordinal),
     "Generated managed output omitted its stream dispatcher.");
+Require(
+    managed.Contains(
+        "JsonSourceGenerationOptions(UseStringEnumConverter = true)",
+        StringComparison.Ordinal) &&
+    managed.Contains(
+        "JsonSerializable(typeof(global::Orders.Contracts.OrderRequest))",
+        StringComparison.Ordinal) &&
+    managed.Contains(
+        "JsonSerializer.SerializeToUtf8Bytes(value, GetJsonTypeInfo<T>())",
+        StringComparison.Ordinal) &&
+    !managed.Contains("result.GetType()", StringComparison.Ordinal) &&
+    !managed.Contains("new global::System.Text.Json.Serialization.JsonStringEnumConverter()", StringComparison.Ordinal),
+    "Generated managed JSON serialization is not NativeAOT-compatible.");
 var androidCompilation = ContractCompiler.CompileWithImplementations(
     assemblyPath, ["Orders.Contracts.IOrdersService"]);
 Require(
