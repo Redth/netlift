@@ -12,6 +12,8 @@ without NetLift attributes into:
 - generated Kotlin DTOs and async client
 - generated Swift DTOs and async client
 - generated Kotlin native-owner interfaces and Swift native-owner protocols
+- generated typed registration helpers for native-owned callbacks
+- cold Kotlin `Flow` and demand-driven Swift `AsyncSequence` stream clients
 - generated typed managed proxies for native-owned services
 - a managed dispatcher and contract-neutral runtime adapter that invoke the
   same service/member IDs
@@ -188,13 +190,27 @@ disposing the enumerator, and disposes exactly once. Runtime tests cover cold
 start, bounded demand, stale-generation rejection, terminal failures, and
 10,000 open/read/revoke cycles.
 
+Generated Swift streams use `NetLiftAsyncSequence`, whose iterator opens its
+transport on the first `next()` and requests one payload for each subsequent
+`next()`. `NetLiftStreamSession.revoke()` runs on completion, failure,
+cancellation, or iterator release; the transport interface is pull-based and
+does not rely on an independently buffered `AsyncThrowingStream`. Session
+implementations must make `revoke()` idempotent because cancellation can race
+with iterator cleanup. Kotlin's
+generated `Flow` similarly requests the next native payload only after the
+downstream collector is ready for another emission. Generated Swift
+`register<Service>` helpers encode/decode contract DTOs and dispatch
+native-owned callback methods by stable member IDs; callers supply the
+platform's registration function so generated contracts stay independent of
+the runtime module layout.
+
 V1 intentionally freezes the request/response path used by generated clients.
-Callbacks and streams are implemented by the generated Android and Apple
-platform adapters without changing that table. A future contract-neutral C ABI
-for callbacks, streams, or asynchronous completion will extend the table
-through `struct_size` and a new ABI version rather than changing the V1
-layout. Mobile runtime adapters attach to the workload-initialized runtime;
-they never start a second CLR.
+Generated callback registrations and stream facades use platform adapters
+outside that table, without changing its V1 layout. A future contract-neutral
+C ABI for callbacks, streams, or asynchronous completion will extend the
+table through `struct_size` and a new ABI version rather than changing V1.
+Mobile runtime adapters attach to the workload-initialized runtime; they never
+start a second CLR.
 
 ## Release trust metadata
 
@@ -279,7 +295,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.10"
+    id("io.github.redth.netlift") version "0.1.0-alpha.11"
 }
 
 netlift {
@@ -356,13 +372,13 @@ unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
 The contract-neutral runtime and projection plugin are published in Swift
-package `NetLift` `0.1.0-alpha.6`:
+package `NetLift` `0.1.0-alpha.7`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.6"
+        exact: "0.1.0-alpha.7"
     ),
 ]
 ```

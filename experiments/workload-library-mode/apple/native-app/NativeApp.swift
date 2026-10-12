@@ -52,15 +52,12 @@ private final class OperationState: @unchecked Sendable {
     }
 }
 
-private final class ManagedStreamState<
-    Request: Encodable & Sendable,
-    Element: Decodable & Sendable
->: @unchecked Sendable {
+private final class ManagedStreamState: NetLiftStreamSession, @unchecked Sendable {
     private let lock = NSLock()
     private let bridge: NetLiftManagedBridge
     private let serviceId: UInt32
     private let memberId: UInt32
-    private let request: Request
+    private let request: Data
     private var handle: (token: Int64, generation: Int64)?
     private var completed = false
 
@@ -68,7 +65,7 @@ private final class ManagedStreamState<
         bridge: NetLiftManagedBridge,
         serviceId: UInt32,
         memberId: UInt32,
-        request: Request
+        request: Data
     ) {
         self.bridge = bridge
         self.serviceId = serviceId
@@ -80,7 +77,7 @@ private final class ManagedStreamState<
         revoke()
     }
 
-    func next() async throws -> Element? {
+    func readNext() async throws -> Data? {
         if lock.withLock({ completed }) {
             return nil
         }
@@ -122,7 +119,7 @@ private final class ManagedStreamState<
               let item = Data(base64Encoded: encoded) else {
             throw ManagedTransportError.invalidEnvelope
         }
-        return try JSONDecoder().decode(Element.self, from: item)
+        return item
     }
 
     func revoke() {
@@ -145,12 +142,11 @@ private final class ManagedStreamState<
         if let existing = lock.withLock({ handle }) {
             return existing
         }
-        let payload = try JSONEncoder().encode(request)
         let value = await Task.detached {
             self.bridge.openStreamService(
                 self.serviceId,
                 member: self.memberId,
-                payload: payload
+                payload: self.request
             ) as String
         }.value
         let open = try JSONDecoder().decode(
@@ -239,24 +235,17 @@ private final class ManagedTransport:
         }
     }
 
-    func openStream<
-        Request: Encodable & Sendable,
-        Element: Decodable & Sendable
-    >(
+    func openStream(
         serviceId: UInt32,
         memberId: UInt32,
-        request: Request,
-        as elementType: Element.Type
-    ) -> AsyncThrowingStream<Element, Error> {
-        let state = ManagedStreamState<Request, Element>(
-                bridge: bridge,
-                serviceId: serviceId,
-                memberId: memberId,
-                request: request
+        request: Data
+    ) async throws -> any NetLiftStreamSession {
+        ManagedStreamState(
+            bridge: bridge,
+            serviceId: serviceId,
+            memberId: memberId,
+            request: request
         )
-        return AsyncThrowingStream<Element, Error>(unfolding: {
-                try await state.next()
-        })
     }
 }
 
@@ -301,25 +290,6 @@ private enum NativeConfirmationError: Error {
     case unexpectedOrder(String)
 }
 
-private func registerOrderConfirmationService(
-    _ service: NativeOrderConfirmationService
-) throws -> NetLiftNativeServiceRegistration {
-    try NetLiftNativeServices.register(
-        serviceId: OrderConfirmationServiceRoutes.serviceId
-    ) { memberId, payload in
-        guard memberId == OrderConfirmationServiceRoutes.confirmOrderId else {
-            throw NativeConfirmationError.unexpectedOrder(
-                "member-\(memberId)"
-            )
-        }
-        let request = try JSONDecoder().decode(
-            OrderConfirmationRequest.self,
-            from: payload
-        )
-        let response = try await service.confirmOrder(request: request)
-        return try JSONEncoder().encode(response)
-    }
-}
 #endif
 
 @objc(NetLiftNativeAppDelegate)
@@ -381,8 +351,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let receipt = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-42",
-                        quantity: 2,
                         priority: .expedited,
+                        quantity: 2,
                         note: "NETLIFT-IOS"
                     )
                 )
@@ -409,8 +379,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let legacyResponse = try await legacyClient.submitOrder(
                     request: OrderRequest(
                         customerId: "new-client",
-                        quantity: 1,
                         priority: .standard,
+                        quantity: 1,
                         note: "optional"
                     )
                 )
@@ -423,8 +393,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     _ = try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-42",
-                            quantity: 1,
                             priority: .standard,
+                            quantity: 1,
                             note: "NETLIFT-ERROR"
                         )
                     )
@@ -438,8 +408,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-cancel",
-                            quantity: 1,
                             priority: .standard,
+                            quantity: 1,
                             note: "NETLIFT-CANCEL"
                         )
                     )
@@ -465,9 +435,9 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let resource = URL(string: "https://example.test/orders/42?mode=adapter")!
                 let adapterResult = try await client.roundTripAdapters(
                     request: AdapterRoundTripRequest(
-                        payload: adapterPayload,
+                        resource: resource,
                         timestamp: timestamp,
-                        resource: resource
+                        payload: adapterPayload
                     )
                 )
                 precondition(abs(adapterResult.timestamp.timeIntervalSince(timestamp)) < 0.001)
@@ -513,13 +483,18 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
 #if NETLIFT_NATIVE_CALLBACKS
                 let registration = try registerOrderConfirmationService(
                     NativeOrderConfirmationService()
-                )
+                ) { serviceId, handler in
+                    try NetLiftNativeServices.register(
+                        serviceId: serviceId,
+                        handler: handler
+                    )
+                }
                 precondition(NetLiftNativeServices.liveRegistrationCount == 1)
                 let confirmed = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-confirm",
-                        quantity: 3,
                         priority: .expedited,
+                        quantity: 3,
                         note: "NETLIFT-CONFIRM"
                     )
                 )
@@ -527,8 +502,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 let declined = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-decline",
-                        quantity: 3,
                         priority: .standard,
+                        quantity: 3,
                         note: "NETLIFT-CONFIRM"
                     )
                 )
@@ -537,8 +512,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     _ = try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-native-failure",
-                            quantity: 1,
                             priority: .standard,
+                            quantity: 1,
                             note: "NETLIFT-CONFIRM"
                         )
                     )
@@ -549,8 +524,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-native-cancel",
-                            quantity: 1,
                             priority: .standard,
+                            quantity: 1,
                             note: "NETLIFT-CONFIRM"
                         )
                     )
@@ -566,8 +541,8 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                     try await client.submitOrder(
                         request: OrderRequest(
                             customerId: "customer-revoke",
-                            quantity: 1,
                             priority: .standard,
+                            quantity: 1,
                             note: "NETLIFT-CONFIRM"
                         )
                     )

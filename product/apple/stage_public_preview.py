@@ -11,7 +11,7 @@ from pathlib import Path
 APPLE_ROOT = Path(__file__).resolve().parent
 PACKAGE = APPLE_ROOT / "netlift-swift"
 ARTIFACTS = PACKAGE / "artifacts"
-VERSION = "0.1.0-alpha.6"
+VERSION = "0.1.0-alpha.7"
 BASE_URL = (
     f"https://redth.github.io/netlift-sdk/swift/NetLift/{VERSION}"
 )

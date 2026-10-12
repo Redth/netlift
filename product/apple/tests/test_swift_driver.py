@@ -18,7 +18,7 @@ TOOL = (
     / "netlift-swift"
     / "artifacts"
     / "netlift-swift-tools.artifactbundle"
-    / "netlift-swift-0.1.0-alpha.6-macos"
+    / "netlift-swift-0.1.0-alpha.7-macos"
     / "bin"
     / "netlift-swift"
 )

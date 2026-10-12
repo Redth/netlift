@@ -28,7 +28,7 @@ The command discovers requirements from the installed workload manifests. It
 does not hardcode JDK, Android SDK, or Xcode requirements.
 
 Build and audit the Kotlin-owned Android application. The app resolves
-`io.github.redth.netlift` `0.1.0-alpha.6` and runtime `0.1.0-alpha.1` from the
+`io.github.redth.netlift` `0.1.0-alpha.11` and runtime `0.1.0-alpha.1` from the
 public Pages Maven repository:
 
 ```bash

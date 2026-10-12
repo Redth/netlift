@@ -114,9 +114,15 @@ Require(
 var swift = projections["NetLiftContracts.swift"];
 Require(
     swift.Contains(
-        "func watchOrderStatus(request: OrderStatusRequest) -> AsyncThrowingStream<OrderStatusUpdate, Error>",
+        "func watchOrderStatus(request: OrderStatusRequest) -> NetLiftAsyncSequence<OrderStatusRequest, OrderStatusUpdate>",
         StringComparison.Ordinal),
     "Generated Swift client omitted its AsyncSequence projection.");
+Require(
+    swift.Contains("func readNext() async throws -> Data?", StringComparison.Ordinal) &&
+    swift.Contains("func openStream(", StringComparison.Ordinal) &&
+    swift.Contains("try await session.readNext()", StringComparison.Ordinal) &&
+    swift.Contains("session.revoke()", StringComparison.Ordinal),
+    "Generated Swift stream transport did not expose pull-based demand and cancellation.");
 Require(
     swift.Contains($"public static let serviceId: UInt32 = {first.Services[0].Id}", StringComparison.Ordinal) &&
     swift.Contains($"public static let submitOrderId: UInt32 = {submitOrderMethod.Id}", StringComparison.Ordinal),
@@ -288,6 +294,17 @@ Require(
 Require(
     bidirectionalSwift.Contains("public enum OrderConfirmationServiceRoutes", StringComparison.Ordinal),
     "Generated Swift omitted native-service route constants.");
+Require(
+    bidirectionalSwift.Contains(
+        "public func registerOrderConfirmationService<Registration>(",
+        StringComparison.Ordinal) &&
+    bidirectionalSwift.Contains(
+        "using register: (UInt32, @escaping NetLiftGeneratedNativeServiceHandler) throws -> Registration",
+        StringComparison.Ordinal) &&
+    bidirectionalSwift.Contains(
+        "let response = try await service.confirmOrder(request: request)",
+        StringComparison.Ordinal),
+    "Generated Swift omitted typed native-service registration.");
 Require(
     !bidirectionalSwift.Contains("public struct OrderConfirmationServiceClient", StringComparison.Ordinal),
     "Generated Swift incorrectly emitted a client for a native-owned service.");
