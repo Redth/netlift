@@ -736,3 +736,9 @@ shows optional MAUI views inside native SwiftUI and Compose apps.
 [Product build instructions](product/README.md)
 cover implementation and release evidence. Older `experiments/` and `spikes/`
 are not the public setup or support contract.
+
+The root-level [Orders native UI slices](samples/Orders.NativeUi/README.md)
+are historical v3 proof snippets, not current consumer templates; the
+[native host proofs](spikes/apple/NativeV5SwiftHost/NativeV5SwiftHostApp.swift)
+also use test-only adapters. The [plain Orders library](samples/Orders.AsyncBusiness/README.md)
+remains useful as a contract example.

@@ -18,7 +18,14 @@ Xcode device-support stack. Neither physical-device gate is accepted.
 
 **Publication housekeeping:** the root README now leads with the
 canonical managed Orders library and labels the native apps as proof
-fixtures. The [publishability tranche](plan.md#publishability-tranche)
+fixtures. A [minimal native UI reading path](../samples/Orders.NativeUi/)
+now shows the older v3 generated Orders client in SwiftUI and Compose:
+the Swift screen typechecks with its generated facade and the Compose
+screen compiles in the sample module, but neither is the proof app's
+entry screen or a standalone runnable consumer package. It does not
+replace the v5 `Orders.AsyncBusiness` hand-wired host or supply its
+missing typed native async service facade. The
+[publishability tranche](plan.md#publishability-tranche)
 separates a source-only, audited research snapshot from any product SDK
 or support claim. The [source ownership map](source-boundaries.md)
 distinguishes reusable `src/` prototypes from test-only Apple/Android
