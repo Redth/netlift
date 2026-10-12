@@ -487,6 +487,53 @@ The runtime package contains the contract-neutral native ABI, not your
 managed assemblies or CoreCLR/R2R assets. There are two source-owned ways to
 run C# from a Swift-owned app; neither is provided by SwiftPM alone.
 
+#### Choose workload hosting or a NativeAOT library
+
+Both modes keep the UI and app lifecycle in Swift and execute C# in-process.
+Here, **host mode** means embedding the .NET iOS workload's runtime and
+managed component. **Non-host mode** means linking a NativeAOT library
+without bootstrapping that workload host; the library still contains the
+runtime support it needs, including garbage collection. It does not mean
+"no .NET runtime" or "Swift-only code."
+
+| Consideration | Workload host | NativeAOT library (non-host) |
+| --- | --- | --- |
+| Best fit | Existing .NET code that needs workload integration, native callbacks, or Apple platform peers. | Portable, AOT-compatible business logic embedded in a Swift-owned app. |
+| Integration benefit | Reuses the workload's runtime, bindings, and registrar machinery. | Produces an app-specific XCFramework and Swift sources to link without the workload-host bootstrap. |
+| Integration cost | Packages a runtime/managed-assembly closure and requires workload-specific startup, registrar, and linker integration. The current builder is simulator-only. | Builds a native library per architecture; generated sources, embedding, and signing still need integration into the native target. Changes to C# require rebuilding the framework. |
+| Managed-library compatibility | Does not require the portable library to pass NativeAOT publication, but trimming, platform restrictions, and the chosen runtime still apply. | The reachable implementation **and its dependencies** must support trimming and NativeAOT; reflection-heavy libraries can require changes or replacements. |
+| Serialization and reflection | Reflection-based code may work when required metadata is preserved; this is not a guarantee for every library or device target. | Prefer source-generated JSON metadata and statically known types. Unbounded reflection, runtime code generation, and dynamic assembly loading are unsuitable. |
+| Current NetLift features | Unary calls, cancellation, streams, managed-to-native callbacks, and the experimental `UIView` peer adapter. | Unary calls, cancellation, and streams. Managed-to-native callbacks are rejected; `UIView` peer projection is not supported by this bridge. |
+| Current evidence | Apple Silicon simulator execution; no validated physical-device path. | Apple Silicon simulator execution; simulator/device ARM64 slices build, but physical-device execution is unverified. |
+
+**Choose NativeAOT** for a portable service whose dependencies can pass AOT
+publication and which needs no callback/platform-peer features. **Choose the
+workload host** when those features are required or NativeAOT compatibility
+would require substantial changes. Neither path is a universal escape from
+iOS deployment restrictions. Startup time, app size, memory use, and
+throughput have not been compared here; do not choose based on assumed
+performance gains.
+
+**NativeAOT compatibility takes extra care.** A normal `dotnet build` is
+not sufficient. Enable `<IsAotCompatible>true</IsAotCompatible>` in your
+portable `net10.0` library to get early diagnostics, then publish the actual
+component for the target architectures and exercise it on the target.
+Resolve trim/AOT warnings in your own code and check third-party dependency
+support rather than suppressing the warnings.
+
+NetLift's generated dispatcher already uses source-generated
+`System.Text.Json` metadata. Your service's own serialization must be checked
+separately: use a `JsonSerializerContext` and `JsonTypeInfo<T>` overloads
+instead of reflection-based overloads, and generic
+`JsonStringEnumConverter<TEnum>` where needed. For reflection, prefer direct
+calls or statically known types; use `DynamicallyAccessedMembers` annotations
+when a bounded reflection requirement can be preserved. An annotation does
+not make arbitrary runtime-discovered types or dynamic code AOT-compatible.
+We encountered exactly these serialization issues when first publishing the
+generated dispatcher, despite its normal managed build succeeding.
+
+#### Build the NativeAOT library
+
 For a portable service boundary that does not need managed-to-native
 callbacks, the NativeAOT builder generates a C ABI bridge, publishes an
 XCFramework for Apple Silicon simulator and device architectures, and copies
@@ -514,6 +561,8 @@ pull-based streams; it rejects managed-to-native callbacks. The XCFramework
 contains both simulator and device slices, but only the simulator app has
 been run. Physical-device execution, callback services, and Apple `UIView`
 peer projection are not verified on this path.
+
+#### Build the workload host
 
 For callback services and the existing Apple `UIView` peer adapter, use the
 .NET iOS workload-host path below. It builds the app-specific CoreCLR/R2R

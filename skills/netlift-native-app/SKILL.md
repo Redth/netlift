@@ -86,6 +86,16 @@ Only pass `streamTransport:` when the host conforms to it. Missing or duplicate 
 
 For real iOS execution, choose the host path that fits the contract:
 
+- Read the README's workload-host vs NativeAOT comparison before choosing.
+  Both preserve native UI ownership. "Non-host" means no workload-host
+  bootstrap, not no managed runtime support. For NativeAOT, evaluate the
+  reachable implementation and dependency closure, including service-owned
+  JSON serialization and reflection; generated dispatcher metadata alone
+  does not prove AOT compatibility. Enable `IsAotCompatible` for diagnostics
+  and validate actual target publication. Do not suppress trim/AOT warnings
+  or promise size/startup improvements without measurements. The workload
+  host does not require NativeAOT-compatible library code, but still has
+  trimming, runtime, and iOS platform constraints.
 - For portable contracts without managed-to-native callbacks or `UIView`
   projection, inspect `product/apple/build_native_aot.py` and
   `product/apple/samples/NativeAotHelloWorld`. It generates a C ABI bridge,

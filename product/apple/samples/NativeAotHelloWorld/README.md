@@ -4,6 +4,32 @@ This sample builds the portable C# service into an iOS NativeAOT framework,
 links it into a Swift-owned UIKit app, and runs the generated NetLift client
 against the real managed implementation.
 
+## When to use this mode
+
+Use this path for portable, AOT-compatible business logic without
+managed-to-native callbacks or Apple `UIView` peers. It links a managed
+native library into your Swift app without bootstrapping the .NET iOS
+workload host; garbage collection and other required runtime support are
+still part of the library.
+
+All reachable service code and dependencies must be compatible with trimming
+and NativeAOT. Enable `IsAotCompatible` for early diagnostics and verify the
+actual AOT publish. NetLift generates AOT-safe JSON metadata for the
+dispatcher, but serialization inside your service may need its own
+`JsonSerializerContext`/`JsonTypeInfo<T>` overloads. Reflection needs
+statically preservable types/members; runtime code generation is not an
+alternative. Passing a normal managed build does not prove compatibility.
+
+For callback/platform-peer support or libraries that cannot be made
+AOT-compatible, consider the workload-host path, which has its own
+trimming/platform and packaging constraints. See the
+[full comparison](../../../../README.md#choose-workload-hosting-or-a-nativeaot-library).
+Simulator and device ARM64 framework slices are built, but only simulator
+execution has been verified; this sample makes no device-support or
+comparative performance claim.
+
+## Build and run
+
 From the repository root, with .NET 11 preview, Xcode, and an Apple Silicon
 iOS simulator installed:
 
