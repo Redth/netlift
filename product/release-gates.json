@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "gates": [
+    {
+      "id": "android-signed-bundle-delivery",
+      "status": "passed",
+      "evidence": [
+        "signed-aab",
+        "arm64-split-install",
+        "r8-release-execution",
+        "offline-cold-start",
+        "process-relaunch",
+        "same-signer-version-update"
+      ]
+    },
+    {
+      "id": "android-dependency-license-symbol-closure",
+      "status": "passed",
+      "evidence": [
+        "sdk-dependency-inventory",
+        "license-inventory",
+        "app-native-symbols",
+        "runtime-native-symbols",
+        "app-payload-isolation"
+      ]
+    },
+    {
+      "id": "apple-simulator-release-lifecycle",
+      "status": "passed",
+      "evidence": [
+        "release-workload-closure",
+        "simulator-install",
+        "process-terminate-relaunch",
+        "repeated-full-acceptance"
+      ]
+    },
+    {
+      "id": "remote-preview-consumer",
+      "status": "passed",
+      "evidence": [
+        "gradle-plugin-0.1.0-alpha.13",
+        "swift-package-0.1.0-alpha.9",
+        "github-pages-http-200",
+        "fresh-gradle-cache",
+        "fresh-swiftpm-cache",
+        "public-feed-only-consumer-build",
+        "public-feed-only-emulator-acceptance",
+        "runtime-default-unary-and-stream-clients",
+        "swift-missing-and-duplicate-install-diagnostics",
+        "android-application-startup-hello-world",
+        "readme-extracted-dotnet-kotlin-swift-consumers",
+        "generated-callback-dispatch",
+        "demand-aware-stream",
+        "process-relaunch"
+      ]
+    },
+    {
+      "id": "android-physical-device",
+      "status": "blocked-device-unavailable"
+    },
+    {
+      "id": "apple-physical-device",
+      "status": "blocked-device-unavailable"
+    },
+    {
+      "id": "remote-release-candidate-consumers",
+      "status": "blocked-prerequisites"
+    },
+    {
+      "id": "stable-byte-promotion",
+      "status": "blocked-prerequisites"
+    }
+  ]
+}

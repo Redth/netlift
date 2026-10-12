@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "dependencies": [
+    {
+      "id": "io.github.redth.netlift:runtime-android",
+      "license": "MIT",
+      "version": "0.1.0-alpha.3"
+    },
+    {
+      "id": "org.jetbrains:annotations",
+      "license": "Apache-2.0",
+      "version": "23.0.0"
+    },
+    {
+      "id": "org.jetbrains.kotlin:kotlin-stdlib",
+      "license": "Apache-2.0",
+      "version": "2.2.20"
+    },
+    {
+      "id": "org.jetbrains.kotlinx:kotlinx-coroutines-android",
+      "license": "Apache-2.0",
+      "version": "1.10.2"
+    },
+    {
+      "id": "org.jetbrains.kotlinx:kotlinx-coroutines-bom",
+      "license": "Apache-2.0",
+      "version": "1.10.2"
+    },
+    {
+      "id": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+      "license": "Apache-2.0",
+      "version": "1.10.2"
+    },
+    {
+      "id": "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm",
+      "license": "Apache-2.0",
+      "version": "1.10.2"
+    }
+  ],
+  "workloadComponents": [
+    {
+      "id": "microsoft.net.sdk.android",
+      "license": "MIT"
+    },
+    {
+      "id": "microsoft.netcore.app.runtime.android-arm64",
+      "license": "MIT"
+    }
+  ]
+}

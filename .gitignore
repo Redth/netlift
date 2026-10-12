@@ -13,6 +13,7 @@
 **/*.xcresult/
 **/.release-sdk-view/
 **/.lifecycle-v2-sdk-view/
+product/apple/samples/NativeAotHelloWorld/Build/
 spikes/android/NetLift.AndroidRuntime/delegate-smoke/plugin-managed/
 spikes/android/NetLift.AndroidRuntime/delegate-smoke/native/plugin-host
 **/.idea/

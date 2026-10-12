@@ -1,364 +1,744 @@
-# NetLift: native UI, shared .NET business logic
+# NetLift
 
-**Status:** feasibility study with limited executable prototypes, updated
-1 October 2026. Xcode-owned iOS simulator and Gradle-owned Android
-emulator spikes invoke plain .NET business code through CoreCLR and exercise native
-confirmation callbacks. Generated Swift and Kotlin clients now reach the
-real business library in native-owned Debug/Release simulator and emulator
-apps, including an R8-minified Android AAB-derived split run, through
-**app-owned platform host/ABI adapters** (including a separately verified
-generic Android AAR); this is not a
-reusable distribution or evidence that arbitrary apps or physical devices
-are supported. .NET
-11 is at RC 1; revalidate the platform SDK and workload against GA before
-committing to product guarantees.
-The prototype pins its .NET SDK in [`global.json`](global.json); install that
-exact RC SDK before running the local checks.
+**Native Swift and Kotlin apps. Shared .NET business logic.**
 
-## Start here
+NetLift generates typed native clients from ordinary C# service contracts.
+Keep your UI and lifecycle in SwiftUI or Kotlin/Compose, and run your .NET
+code in the same process. MAUI is optional; no web service or NetLift attributes.
 
-This is **research source, not an installable SDK**. To see the intended
-separation of concerns, start with the plain `net11.0`
-[Orders library](samples/Orders.AsyncBusiness/README.md):
-[the annotated contract](samples/Orders.AsyncBusiness/Contract.cs) declares
-the managed `SubmitAsync` operation and native `ConfirmAsync` callback;
-[the service](samples/Orders.AsyncBusiness/OrdersService.cs) implements
-business logic and requests confirmation from the native UI. The
-[minimal native UI slices](samples/Orders.NativeUi/README.md) show what
-generated-client usage looks like in SwiftUI and Compose **for the
-earlier v3 Orders.Business route**; they are typechecked with the
-proof hosts but are not drop-in apps or v5 clients. The
-[SwiftUI](spikes/apple/NativeV5SwiftHost/NativeV5SwiftHostApp.swift) and
-[Compose](spikes/android/NetLift.AndroidRuntime/v5-async-sample/src/main/java/com/netlift/v5asyncsample/V5AsyncSampleActivity.kt)
-apps exercise the old-profile library on simulator/emulator, but are
-engineering proof hosts with test-only adapters, **not** consumer templates.
-The newer profile in those apps remains fixture-backed.
+This page contains the setup, .NET code, and native examples in one place:
+[.NET](#1-write-your-net-service), [Android](#2-connect-kotlin--android),
+[Swift](#3-connect-swift), and [iOS runtime](#run-managed-code-in-an-ios-app).
 
-For a short reading path, use the [current gate ledger](docs/status.md),
-[publishability checklist](docs/plan.md#publishability-tranche), and
-[developer experience contract](docs/developer-experience.md). The
-documents and generated API sketches are proposals where explicitly
-marked; there is no supported product `ACTIVE` route, frozen public host
-ABI, physical-device result, or authenticated distribution yet.
+> **Preview:** Android packages the managed component automatically. SwiftPM
+> generates clients; running C# in an iOS app still requires a separate
+> source-owned component build. Verified runtime targets are API 36 ARM64
+> Android emulators and Apple Silicon iOS simulators, not physical devices.
 
-**Source map:** [`src/`](src/) contains reusable compiler, projection,
-negotiation and host *prototype* components; [`samples/`](samples/)
-contains developer-authored business examples; [`spikes/`](spikes/)
-contains isolated platform/host experiments, not a distributable SDK;
-[`tests/`](tests/) holds their controls; and [`docs/`](docs/) records
-decisions and limits. [Source ownership](docs/source-boundaries.md)
-identifies test-only and provisional boundaries before packaging.
-The local Git history captures authored source
-only. Session scratch, build artifacts, and raw proof logs are separate
-and must be retained before their owner sessions are retired.
+## Packages and prerequisites
 
-NetLift revisits the idea behind
-[Embeddinator-4000](https://github.com/mono/Embeddinator-4000): expose an
-opted-in managed API as an idiomatic native API. Its first targets are
-SwiftUI on Apple platforms and Kotlin/Jetpack Compose on Android. The .NET
-business layer runs **in process on CoreCLR**; the UI and app lifecycle remain
-native. The intended bridge supports calls in both directions, including
-asynchronous operations, events, and callbacks; generated event/stream
-adapters and a reusable mobile host are not yet complete. Neither MAUI UI nor an
-out-of-process service is required.
-
-An opt-in schema-v3 typed native-reply prototype distinguishes user
-decline from protocol/native failures in desktop CoreCLR/Swift and Kotlin
-fake-ABI tests. A separately isolated Xcode-owned Release simulator app
-also completed typed acceptance, business decline, cancellation and
-handler failure through real .NET business code; the default mobile paths
-remain v2. A generated typed-v3 Orders module now reaches real business
-through the generic Android AAR on an API 36 arm64 emulator in Debug and
-minified diagnostic Release; physical devices remain unproven.
-An opt-in schema-v4 subscription prototype runs generated stream
-contracts through a native-owned macOS C/CoreCLR host and desktop
-Swift/Kotlin facade controls. An isolated Xcode-owned simulator app
-also consumes real `OrdersService.WatchAsync` through the generated
-Swift `AsyncSequence`, with demand, cancellation/release and business
-failure checks. The generic Android AAR now transports the generated
-Kotlin `Flow` to the same real business stream on an API 36 arm64
-emulator, including an R8-minified AAB-derived diagnostic split run.
-An opt-in Android callback lifecycle-v2 path separates revoke from final
-release and acknowledges drained native replies; the manager verified
-10,000 mixed managed-host callback/reply/revoke cycles and pending-dialog
-Activity recreation followed by a real Orders stream in one emulator
-process. This is not 10,000 JNI/Kotlin coroutine drains on a device.
-Neither mobile proof uses physical hardware or production signing. See the
-[contract spike](docs/spikes/contract.md) and [status](docs/status.md)
-for their exact feature/hash gates and limitations.
-
-An experimental schema-v5 additive-field path now has generated
-managed manifests, a separately pinned macOS C/CoreCLR compatible-start
-and dispatch reference, and opt-in Swift/Kotlin DTO codecs verified
-against managed old/new `NLF1` bytes. The C host now issues a validated
-peer snapshot after startup; a separate macOS SwiftPM host uses it for
-live old/new C/CoreCLR dispatch using generated Swift codecs.
-A separate generated, encode-only Swift/Kotlin mode binds to the
-host-owned native-peer context and passes isolated language smokes;
-the macOS SwiftPM caller also passes manager-rerun generated-codec
-old/new C/CoreCLR exchange. A native-owned SwiftUI iOS simulator
-app passes the same bounded sync-v5 directions, negative pin/context
-checks, and scene-background close on a dedicated simulator.
-Android's generated Kotlin generic-AAR
-v5 tests also pass a manager-rerun old/new emulator matrix after packaging
-the matching .NET crypto-support JAR and retaining its proxy class
-through Release R8. The Xcode/AGP host-bound codec staging matrix
-and final idiomatic-Kotlin packages both pass fresh manager reruns.
-These prove a bounded one-way sync-v5 route, not the async result,
-managed-origin callback, productized host module, or fully automatic
-consumer workflow.
-An opt-in `async-callback-v1` compiler/negotiation prototype now emits
-deterministic two-DTO manifests and a cancellable managed dispatcher,
-and manager-rerun Debug/Release tests prove trusted old/new request
-and result evolution independently. The endpoint-issued managed-result
-`NLMR` descriptor passes old/new native getter checks; generated Swift
-and Kotlin request/result codecs pass isolated smokes, and generated
-Swift result decoding passes against a live macOS CoreCLR getter using
-test vectors. A separate **test-only** macOS C/CoreCLR harness exercises
-real generated managed async dispatch and typed managed-origin confirmation
-through complete V2 preflight, reply/cancellation/revoke/close races and
-zero outstanding leases. Its NLF1/native-adapter translation remains
-handwritten and its ACTIVE gate test-owned. Opt-in generated managed
-registration, request/result codecs and a typed native confirmation proxy
-now pass independent Debug/Release tests and an old/new test-only
-C/CoreCLR V2 runtime proof with live endpoint descriptors. The source-owned
-contract-neutral V2 core now builds with desktop, Apple and Android
-test-only providers rather than constructing Apple private sample
-records; independent old/new runs pass live NLPS/NLMR
-byte-comparison, malformed/stale/duplicate binding, late-callback and
-drain/zero-lease checks. Native-owned SwiftUI iOS simulator and Compose
-Android emulator apps now also pass real generated managed
-`Task<SubmitResult>` completion and typed managed-origin confirmation
-in both old/new directions, including cancellation and V2 drain/zero-lease
-checks. Android's Debug Activity recreation succeeds while its minified
-Release private-field recreation test is skipped. The manager independently
-rebuilt and reran both source-core mobile directions in isolated iOS
-simulator and Android API-36 emulator roots. A reusable product
-async host and product ACTIVE remain open; these prototypes are not
-product ABI or deployment evidence.
-More recent desktop-only work has separately passed managed V1
-versioned bridge/module tables, native CoreCLR discovery of those
-tables, and a private single-endpoint coordinator through negotiated
-Start and descriptor getters. Discovery loads smoke modules only;
-the coordinator neither registers a generated route nor publishes
-product ACTIVE. A separate managed-host-owned V2 composition proof
-now passes OLD/NEW cross-version registration, callbacks, Busy drain
-and attached-state lifetime checks. A separate private real-CoreCLR
-runner now composes the actual OLD/NEW fixture modules against live
-endpoint NLPS/NLMR descriptors and executes generated async results,
-typed managed-origin confirmations, a reply/cancel race and full
-close/drain with zero leases. It remains PRE-ACTIVE without product
-module loading or a public ABI. The Android source-lifecycle AAR
-still compiles a test-only
-provider and hard-codes its managed async host, so its passing
-emulator tests must not be treated as product package evidence.
-The Apple async SwiftPM package likewise stages test-only provider
-headers and loads fixed OLD/NEW fixture APIs; its passing simulator
-tests are not a product package or physical-device no-JIT proof.
-The separate [annotated Orders async business library](samples/Orders.AsyncBusiness/README.md)
-now owns its native confirmation request rather than relying on a
-generated post-dispatch callback; the sample-backed old managed host
-passes the desktop old/new V2 matrix. The existing SwiftUI and Compose
-proof apps now run against this library in their OLD direction (NEW
-retains the fixture control), including an independent iOS simulator
-and Android emulator rerun. One early Old Android Debug
-Activity-recreation run timed out **after a positive reply** while
-waiting for terminal UI state. The Android app now guards interim
-reply updates against overwriting terminal results and tests both
-callback/reply orderings; three separately rebuilt cold-process
-Old Debug reruns passed. The original interleaving was not recorded.
-An analogous interim cancellation-message update is now guarded by
-operation identity and passes independent reducer and mobile reruns.
-These are not small drop-in
-consumer apps or product packages.
-Separately, native-owned SwiftUI simulator and Android API-36 emulator
-apps now independently decode generated Swift/Kotlin async result
-**test vectors** against live endpoint-issued `NLMR` descriptors in
-both old/new directions. These vector-only controls remain distinct
-from the later real completion/callback proofs in both native-owned apps.
-
-Reusable-host controls are progressing separately: the unchanged local
-macOS SwiftPM `CoreCLRHost` loads **two distinct** generated DTO contracts
-in separate native app bundles, with app-specific handwritten callback
-adapters; a locally published generic Android AAR starts CoreCLR and
-routes a generated app-specific Orders contract, managed-origin Kotlin
-confirmation and typed result through real business code on a Compose
-emulator. A second independent Compose app consumes that unchanged AAR
-with a distinct generated Dispatch contract; a manager rebuild and
-same-process emulator approval/decline confirmed its typed callback and
-receipt. The Orders sample's unsigned AAB also produced four locally debug-key-signed
-diagnostic splits that ran the typed client through Activity recreation;
-neither host is yet
-a complete generated cross-platform SDK. An extracted contract-neutral
-Apple host package and app-owned Orders adapter passed focused tests
-and an unsigned iPhone device-RID R2R/no-JIT build, but have not launched
-on hardware. An isolated
-native macOS host accepted a Debug method-body delta without restart;
-IDE/watch integration remains unproven. Exact reproductions and open
-gates are in [project status](docs/status.md).
-
-The former composite-only Orders iOS device candidate had a reproduced
-simulator startup blocker: CoreCLR requests an unregistered
-`Microsoft.NETCore.App.r2r.dylib` despite CoreLib appearing in the
-app composite. An isolated dual-image variant independently passed
-both R2R-owner startup paths and then real managed Orders
-confirmation/result callbacks on simulator. The original device
-candidate now packages and registers both images; the manager rebuilt
-its unsigned arm64 Release app and matched the three executable/image
-hashes. The bundle has no packaged JIT or signature, but neither it
-nor the simulator probes prove duplicate CoreLib safety, actual no-JIT
-execution, or startup on a physical device.
-
-Current development prioritizes converging the locally verified
-host libraries and derived-source controls into declared native build
-integrations without handwritten per-contract bridge glue.
-An Xcode-owned macOS fixture now compiles and runs projected Swift and
-C/header as real DerivedSources app-target members, with clean and
-incremental edit controls; this is not yet an iOS app or IDE-indexing
-proof. The second Android app's V2 revoke/ack callback cleanup now
-passes local race tests and same-process emulator recreation; generic
-Kotlin flat DTO codec generation now passes independently rerun
-Debug/Release, JVM wire, CLI and full local verifier checks. The second
-Android app consumes generated request/receipt DTO wire; nine
-manager-rerun JVM tests include 10,000 fake-ABI V2 cycles, and an
-emulator-5556 pending-prompt recreation followed by an accepted receipt
-and decline passed. A separate real-JNI/Kotlin V2 stress diagnostic then
-passed 10,850 revoke/ack/release cycles with 10,750 JNI request callbacks
-and 10,000 typed JNI reply calls; the manager reran it twice on the
-dedicated emulator. A later Debug counter run independently returned
-callback contexts and JNI global references to zero live after another
-10,850 cycles, with separate real Orders stream normal/deferred release
-checks. Subsequent Debug-only managed/JVM weak-probe and ownership
-instrumentation passed one warm-up plus three measured 10,850-cycle
-callback and Orders-stream batches on the dedicated emulator: zero
-retained probes/live contexts at every checkpoint, and managed/native
-allocated-byte trends under predeclared warmed-baseline limits. The
-manager verified the actual Debug DLL export and its exclusion from
-Release AAR/APK/AAB packages. This is not physical-device evidence, a
-native allocation profile, or proof of leak-free JVM teardown.
-The opt-in Kotlin `DispatchClient` now composes generated DTO codecs,
-typed managed-origin approval and V2 close/drain in the second Compose
-app: manager-rerun real-JNI instrumentation passed accept, decline and
-pending revoke with ownership returning to baseline, and the UI showed
-approved receipt and declined failure. Ordinary output and the existing
-handwritten stress client are unchanged; this is not physical-device
-or production distribution support.
-The generated client's duplicate live operation-token guard has since
-passed a fake-ABI regression, the full local verifier and a rebuilt
-real-JNI emulator rerun. Recent software-only follow-ons proved opt-in
-additive schema metadata and a real-emitter native derived-source
-build graph. An opt-in generator-owned schema-v5 one-DTO manifest
-and separate reference wire implementation passed manager-rerun old/new
-preflight/DTO tests. A versioned, one-shot compatible-start **managed
-reference** now rejects mismatched peer claims before route dispatch
-and exercises both directions. A separate manager-rerun macOS C/CoreCLR
-fixture now exports that start/dispatch gate and calls generated old/new
-managed routes; it is not an integrated product/mobile host or a
-Swift/Kotlin decoder. A separate, manager-rerun build fixture now stages
-an app-authored peer pin into that C host, rejects tampered schema and
-invalid/stale locks before link, and repairs deterministic outputs; this
-does not authenticate the input. The native build graph independently passes
-clean/incremental/repair checks with matching Swift/Kotlin projection
-bytes across isolated roots. A separate manager-rerun failed-generation
-matrix rejected stale AGP/Xcode outputs, repaired identical hashes and
-then skipped unchanged projections. The
-generated v5 manifest and build-loop proofs are not product gates.
-A distinct second Apple SwiftUI app consuming the unchanged host package
-now builds as unsigned device and simulator candidates under Xcode 26.6.
-After the app-owned registry was corrected to include the runtime R2R
-module, the manager independently observed simulator CoreCLR startup,
-managed-origin confirmation, a typed dispatch receipt, and a clean
-decline in the same process. The unsigned device candidate has not
-run on hardware; no physical no-JIT execution is claimed.
-An opt-in public Swift flat DTO codec independently passes generated
-C#↔Swift wire parity, malformed-input and collision tests. DispatchDemo
-now consumes it on the actual command/receipt path; a manager-rerun
-Release simulator accept and decline succeeded, while its async native
-confirmation adapter remains app-owned and handwritten. A separately
-unadvertised Apple callback-lifecycle V2 table and delayed-reply adapter
-pass native fast-result races, managed compilation and an Xcode Simulator
-package build. A Debug-only simulator probe now exercises real CoreCLR V2
-reply/cancel/drain with Orders.Business and passes independent manager
-reruns. A separately opt-in generated Swift async callback owner passes
-manager-rerun Swift 6 fake-ABI lifecycle tests, including persistent
-native failure/recovery and 10,000 releases. The manager also independently
-observed its Debug-only typed SwiftUI integration against real
-CoreCLR/Orders.Business on simulator: serialized confirmations, failure,
-decline, cancellation and close-pending drain; Release retains V1 without
-the proof controls. A subsequent review found an app-specific generated
-drain rewrite that dropped request bookkeeping without confirmed host
-cancellation. After removing it, a real CoreCLR simulator run reproduced
-a duplicate-cancel failure. The host now retains exact managed-confirmed
-cancellation receipts; manager-rerun native and Swift fake-ABI races pass,
-and an isolated opt-in app using the generated **production** initializer
-passes accept, decline, cancel and close-pending drain with one release
-each on iOS 26.5. The ordinary Release app still runs V1; feature `0x20`
-is unadvertised in ordinary builds, so default V2 selection and
-production use remain disabled.
-Physical-device and production-distribution tests remain
-later gates, not claims of support today.
-
-**Product architecture:** the Xcode/SwiftUI or Gradle/Compose project is
-the actual application, with the native entry point, UI, app lifecycle,
-packaging and signing. It starts CoreCLR in-process and calls a plain
-`net11.0` business library; there is **no .NET iOS/Android/macOS app
-project** in the consumer workflow. Share a versioned contract and C ABI,
-generate language-specific projections, and reuse .NET runtime/workload
-artifacts where possible without handing app ownership to a .NET project.
-Prove native-owned apps can be reliably packaged, signed, launched and
-debugged on real devices before promising drop-in `.xcframework` or `.aar`
-distribution. The existing .NET-owned mobile spikes are controls only.
-
-| Document | Purpose |
+| Integration | Current preview |
 | --- | --- |
-| [Research and decisions](docs/research.md) | Evidence, alternatives, feasibility gates, unknowns |
-| [Architecture](docs/architecture.md) | Shared system, runtime lifecycle, ownership and boundaries |
-| [Contract and projection](docs/contract.md) | Opt-in API model, ABI, type mapping, async/events/errors |
-| [Developer experience](docs/developer-experience.md) | Proposed native-project authoring and build workflow; explicit acceptance criteria |
-| [Apple pivot](docs/apple.md) | SwiftUI-facing API, CoreCLR host and Xcode packaging |
-| [Android pivot](docs/android.md) | Kotlin/Compose-facing API, JNI, CoreCLR host and Gradle packaging |
-| [Delivery plan](docs/plan.md) | Spikes, release sequence, acceptance tests and risk controls |
-| [Project status](docs/status.md) | Live workstreams, evidence, decisions and next gates |
-| [Source ownership](docs/source-boundaries.md) | Reusable prototypes versus fixture providers and unexported host API |
-| [Local evidence retention](docs/evidence-retention.md) | Archived-child artifact receipts and manager-owned retention limits |
-| [Orders business sample](samples/Orders.AsyncBusiness/README.md) | Small managed developer-authored library; native apps remain proof fixtures |
-| [Native-only baselines](docs/spikes/native-baseline.md) | Xcode/Gradle Release simulator/emulator controls and measured limitations |
+| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.13` |
+| Android runtime, added by the plugin | `io.github.redth.netlift:runtime-android` `0.1.0-alpha.3` |
+| Swift package and generation plugin | `NetLift` `0.1.0-alpha.9` |
 
-The example API and wire signatures in these documents are **proposals**,
-not currently shipped APIs. Platform minimums and versions are pinned only
-for the research snapshot; actual support must be read from the chosen .NET
-11 workload at build time.
+Pin exact versions. Packages are published in
+[netlift-sdk](https://github.com/Redth/netlift-sdk); published versions are immutable.
 
-An executable, dependency-free business-layer fixture lives in
-[`samples/Orders.Business`](samples/Orders.Business/). Run
-`dotnet run --project samples/Orders.Smoke/Orders.Smoke.csproj -c Release`
-to exercise its async call, managed-origin confirmation callback, event and
-stream. This proves the managed fixture only, **not** native interoperability.
+The steps below use macOS and .NET SDK `11.0.100-rc.1.26425.128`, matching
+this repository's `global.json`. The shared library targets `net10.0`;
+generated mobile components use .NET 11 workloads.
 
-Run `bash verify.sh` for the available local managed/projection/native-host
-checks, including advisory schema-diff fixtures and a generated-schema
-self-diff, an isolated event/stream callback-table spike, generated v4
-stream lifecycle/native C/CoreCLR checks, generated Swift V2 fake-ABI
-and pinned-Xcode Apple native lifecycle regressions, bundled macOS
-Swift/CoreCLR smokes and an isolated output-buffer ownership experiment
-on macOS arm64, and
-synthetic package-auditor fixtures when `zip`, `unzip` and Python 3
-are installed. Set `NETLIFT_GRADLE` to a Gradle executable when it is not on `PATH`;
-the script states which optional toolchain checks it skipped. Mobile app
-device gates are tracked separately in [project status](docs/status.md).
-For a built native-owned package, run `bash tools/inspect-mobile-package.sh
-android <path-to.apk>`, `bash tools/inspect-mobile-package.sh android-aab
-<path-to.aab>` for the legacy flat asset layout. For the generic runtime's
-versioned assets, use `bash tools/inspect-mobile-package.sh android-generic
-<path-to.apk>` or `bash tools/inspect-mobile-package.sh android-generic-aab
-<path-to.aab>`; for its reusable AAR, use `bash
-tools/inspect-mobile-package.sh android-aar <path-to-runtime.aar>`. The
-`ios <path-to.app>` mode audits Apple packages. These modes reject missing
-runtime/managed payloads and duplicate assemblies. The
-AAB audit checks the base module and its structure; it does not generate
-splits, install or launch the app, validate R8 behavior, or verify signing.
-The AAR audit requires the generic native/managed hosts and shared
-`NetLift.Contracts.dll`, checks the arm64 runtime asset layout, and rejects
-duplicate archive entries and recognized app contract files; it does not
-prove that arbitrary compiled
-classes contain no app-specific logic or that the AAR can start CoreCLR.
+For Android, install Android Studio, Microsoft OpenJDK compatible with the
+Android workload (Microsoft OpenJDK 21 is verified), SDK Platform 36,
+Build-Tools, Platform-Tools, NDK `28.2.13676358`, and an API 36 Google APIs
+ARM64 emulator. Make Microsoft's `java` active on `PATH`, set `ANDROID_HOME`
+if needed, and install the workload:
+
+```bash
+dotnet workload install android
+dotnet --version
+dotnet workload list
+java -version
+adb devices
+```
+
+For Swift generation, use an Apple Silicon Mac with Swift tools 6.0 or later
+and the same .NET SDK. iOS component execution additionally requires the
+`ios` workload and compatible Xcode; the current source builder uses
+`/Applications/Xcode_26.6.app`.
+
+## 1. Write your .NET service
+
+Use an existing portable .NET library, or start with this layout. The Swift
+package is at the root so the shared managed project is inside its boundary.
+Only create the native side you need.
+
+```text
+MyApp/
+  global.json
+  Contracts/
+    Contracts.csproj
+    HelloService.cs
+  Android/
+    settings.gradle.kts
+    build.gradle.kts
+    app/
+      build.gradle.kts
+      src/main/AndroidManifest.xml
+      src/main/java/com/example/hello/
+        HelloApplication.kt
+        MainActivity.kt
+  Package.swift
+  Sources/MyApp/
+    netlift.json
+    MyApp.swift
+```
+
+`global.json`:
+
+```json
+{
+  "sdk": {
+    "version": "11.0.100-rc.1.26425.128",
+    "rollForward": "latestPatch"
+  }
+}
+```
+
+`Contracts/Contracts.csproj`:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>
+```
+
+`Contracts/HelloService.cs`:
+
+```csharp
+namespace Example.Contracts;
+
+public sealed record GreetingRequest(string Name);
+public sealed record GreetingResponse(string Message);
+
+public interface IHelloService
+{
+    Task<GreetingResponse> GreetAsync(
+        GreetingRequest request,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed class HelloService : IHelloService
+{
+    public Task<GreetingResponse> GreetAsync(
+        GreetingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new GreetingResponse($"Hello, {request.Name}!"));
+    }
+}
+```
+
+Build it from `MyApp`:
+
+```bash
+dotnet build Contracts/Contracts.csproj
+```
+
+There is no NetLift dependency in this library. Start with one public service
+interface and exactly one public implementation with a public parameterless
+constructor. Native-owned service dependencies are also supported through
+explicit contract roots and generated proxies.
+
+For an existing API, expose small request/response DTOs rather than projecting
+the whole assembly. Each method takes one non-null DTO plus an optional
+trailing `CancellationToken`, and returns `Task<ResponseDto>` or
+`IAsyncEnumerable<ItemDto>`. A narrow facade can preserve your existing
+business logic without changing its public API.
+
+## 2. Connect Kotlin / Android
+
+For a new app, create an Android Studio project and keep its Gradle wrapper.
+For an existing app, merge the following configuration rather than replacing
+its build files. These examples use Gradle 8.13, AGP 8.11.1, and Kotlin 2.2.20.
+
+### Configure generation and packaging
+
+`Android/settings.gradle.kts`:
+
+```kotlin
+pluginManagement {
+    repositories {
+        maven { url = uri("https://redth.github.io/netlift-sdk/maven/") }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        maven { url = uri("https://redth.github.io/netlift-sdk/maven/") }
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "MyApp"
+include(":app")
+```
+
+`Android/build.gradle.kts`:
+
+```kotlin
+plugins {
+    id("com.android.application") version "8.11.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
+}
+```
+
+`Android/gradle.properties`:
+
+```properties
+org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
+android.useAndroidX=true
+```
+
+`Android/app/build.gradle.kts`:
+
+```kotlin
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("io.github.redth.netlift") version "0.1.0-alpha.13"
+}
+
+netlift {
+    managedProject.set(rootProject.file("../Contracts/Contracts.csproj"))
+    contractRoots.set(listOf("Example.Contracts.IHelloService"))
+    kotlinPackage.set("com.example.generated")
+    componentApplicationId.set("com.example.hello.component")
+}
+
+android {
+    namespace = "com.example.hello"
+    compileSdk = 36
+    ndkVersion = "28.2.13676358"
+    defaultConfig {
+        applicationId = "com.example.hello"
+        minSdk = 24
+        targetSdk = 36
+        ndk { abiFilters += "arm64-v8a" }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+}
+```
+
+The plugin generates the Kotlin client, builds the app-specific .NET
+component, and adds the runtime automatically. Do not copy assemblies into
+the APK or add another runtime.
+
+### Initialize once, then call your service
+
+`HelloApplication.kt`:
+
+```kotlin
+package com.example.hello
+
+import android.app.Application
+import dev.netlift.runtime.NetLiftRuntime
+
+class HelloApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        NetLiftRuntime.initialize(this)
+    }
+}
+```
+
+Register it in `Android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:name=".HelloApplication"
+        android:label="Hello World"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+```
+
+`MainActivity.kt` calls the generated client in an Activity-owned coroutine:
+
+```kotlin
+package com.example.hello
+
+import android.app.Activity
+import android.os.Bundle
+import android.util.Log
+import android.widget.TextView
+import com.example.generated.GreetingRequest
+import com.example.generated.HelloServiceClient
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+
+class MainActivity : Activity() {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val greeting = TextView(this).apply { text = "Starting..." }
+        setContentView(greeting)
+        scope.launch {
+            try {
+                greeting.text = HelloServiceClient().greet(
+                    GreetingRequest(name = "World")
+                ).message
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                Log.e("HelloWorld", "Greeting failed.", error)
+                greeting.text = "Greeting failed: ${error.message}"
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
+    }
+}
+```
+
+No transport object is needed. Default clients use the app runtime for
+unary calls and streams; explicit transport injection remains available for
+tests and custom hosts. Cancel UI-owned work with the lifecycle, propagate
+`CancellationException`, and display/log other failures.
+
+For example, inside an existing Compose screen:
+
+```kotlin
+var message by remember { mutableStateOf("Starting...") }
+LaunchedEffect(Unit) {
+    try {
+        message = HelloServiceClient().greet(GreetingRequest("World")).message
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (error: Exception) {
+        Log.e("HelloWorld", "Greeting failed.", error)
+        message = "Greeting failed: ${error.message}"
+    }
+}
+Text(message)
+```
+
+This fragment assumes the usual Compose runtime/material imports, plus
+`android.util.Log` and `kotlinx.coroutines.CancellationException`. It does
+not require NetLift-specific Compose configuration.
+
+### Build and run
+
+From `MyApp/Android`, build with your app's wrapper and launch on the ARM64
+emulator:
+
+```bash
+./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.example.hello/.MainActivity
+```
+
+For a complete Activity implementation you can run without creating files,
+the checked-in sample uses the same packages and a simple native `TextView`.
+From this repository:
+
+```bash
+product/android/gradlew -p product/samples/HelloWorld.Android :app:assembleDebug
+adb install -r product/samples/HelloWorld.Android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n dev.netlift.helloworld/.MainActivity
+```
+
+It displays **Hello, World!** from the real C# implementation.
+
+## 3. Connect Swift
+
+SwiftPM generates DTOs and `async throws` clients. It does **not** start .NET
+or automatically embed the managed component in an iOS app.
+
+### Generate the client
+
+At `MyApp/Package.swift`:
+
+```swift
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "MyApp",
+    platforms: [.macOS(.v13), .iOS(.v15)],
+    dependencies: [
+        .package(
+            url: "https://github.com/Redth/netlift-sdk.git",
+            exact: "0.1.0-alpha.9"
+        ),
+    ],
+    targets: [
+        .executableTarget(
+            name: "MyApp",
+            exclude: ["netlift.json"],
+            plugins: [
+                .plugin(name: "NetLiftPlugin", package: "netlift-sdk"),
+            ]
+        ),
+    ]
+)
+```
+
+`Sources/MyApp/netlift.json`:
+
+```json
+{
+  "version": 1,
+  "managedProject": "../../Contracts/Contracts.csproj",
+  "contractRoots": ["Example.Contracts.IHelloService"],
+  "swiftModule": "MyApp"
+}
+```
+
+The managed path is relative to `netlift.json` and must stay inside the
+Swift package, including its build inputs. For an existing package, attach
+the plugin to its target and retain its existing products and dependencies.
+
+### Install once, then call your service
+
+Your iOS host supplies the transport once per generated module:
+
+```swift
+try NetLiftClientRuntime.install(transport: appTransport)
+let client = try HelloServiceClient()
+let greeting = try await client.greet(request: GreetingRequest(name: "World"))
+```
+
+Pass `streamTransport:` during installation if your host supports streams.
+The registry is thread-safe; constructing a default client before
+installation or installing twice throws. Direct
+`HelloServiceClient(transport:)` injection still supports isolated tests.
+Installation connects clients to the host; it is not a runtime bootstrap.
+
+To try generation and calls **without an iOS host**, this complete
+`Sources/MyApp/MyApp.swift` uses an in-memory preview transport:
+
+```swift
+import Foundation
+
+private struct PreviewTransport: NetLiftTransport {
+    func invoke(
+        serviceId: UInt32,
+        memberId: UInt32,
+        payload: Data
+    ) async throws -> Data {
+        let request = try JSONDecoder().decode(GreetingRequest.self, from: payload)
+        return try JSONEncoder().encode(
+            GreetingResponse(message: "Hello, \(request.name)!")
+        )
+    }
+}
+
+@main
+enum MyApp {
+    static func main() async throws {
+        try NetLiftClientRuntime.install(transport: PreviewTransport())
+        let greeting = try await HelloServiceClient().greet(
+            request: GreetingRequest(name: "World")
+        )
+        print(greeting.message)
+    }
+}
+```
+
+Run from `MyApp`:
+
+```bash
+swift run MyApp
+```
+
+This prints **Hello, World!**, but the transport is Swift code: it proves
+package resolution and generated-client behavior, **not C# execution**.
+The checked-in Orders preview additionally tests installation diagnostics,
+injected transport errors, native callbacks, and pull-driven streams:
+
+```bash
+swift run --package-path product/apple/samples/OrdersPreview OrdersPreview
+```
+
+### Run managed code in an iOS app
+
+The runtime package contains the contract-neutral native ABI, not your
+managed assemblies or CoreCLR/R2R assets. There are two source-owned ways to
+run C# from a Swift-owned app; neither is provided by SwiftPM alone.
+
+#### Choose workload hosting or a NativeAOT library
+
+Both modes keep the UI and app lifecycle in Swift and execute C# in-process.
+Here, **host mode** means embedding the .NET iOS workload's runtime and
+managed component. **Non-host mode** means linking a NativeAOT library
+without bootstrapping that workload host; the library still contains the
+runtime support it needs, including garbage collection. It does not mean
+"no .NET runtime" or "Swift-only code."
+
+| Consideration | Workload host | NativeAOT library (non-host) |
+| --- | --- | --- |
+| Best fit | Existing .NET code that needs workload integration, native callbacks, or Apple platform peers. | Portable, AOT-compatible business logic embedded in a Swift-owned app. |
+| Integration benefit | Reuses the workload's runtime, bindings, and registrar machinery. | Produces an app-specific XCFramework and Swift sources to link without the workload-host bootstrap. |
+| Integration cost | Packages a runtime/managed-assembly closure and requires workload-specific startup, registrar, and linker integration. The current builder is simulator-only. | Builds a native library per architecture; generated sources, embedding, and signing still need integration into the native target. Changes to C# require rebuilding the framework. |
+| Managed-library compatibility | Does not require the portable library to pass NativeAOT publication, but trimming, platform restrictions, and the chosen runtime still apply. | The reachable implementation **and its dependencies** must support trimming and NativeAOT; reflection-heavy libraries can require changes or replacements. |
+| Serialization and reflection | Reflection-based code may work when required metadata is preserved; this is not a guarantee for every library or device target. | Prefer source-generated JSON metadata and statically known types. Unbounded reflection, runtime code generation, and dynamic assembly loading are unsuitable. |
+| Current NetLift features | Unary calls, cancellation, streams, managed-to-native callbacks, and the experimental `UIView` peer adapter. | Unary calls, cancellation, and streams. Managed-to-native callbacks are rejected; `UIView` peer projection is not supported by this bridge. |
+| Current evidence | Apple Silicon simulator execution; no validated physical-device path. | Apple Silicon simulator execution; simulator/device ARM64 slices build, but physical-device execution is unverified. |
+
+**Choose NativeAOT** for a portable service whose dependencies can pass AOT
+publication and which needs no callback/platform-peer features. **Choose the
+workload host** when those features are required or NativeAOT compatibility
+would require substantial changes. Neither path is a universal escape from
+iOS deployment restrictions. Startup time, app size, memory use, and
+throughput have not been compared here; do not choose based on assumed
+performance gains.
+
+**NativeAOT compatibility takes extra care.** A normal `dotnet build` is
+not sufficient. Enable `<IsAotCompatible>true</IsAotCompatible>` in your
+portable `net10.0` library to get early diagnostics, then publish the actual
+component for the target architectures and exercise it on the target.
+Resolve trim/AOT warnings in your own code and check third-party dependency
+support rather than suppressing the warnings.
+
+NetLift's generated dispatcher already uses source-generated
+`System.Text.Json` metadata. Your service's own serialization must be checked
+separately: use a `JsonSerializerContext` and `JsonTypeInfo<T>` overloads
+instead of reflection-based overloads, and generic
+`JsonStringEnumConverter<TEnum>` where needed. For reflection, prefer direct
+calls or statically known types; use `DynamicallyAccessedMembers` annotations
+when a bounded reflection requirement can be preserved. An annotation does
+not make arbitrary runtime-discovered types or dynamic code AOT-compatible.
+We encountered exactly these serialization issues when first publishing the
+generated dispatcher, despite its normal managed build succeeding.
+
+#### Build and run a NativeAOT app
+
+For a portable service boundary that does not need managed-to-native
+callbacks, the NativeAOT builder generates a C ABI bridge and Swift contract
+and transport sources. Its standalone mode can package simulator and device
+slices into an XCFramework. The sample's normal Xcode build invokes the
+builder for the selected Apple Silicon platform, links that framework slice,
+and embeds it in a Swift UIKit app. It verifies a real managed unary call,
+pull-based stream, and cancellation on an Apple Silicon simulator:
+
+```bash
+xcodebuild \
+  -project product/apple/samples/NativeAotHelloWorld/NativeAotHelloWorld.xcodeproj \
+  -scheme NativeAotHelloWorld \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
+```
+
+For an existing Xcode or SwiftPM app, add the generated
+`NetLiftAppleAot.xcframework` and the two generated Swift source files, then
+install `NetLiftAppleAotTransport` once with `NetLiftClientRuntime.install`.
+To make generation part of that app's normal Xcode build, add the sample's
+`Build managed NativeAOT component` pre-build phase and `Embed managed
+NativeAOT framework` phase, plus the generated Swift source references and
+framework link settings from
+[`project.yml`](product/apple/samples/NativeAotHelloWorld/project.yml).
+Set `NETLIFT_MANAGED_PROJECT`, semicolon-separated `NETLIFT_CONTRACT_ROOTS`,
+`NETLIFT_SWIFT_MODULE`, and `NETLIFT_REPOSITORY_ROOT` in the target's build
+settings. After this one-time wiring, building the native target rebuilds
+the managed component automatically. It currently runs the generator and
+publish step on each Xcode build; .NET's incremental build reuses unchanged
+outputs. The selected-target build produces only the slice Xcode needs;
+the standalone builder produces the full XCFramework.
+This NativeAOT path currently supports unary calls, cancellation, and
+pull-based streams; it rejects managed-to-native callbacks. The XCFramework
+contains both simulator and device slices, but only the simulator app has
+been run. Physical-device execution, callback services, and Apple `UIView`
+peer projection are not verified on this path.
+
+#### Build the workload host
+
+For callback services and the existing Apple `UIView` peer adapter, use the
+.NET iOS workload-host path below. It builds the app-specific CoreCLR/R2R
+closure into a Swift-owned simulator app. Unlike the NativeAOT sample, that
+workload-host builder still produces a separate app and is not yet integrated
+into an arbitrary existing Xcode target's regular build.
+
+From this source repository, install the `ios` workload and build the
+complete integration sample:
+
+```bash
+dotnet workload install ios
+python3 product/apple/build_component.py \
+  --managed-project product/apple/samples/OrdersPreview/Managed/Orders/Orders.csproj \
+  --contract-root Orders.Preview.IOrdersService \
+  --native-contract-root Orders.Preview.IOrderConfirmationService \
+  --swift-module OrdersPreview \
+  --native-source-root experiments/workload-library-mode/apple/native-app \
+  --output .artifacts/apple-orders-component
+```
+
+This source-owned command uses the compiler in the checkout. For an existing
+iOS app, retain its entry point and adapt the component/native-source
+integration; adding the Swift package alone is not sufficient. The
+sample's `ManagedTransport` bridges generated clients to the workload host,
+handles cancellation and errors, and is installed once at app startup.
+
+Choose a booted Apple Silicon simulator's UDID from
+`xcrun simctl list devices booted`, then install and launch:
+
+```bash
+xcrun simctl install <simulator-udid> \
+  .artifacts/apple-orders-component/NetLift.Generated.Apple.app
+xcrun simctl launch <simulator-udid> dev.netlift.workloadlibrarymode.nativeapp
+```
+
+The app reports a real managed Orders response and successful cancellation,
+callback, and stream checks. This is currently an explicit source integration,
+not a one-step SwiftPM/Xcode app template or a validated physical-device path.
+
+## Optional: embed MAUI views in native UI
+
+**Android framework selection and the optional view-factory seam are in
+Gradle plugin alpha.13. Apple MAUI embedding remains a source-checkout
+workload-host feature, not part of the Swift package or NativeAOT bridge.**
+Your app and navigation remain SwiftUI/Compose-owned; you can opt into a
+MAUI-containing library for individual native views.
+The [MAUI embedding sample](product/samples/MauiEmbedding/README.md) contains
+the complete C#, SwiftUI, and Compose implementations.
+
+Use a mobile **library**, not a second MAUI application project:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net11.0-ios;net11.0-android</TargetFrameworks>
+    <UseMaui>true</UseMaui>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+  </ItemGroup>
+</Project>
+```
+
+The source builders evaluate the linked `.csproj` through MSBuild. They
+prefer its matching mobile TFM over a portable TFM, use its evaluated
+`TargetPath` (including custom assembly/output names), and reference that
+**same TFM** from the managed host. Multiple compatible choices require an
+explicit `--managed-framework` on Apple or `contractTargetFramework` in
+Gradle. A project marked `UseMaui` also enables MAUI in the generated host.
+Other platforms and arbitrary binding-object DTO projection are not implied.
+
+Keep the async service/DTO boundary separate from native views. An optional
+`PlatformViews` factory in the library receives and returns real
+`UIKit.UIView` / `Android.Views.View` bindings on the UI thread. It reuses
+one `MauiApp.CreateBuilder().UseMauiEmbeddedApp<EmbeddedApplication>().Build()`
+and creates an appropriate `MauiContext`; the conversion is
+`label.ToPlatformEmbedded(context)` (or `ToPlatform`), not a JSON
+serialization of the view. On iOS the sample includes a managed wrapper
+for its Swift app delegate. On Android use the host's Activity context,
+not application context, for view construction.
+
+Build the checked-in SwiftUI consumer:
+
+```bash
+python3 product/apple/build_component.py \
+  --managed-project product/samples/MauiEmbedding/Managed/MauiEmbedding.csproj \
+  --contract-root NetLift.MauiEmbedding.IEmbeddingService \
+  --platform-view-factory NetLift.MauiEmbedding.PlatformViews \
+  --native-source-root product/samples/MauiEmbedding/SwiftUI \
+  --bundle-identifier dev.netlift.maui.swiftui \
+  --output .artifacts/maui-ios
+xcrun simctl install <simulator-udid> \
+  .artifacts/maui-ios/NetLift.Generated.Apple.app
+xcrun simctl launch <simulator-udid> dev.netlift.maui.swiftui
+```
+
+Build the Compose consumer against the published plugin and runtime:
+
+```bash
+product/android/gradlew -p product/samples/MauiEmbedding/Compose :app:assembleDebug
+adb -s <emulator-id> install -r \
+  product/samples/MauiEmbedding/Compose/app/build/outputs/apk/debug/app-debug.apk
+adb -s <emulator-id> shell am start -n dev.netlift.maui.compose/.MainActivity
+```
+
+SwiftUI hosts the returned view through `UIViewRepresentable`; Compose uses
+`AndroidView`. A `ComposeView` is an Android `View` and can round-trip
+through C#; a composable function is not a native binding object.
+Both wrappers **detach the native child before releasing its MAUI handler**
+in `dismantleUIView` / `onRelease`. Keep these calls on the UI thread and
+release each factory-created view exactly once.
+
+The sample exercises target-specific C# calls, native identity, managed
+label updates, GC survival, and three release/recreate cycles on an ARM64
+iOS simulator and Android emulator. It embeds a simple label using an
+app-scoped context: full MAUI window features, resource-ID reconciliation
+for arbitrary Android controls, minified releases, and physical devices
+remain unverified. Android's AppCompat/Material dependencies must be
+provided by the native app; the source AAR includes MAUI's Java helpers.
+
+## Existing projects and API design
+
+Keep your existing native app and .NET implementation. Point generation at
+the portable library and selected service roots; introduce a small facade
+only where the existing API cannot be projected.
+
+| C# boundary | Kotlin | Swift |
+| --- | --- | --- |
+| Request/response DTOs | Typed DTOs | `Codable` / `Sendable` DTOs |
+| `Task<T>` | Suspending method | `async throws` |
+| `IAsyncEnumerable<T>` | Cold `Flow<T>` | Pull-driven `AsyncSequence` |
+| Native-owned interface | Owner interface and registration helper | Owner protocol and registration helper |
+
+Prefer descriptive operation names, non-null request/result DTOs, explicit
+nullability, and cancellation. Generic services/methods, arbitrary object
+graphs, and unsupported collection shapes need a narrower boundary. Generated
+names and constructor field order are determined by the compiler: inspect
+generated source rather than hand-writing guessed declarations.
+
+## Reusable setup skill
+
+[**netlift-native-app**](skills/netlift-native-app/SKILL.md) guides an AI
+coding agent through creating or connecting native and .NET projects,
+reviewing the public API for projection, and validating actual runtime
+execution. It covers new/new, new/existing, existing/new, and existing/existing
+combinations. Copy the skill folder into your agent's supported skills
+directory; installation and example prompts are in
+[skills/README.md](skills/README.md).
+
+## Samples and contributor reference
+
+[Android Hello World](product/samples/HelloWorld.Android/README.md) is the
+smallest real managed app. The
+[Swift package example](product/apple/samples/OrdersPreview/README.md) is a
+generation/client preview. [MAUI embedding](product/samples/MauiEmbedding/README.md)
+shows optional MAUI views inside native SwiftUI and Compose apps.
+[Product build instructions](product/README.md)
+cover implementation and release evidence. Older `experiments/` and `spikes/`
+are not the public setup or support contract.
+
+The root-level [Orders native UI slices](samples/Orders.NativeUi/README.md)
+are historical v3 proof snippets, not current consumer templates; the
+[native host proofs](spikes/apple/NativeV5SwiftHost/NativeV5SwiftHostApp.swift)
+also use test-only adapters. The [plain Orders library](samples/Orders.AsyncBusiness/README.md)
+remains useful as a contract example.

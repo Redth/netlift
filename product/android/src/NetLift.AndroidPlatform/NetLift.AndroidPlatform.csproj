@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <IsPackable>true</IsPackable>
+    <PackageId>NetLift.AndroidPlatform</PackageId>
+    <Version>0.1.0-alpha.1</Version>
+    <Description>Workload-owned Android platform-peer adapters for NetLift.</Description>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-ios</TargetFramework>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <IsPackable>true</IsPackable>
+    <PackageId>NetLift.ApplePlatform</PackageId>
+    <Version>0.1.0-alpha.1</Version>
+    <Description>Workload-owned Apple platform-peer adapters for NetLift.</Description>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "managedProject": "../../Managed/Orders/Orders.csproj",
+  "contractRoots": [
+    "Orders.Preview.IOrdersService"
+  ],
+  "nativeContractRoots": [
+    "Orders.Preview.IOrderConfirmationService"
+  ],
+  "swiftModule": "OrdersPreview"
+}

@@ -1,0 +1,2 @@
+-keep class dev.netlift.runtime.NetLiftRuntime { *; }
+-keep class dev.netlift.runtime.NetLiftNativeServicePeer { *; }

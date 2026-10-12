@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    {
+      "id": "android-portable",
+      "platform": "android",
+      "status": "supported-preview",
+      "validatedEnvironments": [
+        "api-36-arm64-emulator",
+        "api-36-arm64-emulator-signed-split-release"
+      ],
+      "physicalDeviceRequiredForStable": true
+    },
+    {
+      "id": "android-view-peer",
+      "platform": "android",
+      "status": "experimental-device-required",
+      "capabilities": [
+        "existing-view-parameter",
+        "borrowed-peer",
+        "retained-peer",
+        "main-thread-affinity"
+      ],
+      "excludedCapabilities": [
+        "managed-created-view-subclass",
+        "java-callable-managed-type"
+      ]
+    },
+    {
+      "id": "apple-portable",
+      "platform": "ios",
+      "status": "supported-preview",
+      "validatedEnvironments": [
+        "ios-arm64-simulator",
+        "ios-arm64-simulator-release-relaunch"
+      ],
+      "physicalDeviceRequiredForStable": true
+    },
+    {
+      "id": "apple-uiview-peer",
+      "platform": "ios",
+      "status": "experimental-device-required",
+      "capabilities": [
+        "existing-uiview-parameter",
+        "borrowed-peer",
+        "retained-peer",
+        "main-actor-affinity"
+      ],
+      "excludedCapabilities": [
+        "managed-created-nsobject-subclass",
+        "managed-export-callback-target"
+      ]
+    }
+  ]
+}

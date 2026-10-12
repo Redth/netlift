@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>netlift</ToolCommandName>
+    <PackageId>NetLift.Tool</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NetLift.Compiler/NetLift.Compiler.csproj" />
+  </ItemGroup>
+</Project>

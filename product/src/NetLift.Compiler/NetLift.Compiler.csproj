@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>NetLift.Compiler</PackageId>
+    <Description>Canonical contract compiler for NetLift native projections.</Description>
+  </PropertyGroup>
+</Project>

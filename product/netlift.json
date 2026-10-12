@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "assembly": "samples/Orders.Contracts/bin/Debug/net10.0/Orders.Contracts.dll",
+  "contractRoots": [
+    "Orders.Contracts.IOrdersService"
+  ],
+  "nativeContractRoots": [
+    "Orders.Contracts.IOrderConfirmationService"
+  ],
+  "kotlinPackage": "dev.netlift.orders",
+  "swiftModule": "OrdersNetLift",
+  "output": "artifacts/generated",
+  "compatibilityLock": "contracts/orders.netlift.lock.json"
+}
