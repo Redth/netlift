@@ -484,8 +484,40 @@ swift run --package-path product/apple/samples/OrdersPreview OrdersPreview
 ### Run managed code in an iOS app
 
 The runtime package contains the contract-neutral native ABI, not your
-managed assemblies or CoreCLR/R2R assets. The current explicit component
-builder generates and links those into a Swift-owned simulator app.
+managed assemblies or CoreCLR/R2R assets. There are two source-owned ways to
+run C# from a Swift-owned app; neither is provided by SwiftPM alone.
+
+For a portable service boundary that does not need managed-to-native
+callbacks, the NativeAOT builder generates a C ABI bridge, publishes an
+XCFramework for Apple Silicon simulator and device architectures, and copies
+the generated Swift contract and transport. The sample links this into a
+Swift UIKit app and verifies a real managed unary call, pull-based stream,
+and cancellation on an Apple Silicon simulator:
+
+```bash
+python3 product/apple/build_native_aot.py \
+  --managed-project product/apple/samples/NativeAotHelloWorld/Managed/Hello.csproj \
+  --contract-root NetLift.NativeAotHelloWorld.IHelloService \
+  --swift-module HelloWorld \
+  --app-source product/apple/samples/NativeAotHelloWorld/Sources/HelloWorld/AppDelegate.swift \
+  --app-info-plist product/apple/samples/NativeAotHelloWorld/Info.plist \
+  --output .artifacts/apple-native-aot-hello
+xcrun simctl install booted .artifacts/apple-native-aot-hello/NativeAotHelloWorld.app
+xcrun simctl launch booted dev.netlift.nativeaot.helloworld
+```
+
+For an existing Xcode or SwiftPM app, add the generated
+`NetLiftAppleAot.xcframework` and the two generated Swift source files, then
+install `NetLiftAppleAotTransport` once with `NetLiftClientRuntime.install`.
+This NativeAOT path currently supports unary calls, cancellation, and
+pull-based streams; it rejects managed-to-native callbacks. The XCFramework
+contains both simulator and device slices, but only the simulator app has
+been run. Physical-device execution, callback services, and Apple `UIView`
+peer projection are not verified on this path.
+
+For callback services and the existing Apple `UIView` peer adapter, use the
+.NET iOS workload-host path below. It builds the app-specific CoreCLR/R2R
+closure into a Swift-owned simulator app.
 
 From this source repository, install the `ios` workload and build the
 complete integration sample:

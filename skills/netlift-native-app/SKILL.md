@@ -84,9 +84,40 @@ Only pass `streamTransport:` when the host conforms to it. Missing or duplicate 
 
 **The Swift package does not start .NET or automatically embed the managed component.** A Swift in-memory transport verifies clients, not managed execution. Label it as a preview/test and never present it as calling C#.
 
-For real iOS execution, inspect the current source-owned `product/apple/build_component.py` and integration sample. They build the app-specific workload registrar/R2R/CoreCLR closure and link a Swift-owned simulator executable. The authoring baseline supports only Apple Silicon iOS simulators and expects Xcode at `/Applications/Xcode_26.6.app`; physical devices, Intel simulators, and a macOS managed host are not validated. The package's deployment minimums do not imply those runtime targets are supported.
+For real iOS execution, choose the host path that fits the contract:
 
-Adapt the existing app's bootstrap/transport and link inputs explicitly; package installation alone is insufficient. Retain SwiftUI/UIKit lifecycle ownership. Use the tested host transport's operation/cancellation and error-envelope handling, rather than inventing a synchronous UI-thread bridge. If the task cannot achieve real hosting on its requested target, stop at the actual blocker and state it; do not substitute an in-memory demo silently.
+- For portable contracts without managed-to-native callbacks or `UIView`
+  projection, inspect `product/apple/build_native_aot.py` and
+  `product/apple/samples/NativeAotHelloWorld`. It generates a C ABI bridge,
+  NativeAOT-publishes simulator/device frameworks, packages an XCFramework,
+  and copies the generated Swift contract and transport. The checked-in
+  sample verifies unary calls, pull-based streams, and cancellation by
+  launching a Swift-owned app on an Apple Silicon simulator. It requires
+  .NET 10+ and a compatible Apple toolchain. Device slices are built but
+  physical-device execution is not verified. The bridge rejects
+  managed-to-native callbacks.
+- For callback services and the existing Apple `UIView` peer adapter, inspect
+  `product/apple/build_component.py` and its integration sample. They build
+  the app-specific workload registrar/R2R/CoreCLR closure and link a
+  Swift-owned simulator executable. The authoring baseline supports only
+  Apple Silicon iOS simulators and expects Xcode at
+  `/Applications/Xcode_26.6.app`; physical devices, Intel simulators, and a
+  macOS managed host are not validated.
+
+The package's deployment minimums do not imply those runtime targets are
+supported. For an existing app using NativeAOT, add the generated
+`NetLiftAppleAot.xcframework` and both generated Swift source files to its
+target, then install `NetLiftAppleAotTransport` once with
+`NetLiftClientRuntime.install`. For either host path, adapt the existing
+app's bootstrap and linking explicitly; package installation alone is
+insufficient.
+
+Retain SwiftUI/UIKit lifecycle ownership. For the workload-host path, use its
+tested operation/cancellation and error-envelope handling rather than
+inventing a synchronous UI-thread bridge. For NativeAOT, use the generated
+transport and inspect the produced framework/header and linker integration.
+If the task cannot achieve real hosting on its requested target, stop at the
+actual blocker and state it; do not substitute an in-memory demo silently.
 
 Use a fresh dedicated ignored output such as repository-root `.artifacts/<component>` for the source component builder, inspect an existing output before replacement, and do not put generated component projects under contributor directories whose inherited MSBuild settings can change their behavior.
 
@@ -97,8 +128,8 @@ Run the smallest build/test commands covering the change, then the native consum
 - Build the .NET library and retain its existing tests. Inspect generated DTO fields, initializer order, method names, and stable IDs instead of guessing declarations or editing generated files.
 - Android: build the public-feed APK with the app wrapper, install on an explicitly selected compatible emulator/device, cold-launch, and confirm a value produced by the real C# service in the UI/logs. Relaunch to verify one-time startup works per process.
 - Swift projection: build/run the public-package consumer. Verify missing/duplicate installation errors, direct injection, and one default client call. State whether its transport is real or in-memory.
-- iOS hosting: build/audit the managed component, install on an explicitly selected supported simulator, launch, and confirm a managed result. Generation or an in-memory Swift response is not a substitute.
-- If callbacks or streams are in scope, verify registration/revoke, lazy opening, one read per demand, termination, and cancellation. Do not add these features to a greeting-only request just to run more tests.
+- iOS hosting: build/audit the selected NativeAOT framework or workload component, install on an explicitly selected supported simulator, launch, and confirm a managed result. Generation or an in-memory Swift response is not a substitute. If streams or cancellation are in scope, exercise them through the selected host path.
+- If callbacks are in scope, use the workload-host path and verify registration/revoke; the NativeAOT bridge rejects managed-to-native callbacks. If streams are in scope, verify lazy opening, one read per demand, termination, and cancellation. Do not add these features to a greeting-only request just to run more tests.
 - For new package compatibility or first-use acceptance, use fresh dependency caches and only public feeds. Keep local build wiring out of the final consumer.
 
 Keep generated output/cache/scratch work ignored and scoped to this task; clean up temporary probes, not user data. Never push branches, publish packages, create PRs, change signing identities, or migrate an existing public API without explicit authorization. Deliver only requested project files, necessary tests, and concise setup/run notes. Report exact package pins, what really executed, and any platform/toolchain blocker without calling a preview a completed runtime integration.

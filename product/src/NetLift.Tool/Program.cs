@@ -49,7 +49,9 @@ try
     var assemblyPath = Path.GetFullPath(configuration.Assembly, configurationDirectory);
     var outputPath = Path.GetFullPath(configuration.Output, configurationDirectory);
     var nativeContractRoots = configuration.NativeContractRoots ?? [];
-    var compilation = configuration.EmitAndroidBridge || configuration.EmitAppleBridge
+    var compilation = configuration.EmitAndroidBridge ||
+            configuration.EmitAppleBridge ||
+            configuration.EmitAppleNativeAotBridge
         ? ContractCompiler.CompileWithImplementations(
             assemblyPath,
             configuration.ContractRoots,
@@ -102,6 +104,17 @@ try
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftApplePlatform.swift"),
             ProjectionEmitter.EmitApplePlatformFacade(manifest));
+    }
+    if (configuration.EmitAppleNativeAotBridge)
+    {
+        WriteIfChanged(
+            Path.Combine(outputPath, "NetLiftAppleNativeAotBridge.g.cs"),
+            AppleNativeAotEmitter.EmitBridge(
+                manifest,
+                compilation.Implementations));
+        WriteIfChanged(
+            Path.Combine(outputPath, "NetLiftAppleNativeAot.h"),
+            AppleNativeAotEmitter.EmitHeader());
     }
 
     Console.WriteLine($"Generated NetLift contract {manifest.SchemaHash} in {outputPath}");

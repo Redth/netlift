@@ -80,7 +80,8 @@ public sealed record CompilerConfiguration(
     string? CompatibilityLock = null,
     bool EmitAndroidBridge = false,
     bool EmitAppleBridge = false,
-    IReadOnlyList<string>? NativeContractRoots = null);
+    IReadOnlyList<string>? NativeContractRoots = null,
+    bool EmitAppleNativeAotBridge = false);
 
 [JsonSerializable(typeof(ContractManifest))]
 [JsonSerializable(typeof(ContractLock))]

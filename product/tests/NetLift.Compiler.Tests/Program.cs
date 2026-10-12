@@ -293,6 +293,26 @@ Require(
 Require(
     appleBridge.Contains("netlift_native_ui_main", StringComparison.Ordinal),
     "Generated Apple bridge omitted the native-owned UI handoff.");
+var appleAotBridge = AppleNativeAotEmitter.EmitBridge(
+    androidCompilation.Manifest,
+    androidCompilation.Implementations);
+Require(
+    appleAotBridge.Contains(
+        "UnmanagedCallersOnly(EntryPoint = \"netlift_apple_invoke\")",
+        StringComparison.Ordinal) &&
+    appleAotBridge.Contains(
+        "UnmanagedCallersOnly(EntryPoint = \"netlift_apple_open_stream\")",
+        StringComparison.Ordinal) &&
+    appleAotBridge.Contains(
+        "UnmanagedCallersOnly(EntryPoint = \"netlift_apple_cancel\")",
+        StringComparison.Ordinal) &&
+    !appleAotBridge.Contains("Foundation", StringComparison.Ordinal),
+    "Generated Apple NativeAOT bridge omitted its portable C ABI.");
+Require(
+    AppleNativeAotEmitter.EmitHeader().Contains(
+        "netlift_apple_read_stream",
+        StringComparison.Ordinal),
+    "Generated Apple NativeAOT header omitted stream reads.");
 
 var bidirectionalCompilation = ContractCompiler.CompileWithImplementations(
     assemblyPath,
@@ -315,6 +335,19 @@ Require(
         }
     ],
     "Native-owned services incorrectly required managed implementations.");
+try
+{
+    AppleNativeAotEmitter.EmitBridge(
+        bidirectionalCompilation.Manifest,
+        bidirectionalCompilation.Implementations);
+    throw new InvalidOperationException("NativeAOT bridge accepted an unsupported managed-to-native callback.");
+}
+catch (ContractCompilerException exception)
+{
+    Require(
+        exception.Message.Contains("does not support managed-to-native callbacks", StringComparison.Ordinal),
+        "Unsupported NativeAOT callback produced an unclear diagnostic.");
+}
 
 var bidirectionalProjections = ProjectionEmitter.Emit(
     bidirectionalCompilation.Manifest,
