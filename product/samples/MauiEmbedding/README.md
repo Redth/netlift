@@ -1,7 +1,8 @@
-# MAUI views in SwiftUI and Compose
+# MAUI views and Essentials in SwiftUI and Compose
 
 This source-owned sample keeps the app, navigation, and lifecycle native
-while consuming a multi-target .NET library that contains MAUI controls.
+while consuming a multi-target .NET library that contains MAUI controls
+and Essentials services.
 It uses the **workload host**, not the portable NativeAOT bridge.
 Android framework selection and view-factory options are published in
 Gradle plugin alpha.13. Swift package alpha.9 updates its bundled compiler;
@@ -15,12 +16,68 @@ source-checkout integration, not a Swift package feature.
 | MAUI produces a real native view | `Label.ToPlatformEmbedded(context)` returns a workload binding hosted in `UIViewRepresentable` or `AndroidView`. |
 | Preserve managed behavior | Round-tripping the MAUI-created view updates the MAUI label in C#; native code reads the resulting native label text. |
 | Ownership | Three create/attach/GC/detach/release cycles return factory ownership to baseline; native UI buttons also remove and recreate the embedded view. |
+| MAUI service layer | The generated service client reads `DeviceInfo`, gets/sets `SecureStorage`, and copies/reads `Clipboard` without a MAUI page. |
 
 The automatic checks print `NETLIFT_MAUI_ACCEPTANCE ... PASS` only after
 all binding/factory assertions succeed. `NETLIFT_MAUI_SWIFTUI_LIFECYCLE`
 and `NETLIFT_MAUI_COMPOSE_LIFECYCLE` then confirm three additional
 remove/recreate cycles through the real native wrappers' disposal hooks.
 A compile, screenshot, or in-memory transport alone is not acceptance.
+
+Both native screens center the content with 16-point/dp outer padding,
+24-point/dp spacing, and a full-width, 120-point/dp MAUI view. The native
+release/recreate action stays below the view on both platforms.
+The scrollable Essentials section below it stays usable when the keyboard opens.
+
+## Essentials services
+
+`EmbeddingService.cs` uses MAUI's real platform implementations, not native
+Swift/Kotlin substitutes. The greeting response includes `DeviceInfo.Current`
+platform, OS version, model, and manufacturer. `SetSecureValueAsync`,
+`GetSecureValueAsync`, and `RemoveSecureValueAsync` call `SecureStorage.Default`;
+missing keys return a nullable `TextValue.Value`. Blank keys/values are rejected
+and errors propagate through NetLift to the native screen's error message.
+The sample field masks values and never prints them in acceptance logs.
+
+`ClipboardAsync` takes `ClipboardRequest`: a null `Text` reads, a non-null
+value copies then reads, and an empty string clears the text. Clipboard access
+is dispatched onto the platform UI thread inside C#. Native code only sends
+DTOs through the generated client. Clipboard text is not secure storage:
+other apps can access it, Android restricts reads while backgrounded, and iOS
+may ask permission before reading content copied by another app.
+
+Both screens save/load the sample key `netlift.maui.sample`, preserving it
+across app launches. Use demo values, not real credentials. Storage belongs
+to the native app identity: iOS uses its signed Keychain access group, and
+Android uses its app's encrypted preferences/Keystore. The checked-in Xcode
+project includes `Entitlements.plist`; Compose declares the matching
+`androidx.security:security-crypto:1.1.0-alpha07` Java dependency used by this
+workload's MAUI binding. Android backup is disabled for this demo so encrypted
+preferences aren't restored without their Keystore keys. A production host
+must choose its own backup exclusions, signing groups, and error recovery.
+The service layer itself does not need `MauiApp`, a MAUI view, or window context.
+
+The platform service acceptance is opt-in because it **overwrites the test
+device clipboard with demo text**. It checks device metadata and missing,
+written, overwritten, and removed secure values using the separate
+`netlift.maui.acceptance` key, which it cleans up. It then copies/reads a known
+clipboard value through the C# service, checks clearing clipboard text,
+and verifies invalid storage inputs arrive as native remote errors. It prints
+`NETLIFT_MAUI_ESSENTIALS ... device-info secure-storage clipboard PASS`.
+Run it after the normal native builds/installations:
+
+```bash
+xcrun simctl launch --terminate-running-process --console-pty \
+  <simulator-udid> dev.netlift.maui.swiftui --netlift-essentials-acceptance
+
+adb -s <emulator-id> shell am force-stop dev.netlift.maui.compose
+adb -s <emulator-id> shell am start \
+  -n dev.netlift.maui.compose/.MainActivity --ez netlift.essentials.acceptance true
+adb -s <emulator-id> logcat -s NetLiftAcceptance
+```
+
+Normal app launch only reads device metadata; secure storage and clipboard
+are accessed when you press the corresponding native buttons.
 
 ## Managed library
 

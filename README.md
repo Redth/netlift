@@ -626,22 +626,28 @@ callback, and stream checks. The workload Xcode integration currently accepts
 **Debug + ARM64 iOS Simulator**; Release, Intel simulator, and physical-device
 builds fail explicitly rather than silently substituting another host.
 
-## Optional: embed MAUI views in native UI
+## Optional: use MAUI views and services in native apps
 
 **Android framework selection and the optional view-factory seam are in
 Gradle plugin alpha.13. Apple MAUI embedding remains a source-checkout
 workload-host feature, not part of the Swift package or NativeAOT bridge.**
 Your app and navigation remain SwiftUI/Compose-owned; you can opt into a
-MAUI-containing library for individual native views.
+MAUI-containing library for individual native views and Essentials services.
 The [MAUI embedding sample](product/samples/MauiEmbedding/README.md) contains
 the complete C#, SwiftUI, and Compose implementations.
 
 | iOS / SwiftUI | Android / Compose |
 | :---: | :---: |
-| <img src="docs/images/maui-ios.png" alt="A C# MAUI label hosted in the native SwiftUI app" width="280"> | <img src="docs/images/maui-android.png" alt="A C# MAUI label hosted in the native Compose app" width="280"> |
+| <img src="docs/images/maui-ios.png" alt="A MAUI label and Essentials service controls in the native SwiftUI app" width="280"> | <img src="docs/images/maui-android.png" alt="A MAUI label and Essentials service controls in the native Compose app" width="280"> |
 
 Both screenshots show a real C#-created MAUI label inside the native app.
 The native button detaches/releases the view and creates a new one.
+Both screens also show MAUI `DeviceInfo` and let you save/load a masked
+`SecureStorage` value and copy/read clipboard text. Those operations call
+the same generated async C# service client: no MAUI page or navigation
+is needed for the service layer. The sample includes iOS Keychain
+entitlements and Android's native security-crypto dependency; platform
+permissions, signing, and lifecycle still belong to the native host.
 
 Use a mobile **library**, not a second MAUI application project:
 

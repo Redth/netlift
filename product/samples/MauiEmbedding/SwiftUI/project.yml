@@ -10,6 +10,11 @@ targets:
       - NativeApp.swift
       - NativeMain.mm
       - ManagedBridge.h
+    entitlements:
+      path: Entitlements.plist
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)$(CFBundleIdentifier)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.netlift.maui.swiftui
