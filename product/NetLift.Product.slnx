@@ -5,6 +5,7 @@
     <Project Path="src/NetLift.Tool/NetLift.Tool.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/HelloWorld.Contracts/HelloWorld.Contracts.csproj" />
     <Project Path="samples/Orders.Contracts/Orders.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">

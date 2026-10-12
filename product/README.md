@@ -43,6 +43,11 @@ different absolute assembly paths. The generated Swift source is compiled with
 the projection is connected to the package-consuming Android sample under
 `experiments/workload-library-mode/android/native-app`.
 
+For a first end-to-end Android app, see
+[`samples/HelloWorld.Android`](samples/HelloWorld.Android/README.md). It uses
+the public Gradle preview feed and generates a Kotlin client from a minimal
+.NET greeting service.
+
 The initial codec profile carries UTF-8 JSON inside the generated
 `ByteArray`/`Data` transport seam. It is intentionally replaceable without
 changing projected Kotlin/Swift APIs or stable route IDs. The Android workload
