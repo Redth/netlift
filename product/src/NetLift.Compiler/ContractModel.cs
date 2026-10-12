@@ -81,7 +81,8 @@ public sealed record CompilerConfiguration(
     bool EmitAndroidBridge = false,
     bool EmitAppleBridge = false,
     IReadOnlyList<string>? NativeContractRoots = null,
-    bool EmitAppleNativeAotBridge = false);
+    bool EmitAppleNativeAotBridge = false,
+    string? PlatformViewFactory = null);
 
 [JsonSerializable(typeof(ContractManifest))]
 [JsonSerializable(typeof(ContractLock))]

@@ -49,6 +49,10 @@ try
     var assemblyPath = Path.GetFullPath(configuration.Assembly, configurationDirectory);
     var outputPath = Path.GetFullPath(configuration.Output, configurationDirectory);
     var nativeContractRoots = configuration.NativeContractRoots ?? [];
+    if (configuration.PlatformViewFactory is not null &&
+        (!(configuration.EmitAndroidBridge || configuration.EmitAppleBridge) ||
+         configuration.EmitAppleNativeAotBridge))
+        throw new ContractCompilerException("Platform view factories require a workload bridge, not NativeAOT.");
     var compilation = configuration.EmitAndroidBridge ||
             configuration.EmitAppleBridge ||
             configuration.EmitAppleNativeAotBridge
@@ -89,7 +93,7 @@ try
     {
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftAndroidBridge.g.cs"),
-            ProjectionEmitter.EmitAndroidBridge(manifest, compilation.Implementations));
+            ProjectionEmitter.EmitAndroidBridge(manifest, compilation.Implementations, configuration.PlatformViewFactory));
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftAndroidPlatform.kt"),
             ProjectionEmitter.EmitAndroidPlatformFacade(
@@ -100,7 +104,7 @@ try
     {
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftAppleBridge.g.cs"),
-            ProjectionEmitter.EmitAppleBridge(manifest, compilation.Implementations));
+            ProjectionEmitter.EmitAppleBridge(manifest, compilation.Implementations, configuration.PlatformViewFactory));
         WriteIfChanged(
             Path.Combine(outputPath, "NetLiftApplePlatform.swift"),
             ProjectionEmitter.EmitApplePlatformFacade(manifest));

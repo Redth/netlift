@@ -4,7 +4,7 @@
 
 NetLift generates typed native clients from ordinary C# service contracts.
 Keep your UI and lifecycle in SwiftUI or Kotlin/Compose, and run your .NET
-code in the same process. No MAUI UI, web service, or NetLift attributes.
+code in the same process. MAUI is optional; no web service or NetLift attributes.
 
 This page contains the setup, .NET code, and native examples in one place:
 [.NET](#1-write-your-net-service), [Android](#2-connect-kotlin--android),
@@ -19,9 +19,9 @@ This page contains the setup, .NET code, and native examples in one place:
 
 | Integration | Current preview |
 | --- | --- |
-| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.12` |
+| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.13` |
 | Android runtime, added by the plugin | `io.github.redth.netlift:runtime-android` `0.1.0-alpha.3` |
-| Swift package and generation plugin | `NetLift` `0.1.0-alpha.8` |
+| Swift package and generation plugin | `NetLift` `0.1.0-alpha.9` |
 
 Pin exact versions. Packages are published in
 [netlift-sdk](https://github.com/Redth/netlift-sdk); published versions are immutable.
@@ -198,7 +198,7 @@ android.useAndroidX=true
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.12"
+    id("io.github.redth.netlift") version "0.1.0-alpha.13"
 }
 
 netlift {
@@ -389,7 +389,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/Redth/netlift-sdk.git",
-            exact: "0.1.0-alpha.8"
+            exact: "0.1.0-alpha.9"
         ),
     ],
     targets: [
@@ -612,6 +612,91 @@ The app reports a real managed Orders response and successful cancellation,
 callback, and stream checks. This is currently an explicit source integration,
 not a one-step SwiftPM/Xcode app template or a validated physical-device path.
 
+## Optional: embed MAUI views in native UI
+
+**Android framework selection and the optional view-factory seam are in
+Gradle plugin alpha.13. Apple MAUI embedding remains a source-checkout
+workload-host feature, not part of the Swift package or NativeAOT bridge.**
+Your app and navigation remain SwiftUI/Compose-owned; you can opt into a
+MAUI-containing library for individual native views.
+The [MAUI embedding sample](product/samples/MauiEmbedding/README.md) contains
+the complete C#, SwiftUI, and Compose implementations.
+
+Use a mobile **library**, not a second MAUI application project:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net11.0-ios;net11.0-android</TargetFrameworks>
+    <UseMaui>true</UseMaui>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+  </ItemGroup>
+</Project>
+```
+
+The source builders evaluate the linked `.csproj` through MSBuild. They
+prefer its matching mobile TFM over a portable TFM, use its evaluated
+`TargetPath` (including custom assembly/output names), and reference that
+**same TFM** from the managed host. Multiple compatible choices require an
+explicit `--managed-framework` on Apple or `contractTargetFramework` in
+Gradle. A project marked `UseMaui` also enables MAUI in the generated host.
+Other platforms and arbitrary binding-object DTO projection are not implied.
+
+Keep the async service/DTO boundary separate from native views. An optional
+`PlatformViews` factory in the library receives and returns real
+`UIKit.UIView` / `Android.Views.View` bindings on the UI thread. It reuses
+one `MauiApp.CreateBuilder().UseMauiEmbeddedApp<EmbeddedApplication>().Build()`
+and creates an appropriate `MauiContext`; the conversion is
+`label.ToPlatformEmbedded(context)` (or `ToPlatform`), not a JSON
+serialization of the view. On iOS the sample includes a managed wrapper
+for its Swift app delegate. On Android use the host's Activity context,
+not application context, for view construction.
+
+Build the checked-in SwiftUI consumer:
+
+```bash
+python3 product/apple/build_component.py \
+  --managed-project product/samples/MauiEmbedding/Managed/MauiEmbedding.csproj \
+  --contract-root NetLift.MauiEmbedding.IEmbeddingService \
+  --platform-view-factory NetLift.MauiEmbedding.PlatformViews \
+  --native-source-root product/samples/MauiEmbedding/SwiftUI \
+  --bundle-identifier dev.netlift.maui.swiftui \
+  --output .artifacts/maui-ios
+xcrun simctl install <simulator-udid> \
+  .artifacts/maui-ios/NetLift.Generated.Apple.app
+xcrun simctl launch <simulator-udid> dev.netlift.maui.swiftui
+```
+
+Build the Compose consumer against the published plugin and runtime:
+
+```bash
+product/android/gradlew -p product/samples/MauiEmbedding/Compose :app:assembleDebug
+adb -s <emulator-id> install -r \
+  product/samples/MauiEmbedding/Compose/app/build/outputs/apk/debug/app-debug.apk
+adb -s <emulator-id> shell am start -n dev.netlift.maui.compose/.MainActivity
+```
+
+SwiftUI hosts the returned view through `UIViewRepresentable`; Compose uses
+`AndroidView`. A `ComposeView` is an Android `View` and can round-trip
+through C#; a composable function is not a native binding object.
+Both wrappers **detach the native child before releasing its MAUI handler**
+in `dismantleUIView` / `onRelease`. Keep these calls on the UI thread and
+release each factory-created view exactly once.
+
+The sample exercises target-specific C# calls, native identity, managed
+label updates, GC survival, and three release/recreate cycles on an ARM64
+iOS simulator and Android emulator. It embeds a simple label using an
+app-scoped context: full MAUI window features, resource-ID reconciliation
+for arbitrary Android controls, minified releases, and physical devices
+remain unverified. Android's AppCompat/Material dependencies must be
+provided by the native app; the source AAR includes MAUI's Java helpers.
+
 ## Existing projects and API design
 
 Keep your existing native app and .NET implementation. Point generation at
@@ -646,6 +731,8 @@ directory; installation and example prompts are in
 [Android Hello World](product/samples/HelloWorld.Android/README.md) is the
 smallest real managed app. The
 [Swift package example](product/apple/samples/OrdersPreview/README.md) is a
-generation/client preview. [Product build instructions](product/README.md)
+generation/client preview. [MAUI embedding](product/samples/MauiEmbedding/README.md)
+shows optional MAUI views inside native SwiftUI and Compose apps.
+[Product build instructions](product/README.md)
 cover implementation and release evidence. Older `experiments/` and `spikes/`
 are not the public setup or support contract.

@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Buffers.Binary;
 using System.Runtime.Loader;
 using System.Security.Cryptography;
@@ -103,7 +105,9 @@ public static class ContractCompiler
         try
         {
             var assembly = loadContext.LoadFromAssemblyPath(fullPath);
-            var exportedTypes = assembly.GetExportedTypes();
+            var exportedTypes = LoadContractTypes(
+                assembly, fullPath, contractRoots.Concat(nativeContractRoots).ToArray(),
+                discoverImplementations);
             var managedServices = ResolveServices(exportedTypes, contractRoots);
             var nativeServices = ResolveServices(exportedTypes, nativeContractRoots);
             var overlap = managedServices.Intersect(nativeServices).FirstOrDefault();
@@ -198,6 +202,68 @@ public static class ContractCompiler
                     .Select(parameter => TypeName(parameter.ParameterType))
                     .ToArray());
         }).ToArray();
+    }
+
+    private static Type[] LoadContractTypes(
+        Assembly assembly, string path, IReadOnlyList<string> roots, bool implementations)
+    {
+        // Platform projects can export generated resource types whose bases exist only
+        // in the final app. Inspect the inheritance graph before loading contract types.
+        using var stream = File.OpenRead(path);
+        using var pe = new PEReader(stream);
+        var metadata = pe.GetMetadataReader();
+        string Name(TypeDefinitionHandle handle)
+        {
+            var definition = metadata.GetTypeDefinition(handle);
+            var declaring = definition.GetDeclaringType();
+            var name = metadata.GetString(definition.Name);
+            if (!declaring.IsNil)
+                return Name(declaring) + "+" + name;
+            var ns = metadata.GetString(definition.Namespace);
+            return ns.Length == 0 ? name : ns + "." + name;
+        }
+        bool Public(TypeDefinitionHandle handle)
+        {
+            var definition = metadata.GetTypeDefinition(handle);
+            var visibility = definition.Attributes & TypeAttributes.VisibilityMask;
+            return visibility == TypeAttributes.Public ||
+                (visibility == TypeAttributes.NestedPublic && Public(definition.GetDeclaringType()));
+        }
+        var services = metadata.TypeDefinitions.Where(handle =>
+        {
+            var definition = metadata.GetTypeDefinition(handle);
+            return Public(handle) && (definition.Attributes & TypeAttributes.Interface) != 0 &&
+                roots.Any(root => root == Name(handle) ||
+                    root == metadata.GetString(definition.Namespace) ||
+                    metadata.GetString(definition.Namespace).StartsWith(root + ".", StringComparison.Ordinal));
+        }).ToHashSet();
+        bool ReachesService(EntityHandle handle, HashSet<EntityHandle> visiting)
+        {
+            if (handle.IsNil || !visiting.Add(handle))
+                return false;
+            if (handle.Kind == HandleKind.TypeSpecification)
+            {
+                var signature = metadata.GetBlobReader(metadata.GetTypeSpecification(
+                    (TypeSpecificationHandle)handle).Signature);
+                if (signature.ReadByte() != 0x15)
+                    return false;
+                signature.ReadByte();
+                return ReachesService(signature.ReadTypeHandle(), visiting);
+            }
+            if (handle.Kind != HandleKind.TypeDefinition)
+                return false;
+            var typeHandle = (TypeDefinitionHandle)handle;
+            if (services.Contains(typeHandle))
+                return true;
+            var definition = metadata.GetTypeDefinition(typeHandle);
+            return ReachesService(definition.BaseType, visiting) ||
+                definition.GetInterfaceImplementations().Any(implementation =>
+                    ReachesService(metadata.GetInterfaceImplementation(implementation).Interface, visiting));
+        }
+        return metadata.TypeDefinitions.Where(handle => Public(handle) &&
+                (services.Contains(handle) || (implementations && ReachesService(handle, []))))
+            .Select(handle => assembly.GetType(Name(handle), throwOnError: true)!)
+            .ToArray();
     }
 
     public static string Serialize(ContractManifest manifest) =>

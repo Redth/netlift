@@ -1,5 +1,16 @@
 # Android pivot: Kotlin, Compose, JNI and CoreCLR
 
+For current app setup use the [main README](../README.md#2-connect-kotlin--android).
+The historical investigation below predates the current workload plugin.
+For optional MAUI UI, use the source-owned
+[MAUI embedding sample](../product/samples/MauiEmbedding/README.md):
+the plugin selects `net11.0-android` from its multi-target library,
+propagates `UseMaui`, and bundles MAUI Java helpers. Compose's `AndroidView`
+hosts the resulting native view; a Kotlin `ComposeView` also round-trips
+through C# as `Android.Views.View`. The native app supplies compatible
+AppCompat/Material dependencies. This plugin feature is in alpha.13 and does not establish
+general resource-ID reconciliation, release/R8, or physical-device support.
+
 ## Reality check and deployment decision
 
 .NET 11 standard Android apps use CoreCLR by default. Its current native
@@ -24,8 +35,9 @@ Separate a runtime control from the product proof:
   Android CoreCLR native host, assembly store, bootstrap Java/Kotlin
   classes and runtime/native libraries. Build a Gradle plugin to merge
   per-ABI artifacts, manifest entries, resources and R8 consumer rules
-  into the app. The developer's .NET project is a plain `net11.0` library,
-  never a `net11.0-android` app; generated internal packaging artifacts are
+  into the app. The developer's .NET project is a library: normally portable,
+  or optionally `net11.0-android` when platform bindings/MAUI are needed,
+  never a second Android app; generated internal packaging artifacts are
   allowed but hidden. Ship an `.aar`/Maven release only after
   the consuming Gradle app runs on real devices; local spike publication
   is not product distribution. This is new host/tooling

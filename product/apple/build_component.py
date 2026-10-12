@@ -8,8 +8,11 @@ import json
 import os
 import plistlib
 import re
+import shlex
 import shutil
 import subprocess
+import sys
+import xml.sax.saxutils
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -21,6 +24,8 @@ DEPLOYMENT_TARGET = "15.0"
 TFM = "net11.0-ios"
 RID = "iossimulator-arm64"
 COMPONENT_NAME = "NetLift.Generated.Apple"
+sys.path.insert(0, str(PRODUCT / "tooling"))
+from managed_project import inspect_project
 
 
 def run(*args: str, cwd: Path = REPOSITORY) -> None:
@@ -70,12 +75,32 @@ def workload_frameworks(intermediate_root: Path) -> list[str]:
     return arguments
 
 
+def native_reference_arguments(references: list[dict[str, str]]) -> list[str]:
+    arguments: list[str] = []
+    for reference in references:
+        path = Path(reference["FullPath"])
+        if not path.is_file():
+            raise RuntimeError(f"Resolved native dependency is missing: {path}")
+        if reference.get("ForceLoad", "").lower() == "true":
+            arguments.extend(("-Xlinker", "-force_load"))
+        arguments.extend(("-Xlinker", str(path)))
+        for flag in shlex.split(reference.get("LinkerFlags", "")):
+            arguments.extend(("-Xlinker", flag))
+        for name in reference.get("Frameworks", "").split():
+            arguments.extend(("-framework", name))
+        for name in reference.get("WeakFrameworks", "").split():
+            arguments.extend(("-Xlinker", "-weak_framework", "-Xlinker", name))
+    return arguments
+
+
 def write_component_project(
     project: Path,
     managed_project: Path,
     managed_framework: str,
     generated: Path,
     native_callbacks: Path | None,
+    maui_version: str | None = None,
+    managed_assembly_name: str | None = None,
 ) -> None:
     runtime_project = PRODUCT / "src" / "NetLift.Runtime" / "NetLift.Runtime.csproj"
     apple_platform_project = (
@@ -86,6 +111,11 @@ def write_component_project(
         f'\n    <NativeReference Include="{native_callbacks}" Kind="Static" />'
         if native_callbacks is not None
         else ""
+    )
+    maui_properties = "<UseMaui>true</UseMaui>" if maui_version else ""
+    maui_reference = (
+        f'<PackageReference Include="Microsoft.Maui.Controls" Version="{xml.sax.saxutils.escape(maui_version)}" />'
+        if maui_version else ""
     )
     project.write_text(
         f"""<Project Sdk="Microsoft.NET.Sdk">
@@ -104,6 +134,7 @@ def write_component_project(
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    {maui_properties}
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
@@ -111,9 +142,10 @@ def write_component_project(
     <ProjectReference Include="{managed_project}">
       <SetTargetFramework>TargetFramework={managed_framework}</SetTargetFramework>
     </ProjectReference>
-    <TrimmerRootAssembly Include="{managed_project.stem}" />
+    <TrimmerRootAssembly Include="{managed_assembly_name or managed_project.stem}" />
     <ProjectReference Include="{runtime_project}" />
     <ProjectReference Include="{apple_platform_project}" />
+    {maui_reference}
     <Compile Include="{generated / "NetLiftDispatcher.g.cs"}" Link="Generated/NetLiftDispatcher.g.cs" />
     <Compile Include="{generated / "NetLiftAppleBridge.g.cs"}" Link="Generated/NetLiftAppleBridge.g.cs" />
     {native_reference}
@@ -127,9 +159,10 @@ def write_component_project(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--managed-project", type=Path, required=True)
-    parser.add_argument("--managed-framework", default="net10.0")
+    parser.add_argument("--managed-framework")
     parser.add_argument("--contract-root", action="append", required=True)
     parser.add_argument("--native-contract-root", action="append", default=[])
+    parser.add_argument("--platform-view-factory")
     parser.add_argument("--swift-module", default="NetLiftGenerated")
     parser.add_argument("--native-source-root", type=Path, required=True)
     parser.add_argument("--swift-contracts", type=Path)
@@ -141,6 +174,10 @@ def main() -> int:
     args = parser.parse_args()
 
     managed_project = args.managed_project.resolve()
+    managed_properties = inspect_project(managed_project, TFM, "Release", args.managed_framework)
+    if managed_properties["UseMaui"].lower() == "true" and not managed_properties["MauiVersion"]:
+        raise RuntimeError("UseMaui is enabled but MauiVersion was not evaluated.")
+    args.managed_framework = managed_properties["SelectedTargetFramework"]
     native_source_root = args.native_source_root.resolve()
     artifact_root = args.output.resolve()
     if not XCODE_DEVELOPER.is_dir():
@@ -185,7 +222,7 @@ def main() -> int:
         )
     )
     if not managed_assembly.is_file():
-        raise RuntimeError(f"Portable managed assembly was not produced: {managed_assembly}")
+        raise RuntimeError(f"Selected managed assembly was not produced: {managed_assembly}")
 
     generated = artifact_root / "generated"
     config = {
@@ -197,6 +234,7 @@ def main() -> int:
         "swiftModule": args.swift_module,
         "output": str(generated),
         "emitAppleBridge": True,
+        "platformViewFactory": args.platform_view_factory,
     }
     config_path = artifact_root / "netlift.json"
     config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
@@ -271,17 +309,21 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         args.managed_framework,
         generated,
         callback_library,
+        managed_properties["MauiVersion"] if managed_properties["UseMaui"].lower() == "true" else None,
+        managed_assembly.stem,
     )
-    run(
+    native_references = json.loads(output(
         "dotnet",
-        "build",
+        "msbuild",
         str(component_project),
-        "-c",
-        "Debug",
-        "-r",
-        RID,
-        "-v:minimal",
-    )
+        "-t:Build",
+        "-restore",
+        "-p:Configuration=Debug",
+        f"-p:RuntimeIdentifier={RID}",
+        "-getItem:_ResolvedNativeReference",
+        "-nologo",
+        cwd=component_project_root,
+    ))["Items"]["_ResolvedNativeReference"]
 
     intermediate_root = (
         component_project_root / "obj" / "Debug" / TFM / RID
@@ -455,6 +497,7 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         "-lmscordaccore",
         "-lmscordbi",
         "-lc++",
+        *native_reference_arguments(native_references),
         *workload_frameworks(intermediate_root),
         "-Xlinker",
         "-rpath",

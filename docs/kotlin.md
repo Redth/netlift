@@ -5,7 +5,7 @@ The complete setup and code now live in the root
 It includes the package feed, Gradle configuration, shared C# service,
 one-time `Application` initialization, no-argument client, and UI call.
 
-The public plugin is `0.1.0-alpha.12`; it selects runtime `0.1.0-alpha.3`.
+The public plugin is `0.1.0-alpha.13`; it selects runtime `0.1.0-alpha.3`.
 Default clients use that runtime for calls and streams. Explicit transport
 injection remains available for tests and custom hosts.
 

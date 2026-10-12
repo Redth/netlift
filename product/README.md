@@ -52,6 +52,14 @@ For a first end-to-end Android app, see
 the public Gradle preview feed and generates a Kotlin client from a minimal
 .NET greeting service.
 
+For an opt-in mobile/MAUI library, see
+[`samples/MauiEmbedding`](samples/MauiEmbedding/README.md). Its source-owned
+SwiftUI and Compose apps select matching mobile TFMs, round-trip native
+binding views, and embed a real MAUI label with explicit handler ownership.
+The Android framework-selection/view-factory changes use published plugin
+alpha.13; Swift package alpha.9 updates the bundled compiler but not the
+Apple workload builder, which remains source-owned.
+
 The initial codec profile carries UTF-8 JSON inside the generated
 `ByteArray`/`Data` transport seam. It is intentionally replaceable without
 changing projected Kotlin/Swift APIs or stable route IDs. The Android workload
@@ -304,7 +312,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.12"
+    id("io.github.redth.netlift") version "0.1.0-alpha.13"
 }
 
 netlift {
@@ -324,6 +332,10 @@ bridge, and app-specific workload component. Missing or ambiguous service
 implementations fail generation with a precise diagnostic.
 For the simple path, provide a public parameterless constructor. Native-owned
 service roots also support constructor injection of generated native proxies.
+Plugin `0.1.0-alpha.13` adds evaluated TFM selection and an optional Android
+platform-view factory for MAUI-containing libraries. See
+[`samples/MauiEmbedding`](samples/MauiEmbedding/README.md) for runtime
+acceptance and its stated support limits.
 
 The native app owns startup and calls the runtime explicitly:
 
@@ -379,13 +391,13 @@ unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
 The contract-neutral runtime and projection plugin are published in Swift
-package `NetLift` `0.1.0-alpha.8`:
+package `NetLift` `0.1.0-alpha.9`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.8"
+        exact: "0.1.0-alpha.9"
     ),
 ]
 ```

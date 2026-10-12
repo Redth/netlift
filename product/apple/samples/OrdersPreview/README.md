@@ -1,6 +1,6 @@
 # Swift package example
 
-This example consumes the public NetLift Swift package `0.1.0-alpha.8`.
+This example consumes the public NetLift Swift package `0.1.0-alpha.9`.
 It demonstrates one-time runtime transport installation, no-argument clients,
 typed native-service registration, and pull-driven streams without needing
 an iOS app. It also verifies missing/duplicate installation diagnostics and

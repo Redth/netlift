@@ -62,7 +62,7 @@ adb shell am start -n dev.netlift.helloworld/.MainActivity
 ```
 
 The screen should display `Hello, World!`. The Android app resolves plugin
-`0.1.0-alpha.12` from the public Pages feed. The plugin generates the Kotlin
+`0.1.0-alpha.13` from the public Pages feed. The plugin generates the Kotlin
 client and app-specific workload component from
 `HelloWorld.Contracts/HelloWorld.Contracts.csproj`; the app initializes
 `NetLiftRuntime` once in

@@ -159,13 +159,31 @@ def main() -> int:
             for info in java_archive.infolist():
                 if not info.is_dir() and not info.filename.startswith("META-INF/"):
                     class_entries[info.filename] = java_archive.read(info)
-    excluded = {
-        "mono/MonoRuntimeProvider.class",
-        args.application_id.replace(".", "/") + "/R.class",
-    }
+    maui_resources: dict[str, bytes] = {}
+    for java_archive_path in sorted((intermediate_root / "lp").glob("*/jl/classes.jar")):
+        with zipfile.ZipFile(java_archive_path) as java_archive:
+            if not any(name.startswith("com/microsoft/maui/") for name in java_archive.namelist()):
+                continue
+            for info in java_archive.infolist():
+                if info.is_dir() or info.filename.startswith("META-INF/"):
+                    continue
+                data = java_archive.read(info)
+                if info.filename in class_entries and class_entries[info.filename] != data:
+                    raise RuntimeError(f"Conflicting bundled Java class: {info.filename}")
+                class_entries[info.filename] = data
+        resources = java_archive_path.parent / "res"
+        for path in sorted(resources.rglob("*")):
+            if path.is_file():
+                name = "res/" + path.relative_to(resources).as_posix()
+                data = path.read_bytes()
+                if name in maui_resources and maui_resources[name] != data:
+                    raise RuntimeError(f"Conflicting MAUI resource: {name}")
+                maui_resources[name] = data
     for path in generated_classes.rglob("*.class"):
         name = path.relative_to(generated_classes).as_posix()
-        if name not in excluded:
+        # Gradle must regenerate library R classes using the final app's IDs.
+        if (name != "mono/MonoRuntimeProvider.class" and
+                path.name != "R.class" and not path.name.startswith("R$")):
             class_entries[name] = path.read_bytes()
     classes_jar = staging / "classes.jar"
     write_zip(classes_jar, class_entries.items())
@@ -242,6 +260,7 @@ def main() -> int:
             ("proguard.txt", rules),
             ("assets/netlift-workload-component.json", manifest),
             *native_entries.items(),
+            *maui_resources.items(),
         ],
     )
     with zipfile.ZipFile(output) as archive:

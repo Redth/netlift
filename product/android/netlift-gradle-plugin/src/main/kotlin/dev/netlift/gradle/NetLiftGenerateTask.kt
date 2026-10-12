@@ -1,5 +1,6 @@
 package dev.netlift.gradle
 
+import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -48,6 +49,10 @@ abstract class NetLiftGenerateTask @Inject constructor(
     abstract val contractTargetFramework: Property<String>
 
     @get:Input
+    @get:Optional
+    abstract val platformViewFactory: Property<String>
+
+    @get:Input
     abstract val componentTargetFramework: Property<String>
 
     @get:Input
@@ -83,8 +88,28 @@ abstract class NetLiftGenerateTask @Inject constructor(
         val managed = managedProject.get().asFile
         val generated = generatedDirectory.get().asFile
         val configurationName = configuration.get()
-        val managedAssembly = managed.parentFile
-            .resolve("bin/$configurationName/${contractTargetFramework.get()}/${managed.nameWithoutExtension}.dll")
+        val inspection = temporaryDir.resolve("managed-project.json")
+        execOperations.exec { spec ->
+            spec.commandLine(
+                listOf(
+                    "python3", tooling.resolve("tooling/managed_project.py").absolutePath,
+                    "--project", managed.absolutePath,
+                    "--component-framework", componentTargetFramework.get(),
+                    "--configuration", configurationName,
+                    "--output", inspection.absolutePath,
+                ) + contractTargetFramework.get().takeIf(String::isNotBlank)?.let {
+                    listOf("--managed-framework", it)
+                }.orEmpty()
+            )
+        }
+        val properties = JsonSlurper().parse(inspection) as Map<*, *>
+        val selectedFramework = properties["SelectedTargetFramework"] as String
+        val managedAssembly = File(properties["TargetPath"] as String)
+        val mauiVersion = if ((properties["UseMaui"] as String).equals("true", true)) {
+            (properties["MauiVersion"] as String).also {
+                require(it.isNotBlank()) { "UseMaui is enabled but MauiVersion was not evaluated." }
+            }
+        } else null
 
         execOperations.exec { spec ->
             spec.workingDir(managed.parentFile)
@@ -95,7 +120,7 @@ abstract class NetLiftGenerateTask @Inject constructor(
                 "-c",
                 configurationName,
                 "-f",
-                contractTargetFramework.get(),
+                selectedFramework,
                 "-v:minimal",
             )
         }
@@ -112,6 +137,9 @@ abstract class NetLiftGenerateTask @Inject constructor(
                 nativeContractRoots.get().joinToString(", ") { "\"${json(it)}\"" } +
                 "]"
         }
+        val factoryLine = platformViewFactory.orNull?.let {
+            ",\n  \"platformViewFactory\": \"${json(it)}\""
+        }.orEmpty()
         config.writeText(
             """{
   "version": 1,
@@ -120,7 +148,7 @@ abstract class NetLiftGenerateTask @Inject constructor(
   "kotlinPackage": "${json(kotlinPackage.get())}",
   "swiftModule": "${json(swiftModule.get())}",
   "output": "${jsonPath(generated)}",
-  "emitAndroidBridge": true$lockLine$nativeRootsLine
+  "emitAndroidBridge": true$lockLine$nativeRootsLine$factoryLine
 }
 """
         )
@@ -138,6 +166,9 @@ abstract class NetLiftGenerateTask @Inject constructor(
             generated,
             tooling.resolve("runtime/NetLift.Runtime.dll"),
             tooling.resolve("android-platform/NetLift.AndroidPlatform.dll"),
+            selectedFramework,
+            managedAssembly.nameWithoutExtension,
+            mauiVersion,
         )
         execOperations.exec { spec ->
             spec.workingDir(component.parentFile)
@@ -170,6 +201,9 @@ abstract class NetLiftGenerateTask @Inject constructor(
         generated: File,
         runtimeAssembly: File,
         androidPlatformAssembly: File,
+        managedFramework: String,
+        managedAssemblyName: String,
+        mauiVersion: String?,
     ): File {
         require(runtimeAssembly.isFile) {
             "Bundled NetLift managed runtime was not found: $runtimeAssembly"
@@ -194,14 +228,17 @@ abstract class NetLiftGenerateTask @Inject constructor(
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    ${if (mauiVersion != null) "<UseMaui>true</UseMaui>" else ""}
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     <TrimMode>copy</TrimMode>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="${xml(managedProjectFile.absolutePath)}" />
-    <TrimmerRootAssembly Include="${xml(managedProjectFile.nameWithoutExtension)}" />
+    <ProjectReference Include="${xml(managedProjectFile.absolutePath)}"
+                      SetTargetFramework="TargetFramework=${xml(managedFramework)}" />
+    <TrimmerRootAssembly Include="${xml(managedAssemblyName)}" />
+    ${if (mauiVersion != null) "<PackageReference Include=\"Microsoft.Maui.Controls\" Version=\"${xml(mauiVersion)}\" />" else ""}
     <Reference Include="NetLift.Runtime">
       <HintPath>${xml(runtimeAssembly.absolutePath)}</HintPath>
       <Private>true</Private>

@@ -40,8 +40,8 @@ must surface unsupported targets or missing hosting steps.
 ## Validation and maintenance
 
 The skill passed its structural/safety gate before export. Its package pins
-and commands were checked against public-feed Android `alpha.12` and Swift
-`alpha.8` consumers. The README's new-project C#, Kotlin, and Swift examples
+and commands were checked against public-feed Android `alpha.13` and Swift
+`alpha.9` consumers. The README's new-project C#, Kotlin, and Swift examples
 were extracted into a separate project and built; the Android app returned
 the real managed greeting and the Swift preview returned its explicitly
 in-memory greeting.

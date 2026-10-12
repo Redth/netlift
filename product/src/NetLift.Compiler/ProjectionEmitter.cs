@@ -984,7 +984,8 @@ public static class ProjectionEmitter
 
     public static string EmitAndroidBridge(
         ContractManifest manifest,
-        IReadOnlyList<ContractServiceImplementation> implementations)
+        IReadOnlyList<ContractServiceImplementation> implementations,
+        string? platformViewFactory = null)
     {
         ArgumentNullException.ThrowIfNull(implementations);
         var managedServices = manifest.Services
@@ -1010,7 +1011,7 @@ public static class ProjectionEmitter
             .AppendLine("namespace NetLift.Generated.Android;")
             .AppendLine()
             .AppendLine("[global::Android.Runtime.Register(\"dev/netlift/runtime/ManagedNetLiftBridge\")]")
-            .AppendLine("public sealed class ManagedNetLiftBridge : global::Java.Lang.Object")
+            .AppendLine("public sealed partial class ManagedNetLiftBridge : global::Java.Lang.Object")
             .AppendLine("{")
             .AppendLine("    private const string JniClassName = \"dev/netlift/runtime/ManagedNetLiftBridge\";")
             .Append("    private static readonly global::NetLift.Runtime.NetLiftEndpointHost Endpoint = new(new global::NetLift.Generated.ContractDispatcherAdapter(")
@@ -1135,7 +1136,9 @@ public static class ProjectionEmitter
             .AppendLine("    public global::Android.Views.View RoundTripBorrowedView(global::Android.Views.View view)")
             .AppendLine("    {")
             .AppendLine("        using var lease = global::NetLift.AndroidPlatform.NetLiftAndroidViewAdapter.Borrow(view);")
-            .AppendLine("        return lease.Value;")
+            .AppendLine(platformViewFactory is null
+                ? "        return lease.Value;"
+                : $"        return global::{ValidateFactoryName(platformViewFactory)}.RoundTrip(lease.Value);")
             .AppendLine("    }")
             .AppendLine()
             .AppendLine("    [global::Java.Interop.Export(\"retainPlatformView\")]")
@@ -1393,6 +1396,8 @@ public static class ProjectionEmitter
                 .AppendLine("    }")
                 .AppendLine("}");
         }
+        if (platformViewFactory is not null)
+            EmitPlatformViewFactory(builder, platformViewFactory, apple: false);
         return builder.ToString();
     }
 
@@ -1455,7 +1460,8 @@ public static class ProjectionEmitter
 
     public static string EmitAppleBridge(
         ContractManifest manifest,
-        IReadOnlyList<ContractServiceImplementation> implementations)
+        IReadOnlyList<ContractServiceImplementation> implementations,
+        string? platformViewFactory = null)
     {
         ArgumentNullException.ThrowIfNull(implementations);
         var managedServices = manifest.Services
@@ -1491,7 +1497,7 @@ public static class ProjectionEmitter
             .AppendLine("}")
             .AppendLine()
             .AppendLine("[global::Foundation.Register(\"NetLiftManagedBridge\")]")
-            .AppendLine("public sealed class ManagedNetLiftBridge : global::Foundation.NSObject")
+            .AppendLine("public sealed partial class ManagedNetLiftBridge : global::Foundation.NSObject")
             .AppendLine("{")
             .Append("    private static readonly global::NetLift.Runtime.NetLiftEndpointHost Endpoint = new(new global::NetLift.Generated.ContractDispatcherAdapter(")
             .Append(string.Join(", ", services.Select(service =>
@@ -1590,7 +1596,9 @@ public static class ProjectionEmitter
             .AppendLine("    public global::UIKit.UIView RoundTripBorrowedView(global::UIKit.UIView view)")
             .AppendLine("    {")
             .AppendLine("        using var lease = global::NetLift.ApplePlatform.NetLiftAppleViewAdapter.Borrow(view);")
-            .AppendLine("        return lease.Value;")
+            .AppendLine(platformViewFactory is null
+                ? "        return lease.Value;"
+                : $"        return global::{ValidateFactoryName(platformViewFactory)}.RoundTrip(lease.Value);")
             .AppendLine("    }")
             .AppendLine()
             .AppendLine("    [global::Foundation.Export(\"retainPlatformView:\")]")
@@ -1753,7 +1761,52 @@ public static class ProjectionEmitter
                 .AppendLine("    }")
                 .AppendLine("}");
         }
+        if (platformViewFactory is not null)
+            EmitPlatformViewFactory(builder, platformViewFactory, apple: true);
         return builder.ToString();
+    }
+
+    private static string ValidateFactoryName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) ||
+            name.Split('.').Any(part => part.Length == 0 ||
+                !(char.IsLetter(part[0]) || part[0] == '_') ||
+                part.Any(character => !(char.IsLetterOrDigit(character) || character == '_'))))
+            throw new ContractCompilerException("Platform view factory must be a fully qualified C# type name.");
+        return name;
+    }
+
+    private static void EmitPlatformViewFactory(StringBuilder builder, string factory, bool apple)
+    {
+        factory = ValidateFactoryName(factory);
+        var view = apple ? "global::UIKit.UIView" : "global::Android.Views.View";
+        var export = apple ? "global::Foundation.Export" : "global::Java.Interop.Export";
+        var platform = apple ? "global::NetLift.ApplePlatform.NetLiftApplePeerRegistry" :
+            "global::NetLift.AndroidPlatform.NetLiftAndroidPeerRegistry";
+        builder.AppendLine()
+            .AppendLine("public sealed partial class ManagedNetLiftBridge")
+            .AppendLine("{")
+            .Append("    [").Append(export).Append("(\"createPlatformView")
+            .Append(apple ? ":" : "").AppendLine("\")]")
+            .Append("    public ").Append(view).Append(" CreatePlatformView(").Append(view).AppendLine(" host)")
+            .AppendLine("    {")
+            .Append("        ").Append(platform).AppendLine(".EnsureMainThread();")
+            .Append("        return global::").Append(factory).AppendLine(".Create(host);")
+            .AppendLine("    }")
+            .Append("    [").Append(export).Append("(\"releasePlatformView")
+            .Append(apple ? ":" : "").AppendLine("\")]")
+            .Append("    public void ReleasePlatformView(").Append(view).AppendLine(" view)")
+            .AppendLine("    {")
+            .Append("        ").Append(platform).AppendLine(".EnsureMainThread();")
+            .Append("        global::").Append(factory).AppendLine(".Release(view);")
+            .AppendLine("    }")
+            .Append("    [").Append(export).AppendLine("(\"livePlatformViewCount\")]")
+            .AppendLine("    public int LivePlatformViewCount()")
+            .AppendLine("    {")
+            .Append("        ").Append(platform).AppendLine(".EnsureMainThread();")
+            .Append("        return global::").Append(factory).AppendLine(".LiveCount;")
+            .AppendLine("    }")
+            .AppendLine("}");
     }
 
     public static string EmitApplePlatformFacade(ContractManifest manifest) =>

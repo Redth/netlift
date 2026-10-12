@@ -102,6 +102,9 @@ tasks.processResources {
     from(rootProject.file("tooling")) {
         into("netlift/tooling")
     }
+    from(rootProject.file("../tooling/managed_project.py")) {
+        into("netlift/tooling")
+    }
 }
 
 publishing {

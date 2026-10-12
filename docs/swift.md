@@ -5,7 +5,7 @@ The complete setup and code now live in the root
 Swift package, `netlift.json`, one-time transport installation, and a
 complete client preview.
 
-The public package is `0.1.0-alpha.8`. Install the app host's transport once
+The public package is `0.1.0-alpha.9`. Install the app host's transport once
 per generated module, then use `try HelloServiceClient()`. Missing or duplicate
 installation throws; explicit initializer injection remains available.
 
@@ -50,3 +50,17 @@ The [Orders package example](../product/apple/samples/OrdersPreview/README.md)
 uses an in-memory transport and verifies clients, callbacks, and streams.
 It does not execute C#. Platform packaging details remain in the
 [product reference](../product/README.md#apple-runtime-and-generated-component).
+
+## Optional MAUI controls
+
+The [MAUI embedding sample](../product/samples/MauiEmbedding/README.md)
+uses a `net11.0-ios;net11.0-android` MAUI library and the workload host.
+The Apple source builder selects the iOS TFM, enables MAUI in the internal
+component, and links the workload-resolved native framework dependencies.
+Its SwiftUI `UIViewRepresentable` hosts a real `Label.ToPlatformEmbedded`
+result and detaches it before releasing its MAUI handler.
+
+The Swift delegate needs a corresponding managed protocol binding for
+MAUI's embedded application initialization; the sample includes it.
+Native UIKit peers are not JSON DTOs. This does not make the NativeAOT
+bridge support UIKit/MAUI, or establish full MAUI window/device support.

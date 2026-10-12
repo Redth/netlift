@@ -38,8 +38,8 @@
       "id": "remote-preview-consumer",
       "status": "passed",
       "evidence": [
-        "gradle-plugin-0.1.0-alpha.12",
-        "swift-package-0.1.0-alpha.8",
+        "gradle-plugin-0.1.0-alpha.13",
+        "swift-package-0.1.0-alpha.9",
         "github-pages-http-200",
         "fresh-gradle-cache",
         "fresh-swiftpm-cache",

@@ -22,7 +22,7 @@ Do not replace existing build files, application delegates, dependency injection
 
 Read the current canonical [NetLift onboarding](https://github.com/Redth/netlift/blob/HEAD/README.md) and [public SDK manifest/docs](https://github.com/Redth/netlift-sdk). Resolve their default branches and inspect the actual pinned package source/metadata if examples disagree. Use immutable published packages, not local composite Gradle builds or local Swift dependencies, for consumer acceptance. Do not run downloaded scripts without inspecting them.
 
-The verified baseline at authoring is Android plugin `0.1.0-alpha.12`, Android runtime `0.1.0-alpha.3` selected by the plugin, and Swift package `0.1.0-alpha.8`. Recheck published versions and capabilities before choosing a pin; never overwrite a released version or assume source-checkout APIs are in an older package.
+The verified baseline at authoring is Android plugin `0.1.0-alpha.13`, Android runtime `0.1.0-alpha.3` selected by the plugin, and Swift package `0.1.0-alpha.9`. Plugin alpha.13 selects matching mobile TFMs and optionally emits the Android MAUI view factory seam. Recheck published versions and capabilities before choosing a pin; never overwrite a released version or assume source-checkout APIs are in an older package.
 
 ## 2. Evaluate the managed public API
 
@@ -41,7 +41,7 @@ Build the existing portable project first. Inspect only the reachable public bou
 | Hosting | Exactly one public constructible implementation in the rooted assembly. The simple path needs a public parameterless constructor; supported native-owned service proxies may be constructor parameters when separately rooted. Arbitrary app DI dependencies are not automatically supplied. |
 | Cancellation | Pass the token through real work; rethrow native cancellation rather than reporting it as a successful default result. |
 
-Recommend a thin facade around existing logic before changing existing public signatures, nullability, names, or constructor semantics. Seek approval for changes that affect existing consumers or behavior. Do not publish speculative API improvements as facts. Validate proposed shapes with the actual generator; its diagnostics are authoritative. If shared code depends on MAUI UI, desktop-only APIs, or platform-specific assemblies, isolate the portable business layer instead of embedding a second UI stack.
+Recommend a thin facade around existing logic before changing existing public signatures, nullability, names, or constructor semantics. Seek approval for changes that affect existing consumers or behavior. Do not publish speculative API improvements as facts. Validate proposed shapes with the actual generator; its diagnostics are authoritative. Prefer isolating the portable business layer. If optional MAUI views are explicitly requested, use the workload-host embedding pattern below rather than replacing native app ownership. Desktop-only APIs still require a compatible target or isolation.
 
 For a new service, create an ordinary `net10.0` library with nullable references and implicit usings. It needs no NetLift package reference or attributes. Use the README's greeting DTO/interface/implementation as the first smoke test, then adapt names and behavior to the task.
 
@@ -134,6 +134,42 @@ If the task cannot achieve real hosting on its requested target, stop at the
 actual blocker and state it; do not substitute an in-memory demo silently.
 
 Use a fresh dedicated ignored output such as repository-root `.artifacts/<component>` for the source component builder, inspect an existing output before replacement, and do not put generated component projects under contributor directories whose inherited MSBuild settings can change their behavior.
+
+## Optional mobile TFMs and MAUI views
+
+Inspect `product/samples/MauiEmbedding` for the source-checkout pattern.
+Android framework selection and `platformViewFactory` are in plugin
+alpha.13; the Apple workload builder remains source-owned. Do not assume
+the Swift package includes Apple workload hosting.
+The source builders evaluate the linked project through MSBuild, prefer
+a matching mobile TFM over a portable TFM, and use its `TargetPath`.
+Ambiguous TFMs need `--managed-framework` / `contractTargetFramework`.
+The internal host must reference the same TFM and propagate `UseMaui`
+with its evaluated `MauiVersion`.
+
+Keep platform views out of generated JSON DTOs. The optional static view
+factory receives/returns `UIKit.UIView` or `Android.Views.View` bindings,
+and provides `RoundTrip`, `Create`, `Release`, and `LiveCount`.
+Use one `MauiApp` with `UseMauiEmbeddedApp`; construct the correct context
+and convert using `ToPlatformEmbedded` / `ToPlatform`, not a guessed
+`ToPlatformView` API. A native Swift delegate needs a managed binding that
+implements `IUIApplicationDelegate`. Android view construction uses an
+Activity context; the native Gradle app supplies compatible AppCompat and
+Material dependencies while the component includes MAUI Java helpers.
+
+Host views with SwiftUI `UIViewRepresentable` / Compose `AndroidView`.
+Run creation, borrowing, and release on the UI thread. Remove the child
+from its native parent before disconnecting/releasing the MAUI handler,
+exactly once, in `dismantleUIView` / `onRelease`. A Kotlin `ComposeView`
+can cross as an Android `View`; a composable lambda cannot.
+
+Validate target-specific managed results, native identity, actual
+rendering, managed label updates, GC survival, and release/recreate cycles.
+The checked-in sample proves a simple label in Debug on ARM64 simulators/
+emulators with an app-scoped context. Do not imply full MAUI window
+features, arbitrary native-object DTOs, Android resource-ID reconciliation,
+R8 release, or physical-device support. Inspect window-scoped contexts
+and their lifetime separately if the requested features need them.
 
 ## 6. Verify the requested outcome and hand off
 

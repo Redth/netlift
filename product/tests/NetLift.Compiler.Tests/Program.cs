@@ -296,6 +296,41 @@ Require(
 var appleAotBridge = AppleNativeAotEmitter.EmitBridge(
     androidCompilation.Manifest,
     androidCompilation.Implementations);
+foreach (var (platform, generatedFactory) in new[]
+{
+    ("Android", ProjectionEmitter.EmitAndroidBridge(
+        androidCompilation.Manifest, androidCompilation.Implementations, "Sample.PlatformViews")),
+    ("Apple", ProjectionEmitter.EmitAppleBridge(
+        androidCompilation.Manifest, androidCompilation.Implementations, "Sample.PlatformViews")),
+})
+{
+    Require(generatedFactory.Contains("global::Sample.PlatformViews.Create(host)", StringComparison.Ordinal),
+        $"{platform} bridge omitted the library-owned view factory.");
+    Require(generatedFactory.Contains("global::Sample.PlatformViews.RoundTrip(lease.Value)", StringComparison.Ordinal),
+        $"{platform} bridge did not round-trip the binding object through the library.");
+    Require(generatedFactory.Contains("global::Sample.PlatformViews.Release(view)", StringComparison.Ordinal) &&
+        generatedFactory.Contains("global::Sample.PlatformViews.LiveCount", StringComparison.Ordinal) &&
+        generatedFactory.Contains("PeerRegistry.EnsureMainThread();", StringComparison.Ordinal),
+        $"{platform} factory bridge omitted lifecycle or thread isolation.");
+}
+Require(!androidBridge.Contains("CreatePlatformView(", StringComparison.Ordinal) &&
+    !appleBridge.Contains("CreatePlatformView(", StringComparison.Ordinal),
+    "Unconfigured bridges must not expose a view factory.");
+foreach (var invalid in new[] { "", "Sample..Factory", "Sample.Factory;Bad()", "Sample.1Factory" })
+{
+    try
+    {
+        ProjectionEmitter.EmitAppleBridge(androidCompilation.Manifest, androidCompilation.Implementations, invalid);
+        throw new InvalidOperationException("Invalid factory name was accepted.");
+    }
+    catch (ContractCompilerException)
+    {
+    }
+}
+var metadataCompilation = ContractCompiler.CompileWithImplementations(
+    typeof(MetadataFixtures.IService).Assembly.Location, ["MetadataFixtures"]);
+Require(metadataCompilation.Implementations.Single().Implementation == "MetadataFixtures.Service",
+    "Metadata filtering lost namespace roots or a service inherited through a generic base.");
 Require(
     appleAotBridge.Contains(
         "UnmanagedCallersOnly(EntryPoint = \"netlift_apple_invoke\")",
@@ -609,4 +644,20 @@ static void Require(bool condition, string message)
 {
     if (!condition)
         throw new InvalidOperationException(message);
+}
+
+namespace MetadataFixtures
+{
+    public sealed record Request(string Value);
+    public sealed record Response(string Value);
+    public interface IService
+    {
+        Task<Response> GreetAsync(Request request, CancellationToken cancellationToken = default);
+    }
+    public abstract class Base<T> : IService
+    {
+        public Task<Response> GreetAsync(Request request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new Response(request.Value));
+    }
+    public sealed class Service : Base<string>;
 }

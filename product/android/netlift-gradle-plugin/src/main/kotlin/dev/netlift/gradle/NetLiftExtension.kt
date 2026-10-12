@@ -14,6 +14,7 @@ abstract class NetLiftExtension @Inject constructor(objects: ObjectFactory) {
     val kotlinPackage: Property<String> = objects.property(String::class.java)
     val swiftModule: Property<String> = objects.property(String::class.java)
     val contractTargetFramework: Property<String> = objects.property(String::class.java)
+    val platformViewFactory: Property<String> = objects.property(String::class.java)
     val componentTargetFramework: Property<String> = objects.property(String::class.java)
     val runtimeIdentifier: Property<String> = objects.property(String::class.java)
     val runtimeVersion: Property<String> = objects.property(String::class.java)
