@@ -1,5 +1,9 @@
 # NetLift product slice
 
+For app setup, start with the [public README](../README.md) and
+[getting-started guide](../docs/getting-started.md). This document covers
+implementation details, contributor builds, and release evidence.
+
 This directory is the clean implementation boundary for the product described
 in `experiments/netlift-interop-product/PLAN.md`. It intentionally does not
 reference research projects, spikes, or proof artifacts.
@@ -315,7 +319,7 @@ The plugin adds runtime `0.1.0-alpha.3` automatically. Its implementation JAR
 contains the matching compiler and deterministic Android component packager,
 so projection does not depend on a NetLift source checkout. The plugin finds
 exactly one public, parameterless implementation for each rooted service and
-generates the `net10.0-android` project, multi-service dispatcher, managed JNI
+generates the `net11.0-android` project, multi-service dispatcher, managed JNI
 bridge, and app-specific workload component. Missing or ambiguous service
 implementations fail generation with a precise diagnostic.
 
@@ -325,8 +329,12 @@ The native app owns startup and calls the runtime explicitly:
 NetLiftRuntime.initialize(applicationContext)
 
 val client = OrdersServiceClient(
-    transport = NetLiftTransport { serviceId, memberId, payload ->
-        NetLiftRuntime.invoke(serviceId, memberId, payload)
+    transport = object : NetLiftTransport {
+        override suspend fun invoke(
+            serviceId: UInt,
+            memberId: UInt,
+            payload: ByteArray,
+        ): ByteArray = NetLiftRuntime.invoke(serviceId, memberId, payload)
     },
 )
 ```
@@ -466,10 +474,10 @@ release handlers exactly once. The simulator acceptance app covers confirm,
 decline, native failure, cancellation, and revoke while pending, then reports
 `Callback: passed` after its live registration count returns to zero.
 
-Managed-owned streaming methods project as cold
-`AsyncThrowingStream<Element, Error>` values. The generated transport encodes
-the request and decodes each element directly in the unfolding consumer task,
-so every `next()` maps to one managed read and consumer cancellation reliably
-revokes the active generation without an intermediate producer task. The
+Managed-owned streaming methods project as cold, pull-driven
+`NetLiftAsyncSequence<Request, Element>` values. The generated transport encodes
+the request and decodes each element in the consuming task, so every `next()`
+maps to one managed read and consumer cancellation reliably revokes the
+active generation without an intermediate producer task. The
 iOS 26.5 ARM64 simulator proof receives the three Orders status updates,
 cancels a pending 30-second stream, and reports `Stream: passed`.
