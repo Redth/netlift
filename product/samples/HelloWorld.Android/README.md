@@ -9,7 +9,10 @@ local Maven repository or composite Gradle build.
 These setup steps are for macOS; the sample was built and run on an Apple
 Silicon Mac.
 
-1. Install JDK 17 or later.
+1. Install Microsoft OpenJDK compatible with the .NET Android workload
+   (Microsoft OpenJDK 21 is used by this preview), and make it the active
+   `java` on `PATH`. The workload component builder currently checks the
+   JDK vendor as well as its version.
 2. Install Android Studio. In **Tools > SDK Manager**, install Android SDK
    Platform 36, Android SDK Platform-Tools and Build-Tools, NDK
    `28.2.13676358`, Android Emulator, and the API 36 Google APIs ARM64 system
@@ -59,10 +62,13 @@ adb shell am start -n dev.netlift.helloworld/.MainActivity
 ```
 
 The screen should display `Hello, World!`. The Android app resolves plugin
-`0.1.0-alpha.11` from the public Pages feed. The plugin generates the Kotlin
+`0.1.0-alpha.12` from the public Pages feed. The plugin generates the Kotlin
 client and app-specific workload component from
 `HelloWorld.Contracts/HelloWorld.Contracts.csproj`; the app initializes
-`NetLiftRuntime` and invokes the generated client.
+`NetLiftRuntime` once in
+[HelloWorldApplication](app/src/main/java/dev/netlift/helloworld/HelloWorldApplication.kt).
+The Activity calls `HelloServiceClient().greet(...)` without a transport
+wrapper. The manifest registers the custom `Application`.
 
 The tested target is an API 36 ARM64 emulator. Physical Android devices and
 non-macOS setup have not been verified.

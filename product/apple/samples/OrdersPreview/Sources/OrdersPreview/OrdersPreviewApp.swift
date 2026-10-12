@@ -128,12 +128,35 @@ private struct PreviewConfirmationService: OrderConfirmationService {
 @main
 private enum OrdersPreviewApp {
     static func main() async throws {
+        do {
+            _ = try OrdersServiceClient()
+            preconditionFailure("Client construction before runtime installation must fail.")
+        } catch NetLiftClientRuntimeError.transportNotInstalled {
+        }
+
         let metrics = PreviewMetrics()
         let previewTransport = PreviewTransport(reject: false, metrics: metrics)
-        let client = OrdersServiceClient(
+        try NetLiftClientRuntime.install(
             transport: previewTransport,
             streamTransport: previewTransport
         )
+        let client = try OrdersServiceClient()
+        do {
+            try NetLiftClientRuntime.install(transport: PreviewTransport(reject: true))
+            preconditionFailure("A second runtime installation must fail.")
+        } catch NetLiftClientRuntimeError.transportAlreadyInstalled {
+        }
+        var injectedIterator = OrdersServiceClient(
+            transport: previewTransport
+        ).watchOrderStatus(
+            request: OrderStatusRequest(orderId: "order-42")
+        ).makeAsyncIterator()
+        do {
+            _ = try await injectedIterator.next()
+            preconditionFailure("Injected unary transport must not use global runtime streams.")
+        } catch {
+            precondition(String(describing: error) == "streamTransportUnavailable")
+        }
         let result = try await client.submitOrder(
             request: OrderRequest(
                 customerId: "customer-42",
@@ -199,6 +222,6 @@ private enum OrdersPreviewApp {
         let terminal = try await iterator.next()
         precondition(terminal == nil)
         precondition(metrics.snapshot.revokes == 1)
-        print("NetLift Swift plugin callback and demand-aware stream preview passed.")
+        print("NetLift Swift runtime defaults, callback and demand-aware stream preview passed.")
     }
 }

@@ -344,10 +344,11 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                 )
                 NSLog("NETLIFT_APPLE_UIVIEW_PASSED")
                 let transport = ManagedTransport()
-                let client = OrdersServiceClient(
+                try NetLiftClientRuntime.install(
                     transport: transport,
                     streamTransport: transport
                 )
+                let client = try OrdersServiceClient()
                 let receipt = try await client.submitOrder(
                     request: OrderRequest(
                         customerId: "customer-42",

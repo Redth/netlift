@@ -304,7 +304,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.11"
+    id("io.github.redth.netlift") version "0.1.0-alpha.12"
 }
 
 netlift {
@@ -318,25 +318,19 @@ netlift {
 The plugin adds runtime `0.1.0-alpha.3` automatically. Its implementation JAR
 contains the matching compiler and deterministic Android component packager,
 so projection does not depend on a NetLift source checkout. The plugin finds
-exactly one public, parameterless implementation for each rooted service and
+exactly one public constructible implementation for each rooted service and
 generates the `net11.0-android` project, multi-service dispatcher, managed JNI
 bridge, and app-specific workload component. Missing or ambiguous service
 implementations fail generation with a precise diagnostic.
+For the simple path, provide a public parameterless constructor. Native-owned
+service roots also support constructor injection of generated native proxies.
 
 The native app owns startup and calls the runtime explicitly:
 
 ```kotlin
 NetLiftRuntime.initialize(applicationContext)
 
-val client = OrdersServiceClient(
-    transport = object : NetLiftTransport {
-        override suspend fun invoke(
-            serviceId: UInt,
-            memberId: UInt,
-            payload: ByteArray,
-        ): ByteArray = NetLiftRuntime.invoke(serviceId, memberId, payload)
-    },
-)
+val client = OrdersServiceClient()
 ```
 
 Initialization is idempotent and verifies the workload component schema,
@@ -385,13 +379,13 @@ unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
 The contract-neutral runtime and projection plugin are published in Swift
-package `NetLift` `0.1.0-alpha.7`:
+package `NetLift` `0.1.0-alpha.8`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.7"
+        exact: "0.1.0-alpha.8"
     ),
 ]
 ```
@@ -431,6 +425,13 @@ target. A package-consuming command-line acceptance sample is available at
 ```bash
 swift run --package-path product/apple/samples/OrdersPreview OrdersPreview
 ```
+
+Install the host transport once with
+`try NetLiftClientRuntime.install(transport:streamTransport:)`, then construct
+clients with `try OrdersServiceClient()`. The registry is scoped to the
+generated module and rejects missing or repeated installation. Explicit
+transport injection remains available for custom hosts and isolated tests.
+This registry does not start .NET or replace the component build below.
 
 The current package-owned Xcode build integration is the deterministic
 `product/apple/build_component.py` command. It accepts a portable managed

@@ -82,6 +82,24 @@ foreach (var projection in projections.Values)
     Require(projection.Contains(first.SchemaHash, StringComparison.Ordinal), "Generated output omitted the schema hash.");
 var kotlin = projections["NetLiftContracts.kt"];
 Require(
+    kotlin.Contains(
+        "private object NetLiftRuntimeTransport : NetLiftTransport, NetLiftStreamTransport",
+        StringComparison.Ordinal) &&
+    kotlin.Contains(
+        "dev.netlift.runtime.NetLiftRuntime.invoke(serviceId, memberId, payload)",
+        StringComparison.Ordinal) &&
+    kotlin.Contains(
+        "dev.netlift.runtime.NetLiftRuntime.openStream(serviceId, memberId, payload)",
+        StringComparison.Ordinal),
+    "Generated Kotlin runtime transport did not delegate calls and streams to the app runtime.");
+Require(
+    kotlin.Contains(
+        "constructor() : this(NetLiftRuntimeTransport, NetLiftRuntimeTransport)",
+        StringComparison.Ordinal) &&
+    kotlin.Contains("private val transport: NetLiftTransport", StringComparison.Ordinal) &&
+    kotlin.Contains("private val streamTransport: NetLiftStreamTransport? = null", StringComparison.Ordinal),
+    "Generated Kotlin clients must default to the runtime while preserving transport injection.");
+Require(
     kotlin.Contains($"const val ServiceId: UInt = {first.Services[0].Id}u", StringComparison.Ordinal),
     "Generated Kotlin client omitted its public service ID.");
 Require(
@@ -112,6 +130,18 @@ Require(
     kotlin.Contains("org.json.JSONArray", StringComparison.Ordinal),
     "Generated Kotlin omitted bounded collections.");
 var swift = projections["NetLiftContracts.swift"];
+Require(
+    swift.Contains("public enum NetLiftClientRuntimeError: Error", StringComparison.Ordinal) &&
+    swift.Contains("public static func install(", StringComparison.Ordinal) &&
+    swift.Contains("transportAlreadyInstalled", StringComparison.Ordinal) &&
+    swift.Contains("transportNotInstalled", StringComparison.Ordinal),
+    "Generated Swift clients omitted one-time runtime transport installation and diagnostics.");
+Require(
+    swift.Contains("public init() throws", StringComparison.Ordinal) &&
+    swift.Contains("NetLiftClientRuntime.resolve()", StringComparison.Ordinal) &&
+    swift.Contains("transport: any NetLiftTransport,", StringComparison.Ordinal) &&
+    swift.Contains("streamTransport: (any NetLiftStreamTransport)? = nil", StringComparison.Ordinal),
+    "Generated Swift clients must default to the installed runtime while preserving injection.");
 Require(
     swift.Contains(
         "func watchOrderStatus(request: OrderStatusRequest) -> NetLiftAsyncSequence<OrderStatusRequest, OrderStatusUpdate>",

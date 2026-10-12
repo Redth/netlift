@@ -1,8 +1,10 @@
 # Swift package example
 
-This example consumes the public NetLift Swift package `0.1.0-alpha.7`.
-It demonstrates generated async clients, typed native-service registration,
-and pull-driven streams without needing an iOS app.
+This example consumes the public NetLift Swift package `0.1.0-alpha.8`.
+It demonstrates one-time runtime transport installation, no-argument clients,
+typed native-service registration, and pull-driven streams without needing
+an iOS app. It also verifies missing/duplicate installation diagnostics and
+explicit transport injection for isolated tests.
 
 ## Run
 
@@ -16,7 +18,7 @@ swift run --package-path product/apple/samples/OrdersPreview OrdersPreview
 Expected output:
 
 ```text
-NetLift Swift plugin callback and demand-aware stream preview passed.
+NetLift Swift runtime defaults, callback and demand-aware stream preview passed.
 ```
 
 ## Read the example

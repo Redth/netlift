@@ -92,8 +92,8 @@ class MainActivity : Activity() {
             }
             Log.i("NetLiftAcceptance", "NETLIFT_ANDROID_VIEW_PASSED")
 
-            val transport = ManagedNetLiftTransport()
-            val orders = OrdersServiceClient(transport, transport)
+            val transport = NetLiftRuntime
+            val orders = OrdersServiceClient()
             val result = orders.submitOrder(
                 OrderRequest(
                     customerId = "customer-42",

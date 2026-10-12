@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
-import dev.netlift.runtime.NetLiftRuntime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,16 +25,7 @@ class MainActivity : Activity() {
 
         scope.launch {
             try {
-                NetLiftRuntime.initialize(applicationContext)
-                val client = HelloServiceClient(
-                    object : NetLiftTransport {
-                        override suspend fun invoke(
-                            serviceId: UInt,
-                            memberId: UInt,
-                            payload: ByteArray,
-                        ): ByteArray = NetLiftRuntime.invoke(serviceId, memberId, payload)
-                    }
-                )
+                val client = HelloServiceClient()
                 greeting.text = client.greet(
                     GreetingRequest(name = "World")
                 ).message
