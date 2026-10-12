@@ -250,6 +250,19 @@ Require(
 var appleBridge = ProjectionEmitter.EmitAppleBridge(
     androidCompilation.Manifest,
     androidCompilation.Implementations);
+foreach (var bridge in new[] { appleBridge, androidBridge })
+{
+    foreach (var response in new[] { "BridgeResponse", "StreamOpenResponse", "StreamReadResponse" })
+    {
+        Require(
+            bridge.Contains($"BridgeJsonContext.Default.{response}", StringComparison.Ordinal) &&
+            bridge.Contains($"JsonSerializable(typeof({response}))", StringComparison.Ordinal),
+            $"Generated workload bridge omitted source-generated metadata for {response}.");
+    }
+    Require(
+        !bridge.Contains("Serialize(response, JsonOptions)", StringComparison.Ordinal),
+        "Generated workload bridge used reflection-based envelope serialization.");
+}
 Require(
     appleBridge.Contains("new global::Orders.Contracts.OrdersService()", StringComparison.Ordinal),
     "Generated Apple bridge omitted deterministic service construction.");

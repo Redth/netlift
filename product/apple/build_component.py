@@ -19,7 +19,9 @@ from pathlib import Path
 
 PRODUCT = Path(__file__).resolve().parents[1]
 REPOSITORY = PRODUCT.parent
-XCODE_DEVELOPER = Path("/Applications/Xcode_26.6.app/Contents/Developer")
+XCODE_DEVELOPER = Path(os.environ.get(
+    "DEVELOPER_DIR", "/Applications/Xcode_26.6.app/Contents/Developer"
+))
 DEPLOYMENT_TARGET = "15.0"
 TFM = "net11.0-ios"
 RID = "iossimulator-arm64"
@@ -93,6 +95,52 @@ def native_reference_arguments(references: list[dict[str, str]]) -> list[str]:
     return arguments
 
 
+def workload_link_arguments(
+    intermediate_root: Path,
+    runtime_native: Path,
+    runtime_framework: Path,
+    component_main_object: Path,
+    symbols_path: Path,
+    native_references: list[dict[str, str]],
+) -> list[str]:
+    native_libraries = intermediate_root / "nativelibraries"
+    return [
+        str(component_main_object),
+        str(native_libraries / "r2r_modules.o"),
+        str(native_libraries / "registrar.o"),
+        "-F", str(intermediate_root / "r2rframework"),
+        "-framework", f"{COMPONENT_NAME}.r2r",
+        "-F", str(runtime_framework.parent),
+        "-framework", "NetLiftC",
+        "-L", str(native_libraries),
+        "-L", str(runtime_native),
+        "-lxamarin-dotnet-coreclr-debug",
+        "-lSystem.Globalization.Native",
+        "-lSystem.IO.Compression.Native",
+        "-lSystem.Native",
+        "-lSystem.Net.Security.Native",
+        "-lSystem.Security.Cryptography.Native.Apple",
+        "-lcoreclr", "-lmscordaccore", "-lmscordbi", "-lc++",
+        *native_reference_arguments(native_references),
+        *workload_frameworks(intermediate_root),
+        "-Xlinker", "-rpath", "-Xlinker", "@executable_path",
+        "-Xlinker", "-rpath", "-Xlinker", "@executable_path/Frameworks",
+        "-Xlinker", "-exported_symbols_list", "-Xlinker", str(symbols_path),
+        "-Xlinker", "-dead_strip",
+        "-lcompression", "-lz", "-liconv", "-licucore", "-lobjc",
+    ]
+
+
+def write_linker_response(path: Path, arguments: list[str]) -> None:
+    path.write_text(
+        "\n".join(
+            '"' + argument.replace("\\", "\\\\").replace('"', '\\"') + '"'
+            for argument in arguments
+        ) + "\n",
+        encoding="utf-8",
+    )
+
+
 def write_component_project(
     project: Path,
     managed_project: Path,
@@ -164,7 +212,9 @@ def main() -> int:
     parser.add_argument("--native-contract-root", action="append", default=[])
     parser.add_argument("--platform-view-factory")
     parser.add_argument("--swift-module", default="NetLiftGenerated")
-    parser.add_argument("--native-source-root", type=Path, required=True)
+    parser.add_argument("--native-source-root", type=Path)
+    parser.add_argument("--component-only", action="store_true")
+    parser.add_argument("--reuse-output", action="store_true")
     parser.add_argument("--swift-contracts", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
@@ -172,19 +222,21 @@ def main() -> int:
         default="dev.netlift.workloadlibrarymode.nativeapp",
     )
     args = parser.parse_args()
+    if not args.component_only and args.native_source_root is None:
+        parser.error("--native-source-root is required when building a standalone app")
 
     managed_project = args.managed_project.resolve()
     managed_properties = inspect_project(managed_project, TFM, "Release", args.managed_framework)
     if managed_properties["UseMaui"].lower() == "true" and not managed_properties["MauiVersion"]:
         raise RuntimeError("UseMaui is enabled but MauiVersion was not evaluated.")
     args.managed_framework = managed_properties["SelectedTargetFramework"]
-    native_source_root = args.native_source_root.resolve()
+    native_source_root = args.native_source_root.resolve() if args.native_source_root else None
     artifact_root = args.output.resolve()
     if not XCODE_DEVELOPER.is_dir():
         raise RuntimeError(f"Compatible Xcode was not found: {XCODE_DEVELOPER}")
-    if artifact_root.exists():
+    if artifact_root.exists() and not args.reuse_output:
         shutil.rmtree(artifact_root)
-    artifact_root.mkdir(parents=True)
+    artifact_root.mkdir(parents=True, exist_ok=True)
 
     runtime_builder = PRODUCT / "apple" / "runtime-apple" / "build_runtime.py"
     run("python3", str(runtime_builder))
@@ -199,6 +251,12 @@ def main() -> int:
     if len(runtime_frameworks) != 1:
         raise RuntimeError("Expected one validated Apple runtime framework slice")
     runtime_framework = runtime_frameworks[0]
+    if args.component_only:
+        local_framework = artifact_root / "frameworks" / "NetLiftC.framework"
+        if local_framework.exists():
+            shutil.rmtree(local_framework)
+        shutil.copytree(runtime_framework, local_framework, symlinks=True)
+        runtime_framework = local_framework
 
     run(
         "dotnet",
@@ -256,7 +314,7 @@ def main() -> int:
         shutil.copy2(plugin_swift, generated_swift)
 
     component_project_root = artifact_root / "component-project"
-    component_project_root.mkdir()
+    component_project_root.mkdir(exist_ok=True)
     callback_library = None
     if args.native_contract_root:
         callback_source = component_project_root / "callback-stubs.c"
@@ -337,9 +395,11 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         / f"{COMPONENT_NAME}.app"
     )
     output_app = artifact_root / f"{COMPONENT_NAME}.app"
+    if output_app.exists():
+        shutil.rmtree(output_app)
     shutil.copytree(source_app, output_app, symlinks=True)
     objects = artifact_root / "objects"
-    objects.mkdir()
+    objects.mkdir(exist_ok=True)
 
     sdk = output("xcrun", "--sdk", "iphonesimulator", "--show-sdk-path")
     dotnet_info = output("dotnet", "--info")
@@ -381,7 +441,6 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         sdk,
     )
     component_main_object = objects / "ComponentMain.o"
-    native_main_object = objects / "NativeMain.o"
     run(
         "xcrun",
         "clang",
@@ -394,6 +453,44 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         "-o",
         str(component_main_object),
     )
+    symbols = {
+        line.strip()
+        for line in (intermediate_root / "mtouch-symbols.list")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    }
+    symbols.update({"_main", "_netlift_native_ui_main", "_netlift_workload_apple_start"})
+    symbols_path = objects / "exported-symbols.list"
+    symbols_path.write_text("\n".join(sorted(symbols)) + "\n", encoding="utf-8")
+    link_arguments = workload_link_arguments(
+        intermediate_root, runtime_native, runtime_framework,
+        component_main_object, symbols_path, native_references,
+    )
+    if args.component_only:
+        shutil.copy2(
+            PRODUCT / "apple" / "netlift-swift" / "Sources" /
+            "NetLiftRuntime" / "NetLiftRuntime.swift",
+            generated / "NetLiftRuntime.swift",
+        )
+        write_linker_response(artifact_root / "linker.rsp", link_arguments)
+        (artifact_root / "xcode-component.json").write_text(
+            json.dumps({
+                "schemaVersion": 1,
+                "app": output_app.name,
+                "executable": COMPONENT_NAME,
+                "targetFramework": TFM,
+                "managedTargetFramework": args.managed_framework,
+                "managedAssembly": managed_assembly.name,
+                "runtimeIdentifier": RID,
+                "runtimeFrameworkSearchPath": str(runtime_framework.parent),
+            }, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Built Xcode workload component: {artifact_root}")
+        return 0
+
+    native_main_object = objects / "NativeMain.o"
     run(
         "xcrun",
         "clang",
@@ -438,28 +535,6 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         str(swift_object),
     )
 
-    symbols = {
-        line.strip()
-        for line in (intermediate_root / "mtouch-symbols.list")
-        .read_text(encoding="utf-8")
-        .splitlines()
-        if line.strip()
-    }
-    symbols.update(
-        {
-            "_main",
-            "_netlift_native_ui_main",
-            "_netlift_workload_apple_start",
-        }
-    )
-    symbols_path = objects / "exported-symbols.list"
-    symbols_path.write_text(
-        "\n".join(sorted(symbols)) + "\n",
-        encoding="utf-8",
-    )
-
-    native_libraries = intermediate_root / "nativelibraries"
-    r2r_frameworks = intermediate_root / "r2rframework"
     executable = output_app / COMPONENT_NAME
     run(
         "xcrun",
@@ -472,52 +547,7 @@ __attribute__((weak)) void netlift_apple_buffer_free(void* buffer)
         str(executable),
         str(swift_object),
         str(native_main_object),
-        str(component_main_object),
-        str(native_libraries / "r2r_modules.o"),
-        str(native_libraries / "registrar.o"),
-        "-F",
-        str(r2r_frameworks),
-        "-framework",
-        f"{COMPONENT_NAME}.r2r",
-        "-F",
-        str(runtime_framework.parent),
-        "-framework",
-        "NetLiftC",
-        "-L",
-        str(native_libraries),
-        "-L",
-        str(runtime_native),
-        "-lxamarin-dotnet-coreclr-debug",
-        "-lSystem.Globalization.Native",
-        "-lSystem.IO.Compression.Native",
-        "-lSystem.Native",
-        "-lSystem.Net.Security.Native",
-        "-lSystem.Security.Cryptography.Native.Apple",
-        "-lcoreclr",
-        "-lmscordaccore",
-        "-lmscordbi",
-        "-lc++",
-        *native_reference_arguments(native_references),
-        *workload_frameworks(intermediate_root),
-        "-Xlinker",
-        "-rpath",
-        "-Xlinker",
-        "@executable_path",
-        "-Xlinker",
-        "-rpath",
-        "-Xlinker",
-        "@executable_path/Frameworks",
-        "-Xlinker",
-        "-exported_symbols_list",
-        "-Xlinker",
-        str(symbols_path),
-        "-Xlinker",
-        "-dead_strip",
-        "-lcompression",
-        "-lz",
-        "-liconv",
-        "-licucore",
-        "-lobjc",
+        *link_arguments,
     )
 
     plist_path = output_app / "Info.plist"

@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-private let bridge = NetLiftManagedBridge()
+@MainActor private let bridge = NetLiftManagedBridge()
 
 private actor ManagedTransport: NetLiftTransport {
     private let managed = NetLiftManagedBridge()

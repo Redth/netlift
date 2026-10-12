@@ -16,7 +16,9 @@ SOURCE = PRODUCT / "src" / "NetLift.NativeCore" / "netlift.c"
 HEADER = PRODUCT / "include" / "netlift.h"
 ARTIFACTS = PRODUCT / "apple" / "netlift-swift" / "artifacts"
 OUTPUT = ARTIFACTS / "runtime-build"
-XCODE = Path("/Applications/Xcode_26.6.app/Contents/Developer")
+XCODE = Path(os.environ.get(
+    "DEVELOPER_DIR", "/Applications/Xcode_26.6.app/Contents/Developer"
+))
 DEPLOYMENT_TARGET = "15.0"
 
 

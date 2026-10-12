@@ -109,12 +109,14 @@ For real iOS execution, choose the host path that fits the contract:
   physical-device execution is not verified. The bridge rejects
   managed-to-native callbacks.
 - For callback services and the existing Apple `UIView` peer adapter, inspect
-  `product/apple/build_component.py` and its integration sample. They build
-  the app-specific workload registrar/R2R/CoreCLR closure and link a
-  Swift-owned simulator executable. The authoring baseline supports only
-  Apple Silicon iOS simulators and expects Xcode at
-  `/Applications/Xcode_26.6.app`; physical devices, Intel simulators, and a
-  macOS managed host are not validated.
+  `product/apple/samples/OrdersHost`, `product/apple/NetLiftWorkload.yml`,
+  and `product/apple/xcode_workload.py`. Their normal Xcode build generates
+  contracts, builds the workload component, supplies its native link inputs,
+  and embeds its payload before signing. Configure the managed project,
+  contract roots, and module in the workload `netlift.json`; `managedFramework`
+  can override ambiguous selection. The integration uses Xcode's selected
+  developer directory. It accepts Debug ARM64 iOS simulators and explicitly
+  rejects Release, physical-device, and Intel-simulator targets.
 
 The package's deployment minimums do not imply those runtime targets are
 supported. For an existing Xcode app using NativeAOT, add the managed-build
@@ -123,8 +125,13 @@ from the checked-in project; configure the managed project, contract roots,
 module, and repository path in target build settings. After this one-time
 integration, ordinary Xcode builds build the selected managed slice. A
 SwiftPM package alone cannot add a generated binary to an Xcode app's link
-and embed phases. For either host path, adapt the app's bootstrap and linking
-explicitly; package installation alone is insufficient.
+and embed phases. For workload hosting, copy the shared template's
+pre-build/embed phases, generated Swift references, framework search path,
+and response-file linker setting into the existing target. Set
+`NETLIFT_REPOSITORY_ROOT` and optionally `NETLIFT_CONFIG`, and retain/adapt
+the native entry point and delegate. For either host path, ordinary native
+builds must own managed builds after this one-time wiring; do not require a
+separate host-building command or manually copy runtime files.
 
 Retain SwiftUI/UIKit lifecycle ownership. For the workload-host path, use its
 tested operation/cancellation and error-envelope handling rather than
@@ -133,14 +140,18 @@ transport and inspect the produced framework/header and linker integration.
 If the task cannot achieve real hosting on its requested target, stop at the
 actual blocker and state it; do not substitute an in-memory demo silently.
 
-Use a fresh dedicated ignored output such as repository-root `.artifacts/<component>` for the source component builder, inspect an existing output before replacement, and do not put generated component projects under contributor directories whose inherited MSBuild settings can change their behavior.
+Use the Xcode integration's ignored per-target `Build/` outputs. For standalone
+engineering audits, use dedicated ignored `.artifacts/<component>` output
+and inspect it before replacement. Generated projects may inherit repository
+MSBuild settings; preserve their diagnostics rather than suppressing them.
 
 ## Optional mobile TFMs and MAUI views
 
 Inspect `product/samples/MauiEmbedding` for the source-checkout pattern.
 Android framework selection and `platformViewFactory` are in plugin
-alpha.13; the Apple workload builder remains source-owned. Do not assume
-the Swift package includes Apple workload hosting.
+alpha.13; Apple workload integration remains source-owned but runs
+automatically from the checked-in MAUI Xcode target. Do not assume the Swift
+package includes Apple workload hosting.
 The source builders evaluate the linked project through MSBuild, prefer
 a matching mobile TFM over a portable TFM, and use its `TargetPath`.
 Ambiguous TFMs need `--managed-framework` / `contractTargetFramework`.
