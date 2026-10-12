@@ -30,7 +30,8 @@ Both keep Swift in charge of the UI and lifecycle:
   boundary for a native app, but all reachable code and dependencies must be
   AOT-compatible. Check reflection, JSON serialization, and dependency
   support; a successful normal build is not enough. The library still
-  includes managed runtime support such as garbage collection.
+  includes managed runtime support such as garbage collection. The checked-in
+  sample invokes this build automatically from its Xcode target.
 
 Generated NetLift dispatchers use source-generated JSON metadata; that does
 not automatically make serialization or reflection inside your business
@@ -42,6 +43,8 @@ managed-to-native callbacks or `UIView` peers.
 Both execution paths have been run on Apple Silicon simulators only.
 NativeAOT device slices build, but device execution is unverified. No
 comparative size, startup, memory, or throughput claims are established.
+The workload-host sample still requires its separate builder invocation;
+Xcode-owned build integration currently exists only for the NativeAOT sample.
 
 The [Orders package example](../product/apple/samples/OrdersPreview/README.md)
 uses an in-memory transport and verifies clients, callbacks, and streams.

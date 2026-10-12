@@ -532,30 +532,39 @@ not make arbitrary runtime-discovered types or dynamic code AOT-compatible.
 We encountered exactly these serialization issues when first publishing the
 generated dispatcher, despite its normal managed build succeeding.
 
-#### Build the NativeAOT library
+#### Build and run a NativeAOT app
 
 For a portable service boundary that does not need managed-to-native
-callbacks, the NativeAOT builder generates a C ABI bridge, publishes an
-XCFramework for Apple Silicon simulator and device architectures, and copies
-the generated Swift contract and transport. The sample links this into a
-Swift UIKit app and verifies a real managed unary call, pull-based stream,
-and cancellation on an Apple Silicon simulator:
+callbacks, the NativeAOT builder generates a C ABI bridge and Swift contract
+and transport sources. Its standalone mode can package simulator and device
+slices into an XCFramework. The sample's normal Xcode build invokes the
+builder for the selected Apple Silicon platform, links that framework slice,
+and embeds it in a Swift UIKit app. It verifies a real managed unary call,
+pull-based stream, and cancellation on an Apple Silicon simulator:
 
 ```bash
-python3 product/apple/build_native_aot.py \
-  --managed-project product/apple/samples/NativeAotHelloWorld/Managed/Hello.csproj \
-  --contract-root NetLift.NativeAotHelloWorld.IHelloService \
-  --swift-module HelloWorld \
-  --app-source product/apple/samples/NativeAotHelloWorld/Sources/HelloWorld/AppDelegate.swift \
-  --app-info-plist product/apple/samples/NativeAotHelloWorld/Info.plist \
-  --output .artifacts/apple-native-aot-hello
-xcrun simctl install booted .artifacts/apple-native-aot-hello/NativeAotHelloWorld.app
-xcrun simctl launch booted dev.netlift.nativeaot.helloworld
+xcodebuild \
+  -project product/apple/samples/NativeAotHelloWorld/NativeAotHelloWorld.xcodeproj \
+  -scheme NativeAotHelloWorld \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
 ```
 
 For an existing Xcode or SwiftPM app, add the generated
 `NetLiftAppleAot.xcframework` and the two generated Swift source files, then
 install `NetLiftAppleAotTransport` once with `NetLiftClientRuntime.install`.
+To make generation part of that app's normal Xcode build, add the sample's
+`Build managed NativeAOT component` pre-build phase and `Embed managed
+NativeAOT framework` phase, plus the generated Swift source references and
+framework link settings from
+[`project.yml`](product/apple/samples/NativeAotHelloWorld/project.yml).
+Set `NETLIFT_MANAGED_PROJECT`, semicolon-separated `NETLIFT_CONTRACT_ROOTS`,
+`NETLIFT_SWIFT_MODULE`, and `NETLIFT_REPOSITORY_ROOT` in the target's build
+settings. After this one-time wiring, building the native target rebuilds
+the managed component automatically. It currently runs the generator and
+publish step on each Xcode build; .NET's incremental build reuses unchanged
+outputs. The selected-target build produces only the slice Xcode needs;
+the standalone builder produces the full XCFramework.
 This NativeAOT path currently supports unary calls, cancellation, and
 pull-based streams; it rejects managed-to-native callbacks. The XCFramework
 contains both simulator and device slices, but only the simulator app has
@@ -566,7 +575,9 @@ peer projection are not verified on this path.
 
 For callback services and the existing Apple `UIView` peer adapter, use the
 .NET iOS workload-host path below. It builds the app-specific CoreCLR/R2R
-closure into a Swift-owned simulator app.
+closure into a Swift-owned simulator app. Unlike the NativeAOT sample, that
+workload-host builder still produces a separate app and is not yet integrated
+into an arbitrary existing Xcode target's regular build.
 
 From this source repository, install the `ios` workload and build the
 complete integration sample:

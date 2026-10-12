@@ -98,12 +98,14 @@ For real iOS execution, choose the host path that fits the contract:
   trimming, runtime, and iOS platform constraints.
 - For portable contracts without managed-to-native callbacks or `UIView`
   projection, inspect `product/apple/build_native_aot.py` and
-  `product/apple/samples/NativeAotHelloWorld`. It generates a C ABI bridge,
-  NativeAOT-publishes simulator/device frameworks, packages an XCFramework,
-  and copies the generated Swift contract and transport. The checked-in
-  sample verifies unary calls, pull-based streams, and cancellation by
-  launching a Swift-owned app on an Apple Silicon simulator. It requires
-  .NET 10+ and a compatible Apple toolchain. Device slices are built but
+  `product/apple/samples/NativeAotHelloWorld`. The checked-in Xcode target
+  runs its managed build phase automatically as part of a normal app build,
+  generating Swift sources and publishing the selected arm64 platform slice.
+  The standalone builder can publish simulator/device frameworks and package
+  an XCFramework. The checked-in sample verifies unary calls, pull-based
+  streams, and cancellation by launching a Swift-owned app on an Apple
+  Silicon simulator. The integration requires .NET 11 preview and Xcode;
+  standalone builder targets require .NET 10+. Device slices build but
   physical-device execution is not verified. The bridge rejects
   managed-to-native callbacks.
 - For callback services and the existing Apple `UIView` peer adapter, inspect
@@ -115,12 +117,14 @@ For real iOS execution, choose the host path that fits the contract:
   macOS managed host are not validated.
 
 The package's deployment minimums do not imply those runtime targets are
-supported. For an existing app using NativeAOT, add the generated
-`NetLiftAppleAot.xcframework` and both generated Swift source files to its
-target, then install `NetLiftAppleAotTransport` once with
-`NetLiftClientRuntime.install`. For either host path, adapt the existing
-app's bootstrap and linking explicitly; package installation alone is
-insufficient.
+supported. For an existing Xcode app using NativeAOT, add the managed-build
+and framework-embed phases, generated-source references, and link settings
+from the checked-in project; configure the managed project, contract roots,
+module, and repository path in target build settings. After this one-time
+integration, ordinary Xcode builds build the selected managed slice. A
+SwiftPM package alone cannot add a generated binary to an Xcode app's link
+and embed phases. For either host path, adapt the app's bootstrap and linking
+explicitly; package installation alone is insufficient.
 
 Retain SwiftUI/UIKit lifecycle ownership. For the workload-host path, use its
 tested operation/cancellation and error-envelope handling rather than

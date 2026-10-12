@@ -104,8 +104,8 @@ def write_framework(
     deployment_target: str,
     platform: str,
 ) -> None:
-    (framework / "Headers").mkdir(parents=True)
-    (framework / "Modules").mkdir()
+    (framework / "Headers").mkdir(parents=True, exist_ok=True)
+    (framework / "Modules").mkdir(exist_ok=True)
     binary = framework / FRAMEWORK_NAME
     shutil.copy2(published_library, binary)
     shutil.copy2(generated_header, framework / "Headers" / generated_header.name)
@@ -153,11 +153,24 @@ def build_sample_app(
         artifact_root / "frameworks" / "simulator" / f"{FRAMEWORK_NAME}.framework"
     )
     app_plist = plistlib.loads(app_info_plist.read_bytes())
-    app_name = app_plist["CFBundleExecutable"]
+    app_name = app_plist.get("CFBundleExecutable", "NativeAotHelloWorld")
+    if not isinstance(app_name, str) or "$(" in app_name:
+        app_name = "NativeAotHelloWorld"
+    bundle_identifier = app_plist.get(
+        "CFBundleIdentifier",
+        "dev.netlift.nativeaot.helloworld",
+    )
+    if not isinstance(bundle_identifier, str) or "$(" in bundle_identifier:
+        bundle_identifier = "dev.netlift.nativeaot.helloworld"
+    app_plist["CFBundleExecutable"] = app_name
+    app_plist["CFBundleIdentifier"] = bundle_identifier
+    app_plist["CFBundlePackageType"] = "APPL"
+    app_plist["MinimumOSVersion"] = deployment_target
     app_bundle = artifact_root / f"{app_name}.app"
-    app_bundle.mkdir()
-    (app_bundle / "Frameworks").mkdir()
-    shutil.copy2(app_info_plist, app_bundle / "Info.plist")
+    app_bundle.mkdir(exist_ok=True)
+    (app_bundle / "Frameworks").mkdir(exist_ok=True)
+    with (app_bundle / "Info.plist").open("wb") as stream:
+        plistlib.dump(app_plist, stream, fmt=plistlib.FMT_XML, sort_keys=True)
     app_executable = app_bundle / app_name
     sdk = output("xcrun", "--sdk", "iphonesimulator", "--show-sdk-path")
     run(
@@ -185,6 +198,7 @@ def build_sample_app(
     shutil.copytree(
         simulator_framework,
         app_bundle / "Frameworks" / simulator_framework.name,
+        dirs_exist_ok=True,
     )
     load_commands = output("otool", "-l", str(app_executable))
     if "@executable_path/Frameworks" not in load_commands:
@@ -209,6 +223,17 @@ def main() -> int:
     parser.add_argument("--deployment-target", default="15.0")
     parser.add_argument("--app-source", type=Path)
     parser.add_argument("--app-info-plist", type=Path)
+    parser.add_argument(
+        "--xcode-platform",
+        choices=("simulator", "device"),
+        help="Publish only the platform slice required by an Xcode build phase.",
+    )
+    parser.add_argument("--architecture", default="arm64")
+    parser.add_argument(
+        "--reuse-output",
+        action="store_true",
+        help="Update generated build outputs in an existing output directory.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -221,18 +246,30 @@ def main() -> int:
         parser.error("--managed-framework must be a .NET target framework moniker, such as net10.0.")
     if not args.managed_framework.startswith("net") or major_version < 10:
         parser.error("Apple NativeAOT requires a managed project targeting net10.0 or later.")
+    if args.xcode_platform is not None and args.architecture != "arm64":
+        parser.error(
+            "The current Xcode build integration supports Apple Silicon arm64 only."
+        )
+    if args.xcode_platform is not None and args.app_source is not None:
+        parser.error(
+            "--xcode-platform cannot be combined with --app-source; let Xcode build the app target."
+        )
 
     managed_project = args.managed_project.resolve()
     output_root = args.output.resolve()
     if not managed_project.is_file():
         raise FileNotFoundError(f"Managed project was not found: {managed_project}")
-    if output_root.exists() and any(output_root.iterdir()):
+    if (
+        output_root.exists()
+        and any(output_root.iterdir())
+        and not args.reuse_output
+    ):
         raise RuntimeError(
             f"Output directory is not empty; choose an empty path: {output_root}"
         )
     output_root.mkdir(parents=True, exist_ok=True)
     generated = output_root / "generated"
-    generated.mkdir()
+    generated.mkdir(exist_ok=True)
 
     run(
         "dotnet",
@@ -285,7 +322,7 @@ def main() -> int:
     )
 
     component_project_root = output_root / "component"
-    component_project_root.mkdir()
+    component_project_root.mkdir(exist_ok=True)
     component_project = component_project_root / f"{FRAMEWORK_NAME}.csproj"
     write_component_project(
         component_project,
@@ -295,7 +332,17 @@ def main() -> int:
     )
 
     publications = output_root / "native"
-    for runtime_identifier in (SIMULATOR_RID, DEVICE_RID):
+    platform_slices = {
+        "simulator": (SIMULATOR_RID, "iPhoneSimulator"),
+        "device": (DEVICE_RID, "iPhoneOS"),
+    }
+    selected_platforms = (
+        [args.xcode_platform]
+        if args.xcode_platform is not None
+        else list(platform_slices)
+    )
+    for platform_name in selected_platforms:
+        runtime_identifier, _ = platform_slices[platform_name]
         run(
             "dotnet",
             "publish",
@@ -310,37 +357,43 @@ def main() -> int:
         )
 
     framework_root = output_root / "frameworks"
-    simulator_framework = framework_root / "simulator" / f"{FRAMEWORK_NAME}.framework"
-    device_framework = framework_root / "device" / f"{FRAMEWORK_NAME}.framework"
+    framework_paths: dict[str, Path] = {}
     generated_header = generated / "NetLiftAppleNativeAot.h"
-    write_framework(
-        simulator_framework,
-        publications / SIMULATOR_RID / f"{FRAMEWORK_NAME}.dylib",
-        generated_header,
-        args.deployment_target,
-        "iPhoneSimulator",
-    )
-    write_framework(
-        device_framework,
-        publications / DEVICE_RID / f"{FRAMEWORK_NAME}.dylib",
-        generated_header,
-        args.deployment_target,
-        "iPhoneOS",
-    )
-    run(
-        "xcrun",
-        "xcodebuild",
-        "-create-xcframework",
-        "-framework",
-        str(device_framework),
-        "-framework",
-        str(simulator_framework),
-        "-output",
-        str(output_root / f"{FRAMEWORK_NAME}.xcframework"),
-    )
+    for platform_name in selected_platforms:
+        runtime_identifier, platform = platform_slices[platform_name]
+        framework = framework_root / platform_name / f"{FRAMEWORK_NAME}.framework"
+        write_framework(
+            framework,
+            publications / runtime_identifier / f"{FRAMEWORK_NAME}.dylib",
+            generated_header,
+            args.deployment_target,
+            platform,
+        )
+        framework_paths[platform_name] = framework
+
+    xcframework: Path | None = None
+    if len(selected_platforms) == len(platform_slices):
+        xcframework = output_root / f"{FRAMEWORK_NAME}.xcframework"
+        if xcframework.exists():
+            if xcframework.is_symlink() or not xcframework.is_dir():
+                raise RuntimeError(
+                    f"Expected an XCFramework directory at generated output path: {xcframework}"
+                )
+            shutil.rmtree(xcframework)
+        run(
+            "xcrun",
+            "xcodebuild",
+            "-create-xcframework",
+            "-framework",
+            str(framework_paths["device"]),
+            "-framework",
+            str(framework_paths["simulator"]),
+            "-output",
+            str(xcframework),
+        )
 
     swift_output = output_root / "swift"
-    swift_output.mkdir()
+    swift_output.mkdir(exist_ok=True)
     shutil.copy2(generated / "NetLiftContracts.swift", swift_output)
     shutil.copy2(
         TRANSPORT_TEMPLATE,
@@ -355,7 +408,13 @@ def main() -> int:
         )
         print(f"Built Swift simulator app: {app_bundle}")
 
-    print(f"Built Apple NativeAOT framework: {output_root / f'{FRAMEWORK_NAME}.xcframework'}")
+    if xcframework is not None:
+        print(f"Built Apple NativeAOT framework: {xcframework}")
+    else:
+        print(
+            "Built Apple NativeAOT framework slice: "
+            f"{next(iter(framework_paths.values()))}"
+        )
     return 0
 
 
