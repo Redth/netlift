@@ -100,6 +100,7 @@ tasks.processResources {
         into("netlift/android-platform")
     }
     from(rootProject.file("tooling")) {
+        exclude("**/__pycache__/**", "**/*.pyc")
         into("netlift/tooling")
     }
     from(rootProject.file("../tooling/managed_project.py")) {

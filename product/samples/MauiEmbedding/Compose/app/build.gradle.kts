@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("io.github.redth.netlift") version "0.1.0-alpha.13"
+    id("io.github.redth.netlift") version "0.1.0-alpha.14"
 }
 
 netlift {

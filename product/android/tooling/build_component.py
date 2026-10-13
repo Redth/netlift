@@ -80,6 +80,7 @@ def main() -> int:
         args.target_framework,
         "-r",
         args.runtime_identifier,
+        "-p:SelfContained=true",
         f"-p:NetLiftGeneratedDirectory={generated}",
         "-v:minimal",
         cwd=project_root,
