@@ -1,3 +1,0 @@
-using NetLift;
-
-[assembly: LiftHostModule]

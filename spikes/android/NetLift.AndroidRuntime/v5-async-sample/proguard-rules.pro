@@ -1,6 +1,0 @@
--keep class androidx.tracing.Trace { *; }
--keep class kotlin.** { *; }
--keep class com.netlift.v5asyncsample.V5AsyncSampleCodec { *; }
--keep class com.netlift.v5asyncsample.V5AsyncSampleDecodedResult { *; }
--keep class com.netlift.androidhost.contract.NetLiftV5AsyncCodec { *; }
--keep class com.netlift.androidhost.contract.SubmitResult { *; }

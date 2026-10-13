@@ -6,6 +6,10 @@
 **/.build/
 **/.swiftpm/
 **/build/
+**/Build/
+**/artifacts/
+**/__pycache__/
+*.pyc
 **/.artifacts/
 **/native-artifacts*/
 **/async-artifacts*/
@@ -13,16 +17,7 @@
 **/*.xcresult/
 **/.release-sdk-view/
 **/.lifecycle-v2-sdk-view/
-product/apple/samples/NativeAotHelloWorld/Build/
-product/apple/samples/OrdersHost/Build/
-product/samples/MauiEmbedding/SwiftUI/Build/
-spikes/android/NetLift.AndroidRuntime/delegate-smoke/plugin-managed/
-spikes/android/NetLift.AndroidRuntime/delegate-smoke/native/plugin-host
 **/.idea/
 **/.DS_Store
 *.user
 *.xcuserstate
-spikes/desktop-host/host
-spikes/apple/NativeSwiftHost/NativeSwiftHost.xcodeproj/
-spikes/apple/NativeV5SwiftHost/NativeV5SwiftHost.xcodeproj/
-spikes/native-baseline/ios/NativeBaseline.xcodeproj/

@@ -1,0 +1,243 @@
+# MAUI views and Essentials in SwiftUI and Compose
+
+This source-owned sample keeps the app, navigation, and lifecycle native
+while consuming a multi-target .NET library that contains MAUI controls
+and Essentials services.
+It uses the **workload host**, not the portable NativeAOT bridge.
+Android framework selection and view-factory options are published in
+Gradle plugin alpha.14. Swift package alpha.9 updates its bundled compiler;
+Apple workload hosting is wired into the sample Xcode target and remains a
+source-checkout integration, not a Swift package feature.
+
+| Requirement | Sample evidence |
+| --- | --- |
+| Select the matching mobile TFM | A C# greeting reports `net11.0-ios` or `net11.0-android`; each native app asserts it. |
+| Native bindings travel through C# | A Swift-created `UIView` and Kotlin-created `ComposeView` return as the same native object, with an accessibility value set by C#. |
+| MAUI produces a real native view | `Label.ToPlatformEmbedded(context)` returns a workload binding hosted in `UIViewRepresentable` or `AndroidView`. |
+| Preserve managed behavior | Round-tripping the MAUI-created view updates the MAUI label in C#; native code reads the resulting native label text. |
+| Ownership | Three create/attach/GC/detach/release cycles return factory ownership to baseline; native UI buttons also remove and recreate the embedded view. |
+| MAUI service layer | The generated service client reads `DeviceInfo`, gets/sets `SecureStorage`, and copies/reads `Clipboard` without a MAUI page. |
+
+The automatic checks print `NETLIFT_MAUI_ACCEPTANCE ... PASS` only after
+all binding/factory assertions succeed. `NETLIFT_MAUI_SWIFTUI_LIFECYCLE`
+and `NETLIFT_MAUI_COMPOSE_LIFECYCLE` then confirm three additional
+remove/recreate cycles through the real native wrappers' disposal hooks.
+A compile, screenshot, or in-memory transport alone is not acceptance.
+
+Both native screens center the content with 16-point/dp outer padding,
+24-point/dp spacing, and a full-width, 120-point/dp MAUI view. The native
+release/recreate action stays below the view on both platforms.
+The scrollable Essentials section below it stays usable when the keyboard opens.
+
+## Essentials services
+
+`EmbeddingService.cs` uses MAUI's real platform implementations, not native
+Swift/Kotlin substitutes. The greeting response includes `DeviceInfo.Current`
+platform, OS version, model, and manufacturer. `SetSecureValueAsync`,
+`GetSecureValueAsync`, and `RemoveSecureValueAsync` call `SecureStorage.Default`;
+missing keys return a nullable `TextValue.Value`. Blank keys/values are rejected
+and errors propagate through NetLift to the native screen's error message.
+The sample field masks values and never prints them in acceptance logs.
+
+`ClipboardAsync` takes `ClipboardRequest`: a null `Text` reads, a non-null
+value copies then reads, and an empty string clears the text. Clipboard access
+is dispatched onto the platform UI thread inside C#. Native code only sends
+DTOs through the generated client. Clipboard text is not secure storage:
+other apps can access it, Android restricts reads while backgrounded, and iOS
+may ask permission before reading content copied by another app.
+
+Both screens save/load the sample key `netlift.maui.sample`, preserving it
+across app launches. Use demo values, not real credentials. Storage belongs
+to the native app identity: iOS uses its signed Keychain access group, and
+Android uses its app's encrypted preferences/Keystore. The checked-in Xcode
+project includes `Entitlements.plist`; Compose declares the matching
+`androidx.security:security-crypto:1.1.0-alpha07` Java dependency used by this
+workload's MAUI binding. Android backup is disabled for this demo so encrypted
+preferences aren't restored without their Keystore keys. A production host
+must choose its own backup exclusions, signing groups, and error recovery.
+The service layer itself does not need `MauiApp`, a MAUI view, or window context.
+
+The platform service acceptance is opt-in because it **overwrites the test
+device clipboard with demo text**. It checks device metadata and missing,
+written, overwritten, and removed secure values using the separate
+`netlift.maui.acceptance` key, which it cleans up. It then copies/reads a known
+clipboard value through the C# service, checks clearing clipboard text,
+and verifies invalid storage inputs arrive as native remote errors. It prints
+`NETLIFT_MAUI_ESSENTIALS ... device-info secure-storage clipboard PASS`.
+Run it after the normal native builds/installations:
+
+```bash
+xcrun simctl launch --terminate-running-process --console-pty \
+  <simulator-udid> dev.netlift.maui.swiftui --netlift-essentials-acceptance
+
+adb -s <emulator-id> shell am force-stop dev.netlift.maui.compose
+adb -s <emulator-id> shell am start \
+  -n dev.netlift.maui.compose/.MainActivity --ez netlift.essentials.acceptance true
+adb -s <emulator-id> logcat -s NetLiftAcceptance
+```
+
+Normal app launch only reads device metadata; secure storage and clipboard
+are accessed when you press the corresponding native buttons.
+
+## Managed library
+
+`Managed/MauiEmbedding.csproj` targets `net11.0-ios;net11.0-android`,
+sets `UseMaui`, and references the workload's `Microsoft.Maui.Controls`
+version. It is a library: the generated internal component handles runtime
+packaging, while the native app owns the entry point.
+Its assembly name deliberately differs from its `.csproj` filename, so
+both consumers also exercise evaluated `TargetPath` rather than guessed
+DLL names.
+
+`EmbeddingService.cs` is the ordinary async DTO/service contract.
+`PlatformViews.cs` is a separate synchronous UI-thread seam:
+
+```csharp
+// The alias is UIKit.UIView on iOS and Android.Views.View on Android.
+public static PlatformView RoundTrip(PlatformView view);
+public static PlatformView Create(PlatformView host);
+public static void Release(PlatformView view);
+public static int LiveCount { get; }
+```
+
+These declarations describe the factory contract; the executable bodies
+are in `PlatformViews.cs`. `platformViewFactory` names this fully qualified
+static type. The generated bridge calls it directly and exports native
+`createPlatformView`, `releasePlatformView`, and `livePlatformViewCount`
+methods. Existing borrowed-view round trips also go through the configured
+factory, proving that the library receives the native binding.
+
+The factory uses one lazy `MauiApp` with `UseMauiEmbeddedApp` and an
+app-scoped `MauiContext`. It calls `ToPlatformEmbedded`, the current
+embedding extension in `Microsoft.Maui.Controls.Embedding`; the general
+conversion extension is `ToPlatform`, not `ToPlatformView`.
+
+The factory retains each MAUI label/handler until `Release`, rejects
+duplicate/unknown releases and release-before-detach, disconnects its
+handler, and removes its managed ownership. Native callers must not keep
+using a view after release. `LiveCount` measures factory ownership, not
+total process memory or proof that every native reference was collected.
+
+For window-scoped features, investigate `CreateEmbeddedWindowContext`
+with the actual `UIWindow` / Activity, and explicitly manage its window,
+handler, and scope lifetime. This sample does **not** validate modal
+navigation, Shell, XAML resource dictionaries, or arbitrary MAUI controls.
+
+## SwiftUI
+
+Prerequisites: the repository's compatible .NET 11 SDK and iOS/MAUI
+workloads, compatible Xcode, and an Apple Silicon simulator.
+
+Open `SwiftUI/MauiEmbedding.xcodeproj`, select an Apple Silicon simulator,
+and press Run. There is no separate host-build step: the Xcode target
+builds the managed library, generates Swift sources, links the workload's
+native inputs, embeds its runtime/assembly payload, and signs the app.
+From the repository root, the equivalent build is:
+
+```bash
+xcodebuild \
+  -project samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj \
+  -scheme MauiEmbedding \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  build
+```
+
+`SwiftUI/netlift.json` selects the managed project, service, and view factory.
+`project.yml` includes the shared `apple/NetLiftWorkload.yml` build
+template; the generated Xcode project is checked in, so XcodeGen is needed
+only to change that project definition. Changes to C# are picked up on
+the next native build, with .NET incremental build outputs reused.
+The Xcode integration supports Debug/ARM64 iOS Simulator and fails for
+unvalidated Release, Intel-simulator, or device configurations.
+
+`SwiftUI/NativeApp.swift` contains the unary workload transport, greeting
+check, lifecycle acceptance, and native screen. `MauiLabel` returns a
+native container with the managed-created view constrained to its bounds.
+Its `dismantleUIView` removes the child before calling `releasePlatformView`.
+The Swift button toggles that wrapper without changing UI ownership.
+
+`SwiftUI/NativeMain.mm` starts the managed workload and hands UI startup
+back to Swift's `NetLiftNativeAppDelegate`. The internal C# binding wrapper
+with the same Objective-C name lets MAUI recognize that native delegate
+as `IUIApplicationDelegate`; adapt this binding when renaming an existing
+app's delegate. Do not replace an existing app delegate or its lifecycle
+behavior just to host a label.
+
+The Xcode pre-build phase supplies the workload-resolved native dependencies,
+including MAUI's native framework and generated registrar, through a linker
+response file. The embed phase copies only the managed payload, preserving
+Xcode's native executable, Info.plist, and resources. SwiftPM generation
+alone cannot perform this host integration.
+
+## Compose
+
+Prerequisites: the compatible .NET 11 Android/MAUI workloads, Java 17,
+Android SDK 36, and an ARM64 emulator. SDK discovery follows normal Android
+Gradle conventions (`ANDROID_HOME` or an app-local `local.properties`).
+
+```bash
+android/gradlew -p samples/MauiEmbedding/Compose :app:assembleDebug
+adb -s <emulator-id> install -r \
+  samples/MauiEmbedding/Compose/app/build/outputs/apk/debug/app-debug.apk
+adb -s <emulator-id> shell am start -n dev.netlift.maui.compose/.MainActivity
+adb -s <emulator-id> logcat -s NetLiftAcceptance
+```
+
+`Compose/settings.gradle.kts` resolves plugin alpha.14 and the runtime from
+the public Maven feed. The native app supplies AppCompat/Material dependencies
+matching this MAUI workload; the generated AAR includes MAUI Java helper
+classes and their resources, not another copy of the app's Maven
+dependency graph.
+Gradle regenerates Java `R` classes against the final native app's resource
+IDs; stale component-APK `R` classes are excluded from the AAR.
+
+The plugin configuration is:
+
+```kotlin
+netlift {
+    managedProject.set(rootProject.file("../Managed/MauiEmbedding.csproj"))
+    contractRoots.set(listOf("NetLift.MauiEmbedding.IEmbeddingService"))
+    platformViewFactory.set("NetLift.MauiEmbedding.PlatformViews")
+    kotlinPackage.set("dev.netlift.embedding")
+    componentApplicationId.set("dev.netlift.maui.component")
+}
+```
+
+`MainActivity.kt` initializes NetLift once per process, checks the generated
+client's real greeting, and passes an actual `ComposeView` through the
+managed factory's `Android.Views.View` parameter. No .NET Jetpack Compose
+binding is required for the base-view round trip, and a composable lambda
+is not a `View`. `AndroidView` constructs an Activity-context `FrameLayout`
+to host the MAUI-created child and removes/releases it in `onRelease`.
+
+## Framework selection and limits
+
+The source builders evaluate MSBuild, including imports and conditions.
+They prefer one compatible same-platform TFM, otherwise one portable
+`netX.Y` TFM, and fail on ambiguity/incompatibility. Override with Apple's
+`--managed-framework` or Gradle's `contractTargetFramework`; the override
+must be declared and compatible. In Xcode, set `managedFramework` in
+`netlift.json` for an override. Contract generation uses evaluated
+`TargetPath`, and the host's `ProjectReference` forces the same selected
+TFM. `UseMaui` propagates into the internal host with its evaluated
+`MauiVersion`.
+
+The compiler reads the rooted inheritance graph before loading contract
+types, avoiding unrelated Android generated-resource classes whose
+resource-designer base exists only in the final app. Native objects remain
+outside the JSON DTO codec.
+
+Evidence is bounded to Debug builds on an ARM64 iOS simulator and API 36
+ARM64 Android emulator, a simple label, native identity, managed updates,
+GC survival, and disposal/recreation. Other TFMs/ABIs, physical devices,
+release/R8 behavior, and general Android resource-ID reconciliation are
+not established. Do not generalize this sample into support for arbitrary
+binding objects or a complete embedded MAUI application.
+
+Run the non-device regressions from the repository root:
+
+```bash
+python3 -B -m unittest discover -s tests -p test_managed_project.py
+python3 -B -m unittest discover -s apple/tests -p test_xcode_workload.py
+dotnet run --project tests/NetLift.Compiler.Tests -c Release
+```

@@ -10,6 +10,6 @@ Default clients use that runtime for calls and streams. Explicit transport
 injection remains available for tests and custom hosts.
 
 For a runnable native Activity, use the
-[Hello World sample](../product/samples/HelloWorld.Android/README.md).
+[Hello World sample](../samples/HelloWorld.Android/README.md).
 For generated `Flow`, native callbacks, and release details, see the
-[product reference](../product/README.md#android-gradle-plugin-and-runtime).
+[product reference](contributing.md#android-gradle-plugin-and-runtime).

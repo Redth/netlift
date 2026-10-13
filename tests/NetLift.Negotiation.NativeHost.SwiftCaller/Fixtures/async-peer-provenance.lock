@@ -1,5 +1,0 @@
-format=netlift-peer-provenance-v1
-expectedOldPeerSchemaSha256=d0a299648c1f4479aa800f60634af097f1c3535c42b5710fae0eaa0fbf9b883b
-minimumOldPeerContractRevision=1.0
-expectedNewPeerSchemaSha256=969798a6f7c8cb9a07a9b459d6a0c390c0dcb7017de373360f1f96b1f0d66ab4
-minimumNewPeerContractRevision=1.1

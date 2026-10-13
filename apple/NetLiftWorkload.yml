@@ -1,0 +1,42 @@
+targetTemplates:
+  NetLiftWorkloadApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftContracts.swift
+        optional: true
+      - path: Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftApplePlatform.swift
+        optional: true
+      - path: Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftRuntime.swift
+        optional: true
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        FRAMEWORK_SEARCH_PATHS:
+          - $(inherited)
+          - $(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/frameworks
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - "@$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/linker.rsp"
+    preBuildScripts:
+      - name: Build managed workload component
+        script: |
+          set -eu
+          python3 "${NETLIFT_REPOSITORY_ROOT}/apple/xcode_workload.py" build
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftContracts.swift
+          - $(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftApplePlatform.swift
+          - $(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftRuntime.swift
+          - $(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/linker.rsp
+    postBuildScripts:
+      - name: Embed managed workload payload
+        script: |
+          set -eu
+          python3 "${NETLIFT_REPOSITORY_ROOT}/apple/xcode_workload.py" embed
+        basedOnDependencyAnalysis: false

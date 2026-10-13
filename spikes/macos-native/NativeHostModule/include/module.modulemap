@@ -1,4 +1,0 @@
-module NativeHost {
-    header "NetLiftNative.h"
-    export *
-}

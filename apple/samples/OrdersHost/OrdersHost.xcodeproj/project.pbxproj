@@ -1,0 +1,380 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		10D34D5AF2F59772D0A0B5E5 /* NativeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A171A4C171820761F0CEFB92 /* NativeApp.swift */; };
+		32747E0EB63945604F57614C /* NetLiftContracts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CEBA7146C4F47E4333D64C1 /* NetLiftContracts.swift */; };
+		6455ECB70B42DC9ACEEE464B /* NetLiftApplePlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB59A9BF84DE1DCF4043AA7 /* NetLiftApplePlatform.swift */; };
+		D72991CC8341840ABD1C4DCD /* NetLiftRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = C224E56E9FFC548C782D5DB6 /* NetLiftRuntime.swift */; };
+		FCE5E8E61C71BC9EBF538BA4 /* NativeMain.mm in Sources */ = {isa = PBXBuildFile; fileRef = 31482D09CD55E78DBFA5F2B6 /* NativeMain.mm */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		31482D09CD55E78DBFA5F2B6 /* NativeMain.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NativeMain.mm; sourceTree = "<group>"; };
+		6CEBA7146C4F47E4333D64C1 /* NetLiftContracts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetLiftContracts.swift; sourceTree = "<group>"; };
+		9B9E578308B2CDA580DC2179 /* ManagedBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ManagedBridge.h; sourceTree = "<group>"; };
+		9EB59A9BF84DE1DCF4043AA7 /* NetLiftApplePlatform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetLiftApplePlatform.swift; sourceTree = "<group>"; };
+		A171A4C171820761F0CEFB92 /* NativeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeApp.swift; sourceTree = "<group>"; };
+		BE46AB50EE86883BEE81C773 /* OrdersHost.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OrdersHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C224E56E9FFC548C782D5DB6 /* NetLiftRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetLiftRuntime.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3E1741518AACAD2C60973708 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BE46AB50EE86883BEE81C773 /* OrdersHost.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7007E64950C40B66D97DE587 /* generated */ = {
+			isa = PBXGroup;
+			children = (
+				9EB59A9BF84DE1DCF4043AA7 /* NetLiftApplePlatform.swift */,
+				6CEBA7146C4F47E4333D64C1 /* NetLiftContracts.swift */,
+				C224E56E9FFC548C782D5DB6 /* NetLiftRuntime.swift */,
+			);
+			name = generated;
+			path = "Build/$(CONFIGURATION)-$(SDK_NAME)/generated";
+			sourceTree = "<group>";
+		};
+		FDA3A95FF8FB853E766B41CD = {
+			isa = PBXGroup;
+			children = (
+				9B9E578308B2CDA580DC2179 /* ManagedBridge.h */,
+				A171A4C171820761F0CEFB92 /* NativeApp.swift */,
+				31482D09CD55E78DBFA5F2B6 /* NativeMain.mm */,
+				7007E64950C40B66D97DE587 /* generated */,
+				3E1741518AACAD2C60973708 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		925910C14F25A5B187498DD1 /* OrdersHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 95DDC386B0C5888D1AE17B78 /* Build configuration list for PBXNativeTarget "OrdersHost" */;
+			buildPhases = (
+				A7CF683766765395D5F4AFA7 /* Build managed workload component */,
+				25B7817F188BC4B5FC317A30 /* Sources */,
+				6E4C59AD30912341F87EA245 /* Embed managed workload payload */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OrdersHost;
+			packageProductDependencies = (
+			);
+			productName = OrdersHost;
+			productReference = BE46AB50EE86883BEE81C773 /* OrdersHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B495B5D77DC5F2F54B39D07E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 736094B4A05388B8EE1A9314 /* Build configuration list for PBXProject "OrdersHost" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FDA3A95FF8FB853E766B41CD;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3E1741518AACAD2C60973708 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				925910C14F25A5B187498DD1 /* OrdersHost */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		6E4C59AD30912341F87EA245 /* Embed managed workload payload */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed managed workload payload";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\npython3 \"${NETLIFT_REPOSITORY_ROOT}/apple/xcode_workload.py\" embed\n";
+		};
+		A7CF683766765395D5F4AFA7 /* Build managed workload component */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build managed workload component";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftContracts.swift",
+				"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftApplePlatform.swift",
+				"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/generated/NetLiftRuntime.swift",
+				"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/linker.rsp",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\npython3 \"${NETLIFT_REPOSITORY_ROOT}/apple/xcode_workload.py\" build\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		25B7817F188BC4B5FC317A30 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10D34D5AF2F59772D0A0B5E5 /* NativeApp.swift in Sources */,
+				FCE5E8E61C71BC9EBF538BA4 /* NativeMain.mm in Sources */,
+				6455ECB70B42DC9ACEEE464B /* NetLiftApplePlatform.swift in Sources */,
+				32747E0EB63945604F57614C /* NetLiftContracts.swift in Sources */,
+				D72991CC8341840ABD1C4DCD /* NetLiftRuntime.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		281853980E1D45BF64C9AFE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		29F7F5160CDA9FAFBEA12D2B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/frameworks",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				NETLIFT_REPOSITORY_ROOT = "$(SRCROOT)/../../../";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"@$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/linker.rsp",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.netlift.workloadlibrarymode.nativeapp;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					NETLIFT_NATIVE_CALLBACKS,
+				);
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/ManagedBridge.h";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		69B0EFDBE454EC61EC716C61 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C52B5F24526F495C550495D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/frameworks",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				NETLIFT_REPOSITORY_ROOT = "$(SRCROOT)/../../../";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"@$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/linker.rsp",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.netlift.workloadlibrarymode.nativeapp;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					NETLIFT_NATIVE_CALLBACKS,
+				);
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/ManagedBridge.h";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		736094B4A05388B8EE1A9314 /* Build configuration list for PBXProject "OrdersHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				281853980E1D45BF64C9AFE0 /* Debug */,
+				69B0EFDBE454EC61EC716C61 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		95DDC386B0C5888D1AE17B78 /* Build configuration list for PBXNativeTarget "OrdersHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C52B5F24526F495C550495D6 /* Debug */,
+				29F7F5160CDA9FAFBEA12D2B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B495B5D77DC5F2F54B39D07E /* Project object */;
+}

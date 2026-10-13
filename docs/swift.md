@@ -37,7 +37,7 @@ Both keep Swift in charge of the UI and lifecycle:
 Generated NetLift dispatchers use source-generated JSON metadata; that does
 not automatically make serialization or reflection inside your business
 logic AOT-safe. The
-[NativeAOT sample](../product/apple/samples/NativeAotHelloWorld/README.md)
+[NativeAOT sample](../apple/samples/NativeAotHelloWorld/README.md)
 exercises real C# calls, streams, and cancellation. It does not support
 managed-to-native callbacks or `UIView` peers.
 
@@ -48,14 +48,14 @@ Both checked-in execution paths build their managed component as part of
 the normal Xcode app build. Workload hosting currently supports Debug on
 ARM64 simulators; unsupported target/configuration selections fail explicitly.
 
-The [Orders package example](../product/apple/samples/OrdersPreview/README.md)
+The [Orders package example](../apple/samples/OrdersPreview/README.md)
 uses an in-memory transport and verifies clients, callbacks, and streams.
 It does not execute C#. Platform packaging details remain in the
-[product reference](../product/README.md#apple-runtime-and-generated-component).
+[product reference](contributing.md#apple-runtime-and-generated-component).
 
 ## Optional MAUI controls
 
-The [MAUI embedding sample](../product/samples/MauiEmbedding/README.md)
+The [MAUI embedding sample](../samples/MauiEmbedding/README.md)
 uses a `net11.0-ios;net11.0-android` MAUI library and the workload host.
 Its Xcode target selects the iOS TFM, enables MAUI in the internal
 component, and links the workload-resolved native framework dependencies.

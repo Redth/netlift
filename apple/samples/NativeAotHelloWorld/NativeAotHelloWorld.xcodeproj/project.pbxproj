@@ -1,0 +1,377 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1FE6633D436FC4683B18D0C6 /* NetLiftAppleAotTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89262DF1419ACD7DF140DFF0 /* NetLiftAppleAotTransport.swift */; };
+		9D707B412086A11D59815E97 /* NetLiftContracts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5AC3932810AF95686114C6 /* NetLiftContracts.swift */; };
+		D48546BF1A89262B369AC532 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEFAA852115E7AC9ED98D10D /* AppDelegate.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		89262DF1419ACD7DF140DFF0 /* NetLiftAppleAotTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetLiftAppleAotTransport.swift; sourceTree = "<group>"; };
+		8D5AC3932810AF95686114C6 /* NetLiftContracts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetLiftContracts.swift; sourceTree = "<group>"; };
+		9265F13B9E39FB3D4EBE8AEC /* NativeAotHelloWorld.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NativeAotHelloWorld.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BEFAA852115E7AC9ED98D10D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		31C4914647EF06B5146AE132 = {
+			isa = PBXGroup;
+			children = (
+				A85745900CA1FF89F763D3E4 /* HelloWorld */,
+				B7C38D094C9723E402C42620 /* swift */,
+				FB555B7411B359E9B34FE45D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A85745900CA1FF89F763D3E4 /* HelloWorld */ = {
+			isa = PBXGroup;
+			children = (
+				BEFAA852115E7AC9ED98D10D /* AppDelegate.swift */,
+			);
+			name = HelloWorld;
+			path = Sources/HelloWorld;
+			sourceTree = "<group>";
+		};
+		B7C38D094C9723E402C42620 /* swift */ = {
+			isa = PBXGroup;
+			children = (
+				89262DF1419ACD7DF140DFF0 /* NetLiftAppleAotTransport.swift */,
+				8D5AC3932810AF95686114C6 /* NetLiftContracts.swift */,
+			);
+			name = swift;
+			path = "Build/$(CONFIGURATION)-$(SDK_NAME)/swift";
+			sourceTree = "<group>";
+		};
+		FB555B7411B359E9B34FE45D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9265F13B9E39FB3D4EBE8AEC /* NativeAotHelloWorld.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9BC3B90D0C6547950815156F /* NativeAotHelloWorld */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 10DED54A7F5315463F0E934E /* Build configuration list for PBXNativeTarget "NativeAotHelloWorld" */;
+			buildPhases = (
+				78DE3640DF6AD86B252F8F09 /* Build managed NativeAOT component */,
+				230136C0EE8CEEA288CB699A /* Sources */,
+				E950F86A797217DB75CCE783 /* Embed managed NativeAOT framework */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NativeAotHelloWorld;
+			packageProductDependencies = (
+			);
+			productName = NativeAotHelloWorld;
+			productReference = 9265F13B9E39FB3D4EBE8AEC /* NativeAotHelloWorld.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		817C313D0E333F9675741BF5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 290B6B4502BC8C935D29FF64 /* Build configuration list for PBXProject "NativeAotHelloWorld" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 31C4914647EF06B5146AE132;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = FB555B7411B359E9B34FE45D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9BC3B90D0C6547950815156F /* NativeAotHelloWorld */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		78DE3640DF6AD86B252F8F09 /* Build managed NativeAOT component */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build managed NativeAOT component";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"Build/$(CONFIGURATION)-$(SDK_NAME)/swift/NetLiftContracts.swift",
+				"Build/$(CONFIGURATION)-$(SDK_NAME)/swift/NetLiftAppleAotTransport.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/bash \"${SRCROOT}/build_for_xcode.sh\"\n";
+		};
+		E950F86A797217DB75CCE783 /* Embed managed NativeAOT framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed managed NativeAOT framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\noutput=\"${SRCROOT}/Build/${CONFIGURATION}-${SDK_NAME}\"\ncase \"${PLATFORM_NAME}\" in\n  iphonesimulator) slice=\"simulator\" ;;\n  iphoneos) slice=\"device\" ;;\n  *) exit 1 ;;\nesac\nsource=\"${output}/frameworks/${slice}/NetLiftAppleAot.framework\"\ndestination=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/NetLiftAppleAot.framework\"\nmkdir -p \"$(dirname \"${destination}\")\"\nditto \"${source}\" \"${destination}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		230136C0EE8CEEA288CB699A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D48546BF1A89262B369AC532 /* AppDelegate.swift in Sources */,
+				1FE6633D436FC4683B18D0C6 /* NetLiftAppleAotTransport.swift in Sources */,
+				9D707B412086A11D59815E97 /* NetLiftContracts.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		472E362CD92C5EF753F30F2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		62A89CCF9967E464A0D26AF0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7BCBD8DFC5A40FDD63B2EA2D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/frameworks/current",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				NETLIFT_CONTRACT_ROOTS = NetLift.NativeAotHelloWorld.IHelloService;
+				NETLIFT_MANAGED_FRAMEWORK = net10.0;
+				NETLIFT_MANAGED_PROJECT = Managed/Hello.csproj;
+				NETLIFT_REPOSITORY_ROOT = "$(SRCROOT)/../../../";
+				NETLIFT_SWIFT_MODULE = HelloWorld;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					NetLiftAppleAot,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.netlift.nativeaot.helloworld;
+				PRODUCT_NAME = NativeAotHelloWorld;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F576FCE1C50306CCDEA0776D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Build/$(CONFIGURATION)-$(SDK_NAME)/frameworks/current",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				NETLIFT_CONTRACT_ROOTS = NetLift.NativeAotHelloWorld.IHelloService;
+				NETLIFT_MANAGED_FRAMEWORK = net10.0;
+				NETLIFT_MANAGED_PROJECT = Managed/Hello.csproj;
+				NETLIFT_REPOSITORY_ROOT = "$(SRCROOT)/../../../";
+				NETLIFT_SWIFT_MODULE = HelloWorld;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					NetLiftAppleAot,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.netlift.nativeaot.helloworld;
+				PRODUCT_NAME = NativeAotHelloWorld;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		10DED54A7F5315463F0E934E /* Build configuration list for PBXNativeTarget "NativeAotHelloWorld" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F576FCE1C50306CCDEA0776D /* Debug */,
+				7BCBD8DFC5A40FDD63B2EA2D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		290B6B4502BC8C935D29FF64 /* Build configuration list for PBXProject "NativeAotHelloWorld" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				62A89CCF9967E464A0D26AF0 /* Debug */,
+				472E362CD92C5EF753F30F2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 817C313D0E333F9675741BF5 /* Project object */;
+}

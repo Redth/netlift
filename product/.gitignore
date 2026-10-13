@@ -1,6 +1,0 @@
-artifacts/
-**/bin/
-**/obj/
-**/.gradle/
-**/.cxx/
-**/build/

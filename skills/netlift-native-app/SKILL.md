@@ -97,8 +97,8 @@ For real iOS execution, choose the host path that fits the contract:
   host does not require NativeAOT-compatible library code, but still has
   trimming, runtime, and iOS platform constraints.
 - For portable contracts without managed-to-native callbacks or `UIView`
-  projection, inspect `product/apple/build_native_aot.py` and
-  `product/apple/samples/NativeAotHelloWorld`. The checked-in Xcode target
+  projection, inspect `apple/build_native_aot.py` and
+  `apple/samples/NativeAotHelloWorld`. The checked-in Xcode target
   runs its managed build phase automatically as part of a normal app build,
   generating Swift sources and publishing the selected arm64 platform slice.
   The standalone builder can publish simulator/device frameworks and package
@@ -109,8 +109,8 @@ For real iOS execution, choose the host path that fits the contract:
   physical-device execution is not verified. The bridge rejects
   managed-to-native callbacks.
 - For callback services and the existing Apple `UIView` peer adapter, inspect
-  `product/apple/samples/OrdersHost`, `product/apple/NetLiftWorkload.yml`,
-  and `product/apple/xcode_workload.py`. Their normal Xcode build generates
+  `apple/samples/OrdersHost`, `apple/NetLiftWorkload.yml`,
+  and `apple/xcode_workload.py`. Their normal Xcode build generates
   contracts, builds the workload component, supplies its native link inputs,
   and embeds its payload before signing. Configure the managed project,
   contract roots, and module in the workload `netlift.json`; `managedFramework`
@@ -147,7 +147,7 @@ MSBuild settings; preserve their diagnostics rather than suppressing them.
 
 ## Optional mobile TFMs, MAUI services, and views
 
-Inspect `product/samples/MauiEmbedding` before adding MAUI to a native app.
+Inspect `samples/MauiEmbedding` before adding MAUI to a native app.
 Its `Managed/MauiEmbedding.csproj` targets `net11.0-ios;net11.0-android`,
 sets `UseMaui`, and references the workload's `Microsoft.Maui.Controls`
 version. Keep MAUI in a multi-targeted **library**, not a second application:
@@ -175,13 +175,13 @@ present source-checkout workload hosting as a published Swift-package feature.
 
 The workload host is included in the **native target's normal build**. In
 `netlift.json`, select the managed project, service roots, and optional view
-factory. Include `product/apple/NetLiftWorkload.yml` from the target's
+factory. Include `apple/NetLiftWorkload.yml` from the target's
 `project.yml` as in the MAUI and Orders samples; keep
 `relativePaths: false` so generated outputs resolve beneath the app's
 `SRCROOT`. Set `NETLIFT_REPOSITORY_ROOT` and the bridging header/build
 settings on that target.
 
-Xcode runs `product/apple/xcode_workload.py build` in its pre-build phase.
+Xcode runs `apple/xcode_workload.py build` in its pre-build phase.
 That phase builds the app-specific managed workload closure, generates the
 Swift bridge, and supplies the runtime/native linker response to **Xcode's
 own app executable**. Its post-build phase runs `xcode_workload.py embed` to

@@ -367,8 +367,8 @@ the checked-in sample uses the same packages and a simple native `TextView`.
 From this repository:
 
 ```bash
-product/android/gradlew -p product/samples/HelloWorld.Android :app:assembleDebug
-adb install -r product/samples/HelloWorld.Android/app/build/outputs/apk/debug/app-debug.apk
+android/gradlew -p samples/HelloWorld.Android :app:assembleDebug
+adb install -r samples/HelloWorld.Android/app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n dev.netlift.helloworld/.MainActivity
 ```
 
@@ -482,7 +482,7 @@ The checked-in Orders preview additionally tests installation diagnostics,
 injected transport errors, native callbacks, and pull-driven streams:
 
 ```bash
-swift run --package-path product/apple/samples/OrdersPreview OrdersPreview
+swift run --package-path apple/samples/OrdersPreview OrdersPreview
 ```
 
 ### Run managed code in an iOS app
@@ -548,7 +548,7 @@ pull-based stream, and cancellation on an Apple Silicon simulator:
 
 ```bash
 xcodebuild \
-  -project product/apple/samples/NativeAotHelloWorld/NativeAotHelloWorld.xcodeproj \
+  -project apple/samples/NativeAotHelloWorld/NativeAotHelloWorld.xcodeproj \
   -scheme NativeAotHelloWorld \
   -destination 'platform=iOS Simulator,id=<simulator-udid>' \
   build
@@ -558,7 +558,7 @@ For an existing Xcode app, add the sample's
 `Build managed NativeAOT component` pre-build phase and `Embed managed
 NativeAOT framework` phase, plus the generated Swift source references and
 framework link settings from
-[`project.yml`](product/apple/samples/NativeAotHelloWorld/project.yml).
+[`project.yml`](apple/samples/NativeAotHelloWorld/project.yml).
 Set `NETLIFT_MANAGED_PROJECT`, semicolon-separated `NETLIFT_CONTRACT_ROOTS`,
 `NETLIFT_SWIFT_MODULE`, and `NETLIFT_REPOSITORY_ROOT` in the target's build
 settings, and install `NetLiftAppleAotTransport` once at app startup.
@@ -577,7 +577,7 @@ peer projection are not verified on this path.
 
 For callback services and the existing Apple `UIView` peer adapter, use the
 .NET iOS workload-host target. Open
-[`OrdersHost.xcodeproj`](product/apple/samples/OrdersHost/OrdersHost.xcodeproj)
+[`OrdersHost.xcodeproj`](apple/samples/OrdersHost/OrdersHost.xcodeproj)
 in Xcode, select an Apple Silicon simulator, and press **Run**.
 Xcode builds the C# project, generates the Swift clients, links the workload
 registrar/CoreCLR/R2R inputs into the native executable, embeds the managed
@@ -587,15 +587,15 @@ From the command line, use the same native build:
 
 ```bash
 xcodebuild \
-  -project product/apple/samples/OrdersHost/OrdersHost.xcodeproj \
+  -project apple/samples/OrdersHost/OrdersHost.xcodeproj \
   -scheme OrdersHost \
   -destination 'platform=iOS Simulator,id=<simulator-udid>' \
   build
 ```
 
 For an existing Xcode target, copy the one-time build wiring from the shared
-[`NetLiftWorkload.yml`](product/apple/NetLiftWorkload.yml) template and the
-[sample project](product/apple/samples/OrdersHost/project.yml). This means
+[`NetLiftWorkload.yml`](apple/NetLiftWorkload.yml) template and the
+[sample project](apple/samples/OrdersHost/project.yml). This means
 two build phases, three generated Swift source references, the framework
 search path, and the linker response-file setting; no manual runtime-file
 or library list to maintain. Set `NETLIFT_REPOSITORY_ROOT` to the checkout.
@@ -637,7 +637,7 @@ Gradle plugin alpha.14. Apple MAUI embedding remains a source-checkout
 workload-host feature, not part of the Swift package or NativeAOT bridge.**
 Your app and navigation remain SwiftUI/Compose-owned; you can opt into a
 MAUI-containing library for individual native views and Essentials services.
-The [MAUI embedding sample](product/samples/MauiEmbedding/README.md) contains
+The [MAUI embedding sample](samples/MauiEmbedding/README.md) contains
 the complete C#, SwiftUI, and Compose implementations.
 
 | iOS / SwiftUI | Android / Compose |
@@ -691,14 +691,14 @@ for its Swift app delegate. On Android use the host's Activity context,
 not application context, for view construction.
 
 Open
-[`MauiEmbedding.xcodeproj`](product/samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj)
+[`MauiEmbedding.xcodeproj`](samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj)
 and run on an Apple Silicon simulator. The normal Xcode build also builds
 the MAUI library and packages its workload host automatically.
 The equivalent command-line build is:
 
 ```bash
 xcodebuild \
-  -project product/samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj \
+  -project samples/MauiEmbedding/SwiftUI/MauiEmbedding.xcodeproj \
   -scheme MauiEmbedding \
   -destination 'platform=iOS Simulator,id=<simulator-udid>' \
   build
@@ -710,9 +710,9 @@ Android Studio and run; Gradle owns the managed build too. Its command-line
 equivalent, using the published plugin and runtime, is:
 
 ```bash
-product/android/gradlew -p product/samples/MauiEmbedding/Compose :app:assembleDebug
+android/gradlew -p samples/MauiEmbedding/Compose :app:assembleDebug
 adb -s <emulator-id> install -r \
-  product/samples/MauiEmbedding/Compose/app/build/outputs/apk/debug/app-debug.apk
+  samples/MauiEmbedding/Compose/app/build/outputs/apk/debug/app-debug.apk
 adb -s <emulator-id> shell am start -n dev.netlift.maui.compose/.MainActivity
 ```
 
@@ -762,17 +762,28 @@ directory; installation and example prompts are in
 
 ## Samples and contributor reference
 
-[Android Hello World](product/samples/HelloWorld.Android/README.md) is the
+[Android Hello World](samples/HelloWorld.Android/README.md) is the
 smallest real managed app. The
-[Swift package example](product/apple/samples/OrdersPreview/README.md) is a
-generation/client preview. [MAUI embedding](product/samples/MauiEmbedding/README.md)
+[Swift package example](apple/samples/OrdersPreview/README.md) is a
+generation/client preview. [MAUI embedding](samples/MauiEmbedding/README.md)
 shows optional MAUI views inside native SwiftUI and Compose apps.
-[Product build instructions](product/README.md)
-cover implementation and release evidence. Older `experiments/` and `spikes/`
-are not the public setup or support contract.
+[Contributor build instructions](docs/contributing.md) cover implementation
+and release evidence. The [Orders Android acceptance app](samples/Orders.Android/README.md)
+and [Swift-owned Orders host](apple/samples/OrdersHost/README.md) exercise the
+current runtime and generated clients.
 
-The root-level [Orders native UI slices](samples/Orders.NativeUi/README.md)
-are historical v3 proof snippets, not current consumer templates; the
-[native host proofs](spikes/apple/NativeV5SwiftHost/NativeV5SwiftHostApp.swift)
-also use test-only adapters. The [plain Orders library](samples/Orders.AsyncBusiness/README.md)
-remains useful as a contract example.
+The repository has one canonical implementation:
+
+| Path | Contents |
+| --- | --- |
+| `src/` | Contract compiler, managed runtime, CLI, and native core |
+| `android/` | Gradle plugin, Maven runtime, platform adapter, and package audits |
+| `apple/` | Swift package, workload/NativeAOT integration, and native samples |
+| `samples/` | Managed contracts, Android apps, and optional MAUI embedding |
+| `tests/` | Compiler, dispatcher, runtime, native-core, and tooling regressions |
+| `tooling/` | Shared project inspection and release audits/provenance |
+| `docs/` | Architecture, contributor workflow, and remaining release gates |
+
+Superseded implementations and investigations are retained in Git history,
+not as alternate source trees. Promoting the source does not change the
+preview support matrix or clear physical-device and stable-release gates.

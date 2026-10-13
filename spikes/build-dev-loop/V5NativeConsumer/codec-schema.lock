@@ -1,5 +1,0 @@
-format=netlift-v5-native-codec-schema-v1
-expectedOldSchemaSha256=7daf912c2b104aec99e7ce9febc2e2294dba125856362fa866f9d35e16648184
-expectedOldContractRevision=1.0
-expectedNewSchemaSha256=9f1c59138984b5f5f37bf81cf9ae18650cee292813d8712b8ca4efce02ca4245
-expectedNewContractRevision=1.1

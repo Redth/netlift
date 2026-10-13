@@ -1,7 +1,0 @@
-<Project>
-  <PropertyGroup Condition="'$(NetLiftClosureWorkRoot)' != ''">
-    <BaseIntermediateOutputPath>$(NetLiftClosureWorkRoot)/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
-    <BaseOutputPath>$(NetLiftClosureWorkRoot)/bin/$(MSBuildProjectName)/</BaseOutputPath>
-    <DefaultItemExcludesInProjectFolder>$(DefaultItemExcludesInProjectFolder);obj/**;bin/**</DefaultItemExcludesInProjectFolder>
-  </PropertyGroup>
-</Project>
