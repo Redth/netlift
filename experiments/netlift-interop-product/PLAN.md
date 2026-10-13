@@ -2073,6 +2073,21 @@ acceptance twice across process relaunch pass. Signed
 physical-device matrices, release-candidate publication, remote RC consumers,
 and stable-byte promotion remain.
 
+**Clean-cache follow-up:** a rerun with both Gradle and NuGet caches empty
+exposed `NETSDK1112` in published plugin `0.1.0-alpha.13`. Android component
+builds now pass `SelfContained=true` globally so portable-library runtime packs
+are restored consistently with packaging. Plugin `0.1.0-alpha.14` is now
+published immutably, and its public JAR matches the committed artifact bytes.
+Separate Hello World and signed R8 Orders consumers built with both Gradle and
+NuGet caches empty, using only public feeds and no manual restore. Hello World
+returned its real managed greeting twice; all ten Orders acceptance markers and
+the package closure audit passed, including a second process launch.
+The remote-preview gate is accepted again; physical-device and RC/stable gates
+remain blocked.
+The public Swift `0.1.0-alpha.9` generated contract also passes real managed iOS
+simulator acceptance through the source-owned workload host twice across process
+relaunch, rather than relying on the in-memory Swift preview.
+
 **Exit criteria:**
 
 - all advertised platforms pass signed physical-device execution

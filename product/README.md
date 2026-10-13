@@ -57,7 +57,7 @@ For an opt-in mobile/MAUI library, see
 SwiftUI and Compose apps select matching mobile TFMs, round-trip native
 binding views, and embed a real MAUI label with explicit handler ownership.
 The Android framework-selection/view-factory changes use published plugin
-alpha.13; Swift package alpha.9 updates the bundled compiler but not the
+alpha.14; Swift package alpha.9 updates the bundled compiler but not the
 Apple workload builder, which remains source-owned.
 
 The initial codec profile carries UTF-8 JSON inside the generated
@@ -65,6 +65,11 @@ The initial codec profile carries UTF-8 JSON inside the generated
 changing projected Kotlin/Swift APIs or stable route IDs. The Android workload
 adapter wraps each managed response in an explicit success/error envelope so
 managed exceptions become Kotlin exceptions instead of crossing JNI.
+
+Android component builds pass `SelfContained=true` as a global MSBuild
+property so restore and packaging agree for referenced portable libraries.
+Validate package candidates with empty Gradle and NuGet caches: a cached
+mobile runtime pack can otherwise hide a missing restore dependency.
 
 ## Type adapters and compatibility
 
@@ -312,7 +317,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.13"
+    id("io.github.redth.netlift") version "0.1.0-alpha.14"
 }
 
 netlift {
@@ -332,7 +337,7 @@ bridge, and app-specific workload component. Missing or ambiguous service
 implementations fail generation with a precise diagnostic.
 For the simple path, provide a public parameterless constructor. Native-owned
 service roots also support constructor injection of generated native proxies.
-Plugin `0.1.0-alpha.13` adds evaluated TFM selection and an optional Android
+Plugin `0.1.0-alpha.14` includes evaluated TFM selection and an optional Android
 platform-view factory for MAUI-containing libraries. See
 [`samples/MauiEmbedding`](samples/MauiEmbedding/README.md) for runtime
 acceptance and its stated support limits.

@@ -14,12 +14,16 @@ This page contains the setup, .NET code, and native examples in one place:
 > targets build and package the managed component automatically. SwiftPM alone
 > generates clients, not an iOS app host. Verified runtime targets are API 36
 > ARM64 Android emulators and Apple Silicon iOS simulators, not physical devices.
+>
+> Android plugin `0.1.0-alpha.14` fixes the `NETSDK1112` failure seen with
+> empty NuGet caches in alpha.13. Public-feed-only Debug/Release builds and
+> real managed execution now pass with fresh Gradle and NuGet caches.
 
 ## Packages and prerequisites
 
 | Integration | Current preview |
 | --- | --- |
-| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.13` |
+| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.14` |
 | Android runtime, added by the plugin | `io.github.redth.netlift:runtime-android` `0.1.0-alpha.3` |
 | Swift package and generation plugin | `NetLift` `0.1.0-alpha.9` |
 
@@ -198,7 +202,7 @@ android.useAndroidX=true
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.13"
+    id("io.github.redth.netlift") version "0.1.0-alpha.14"
 }
 
 netlift {
@@ -629,7 +633,7 @@ builds fail explicitly rather than silently substituting another host.
 ## Optional: use MAUI views and services in native apps
 
 **Android framework selection and the optional view-factory seam are in
-Gradle plugin alpha.13. Apple MAUI embedding remains a source-checkout
+Gradle plugin alpha.14. Apple MAUI embedding remains a source-checkout
 workload-host feature, not part of the Swift package or NativeAOT bridge.**
 Your app and navigation remain SwiftUI/Compose-owned; you can opt into a
 MAUI-containing library for individual native views and Essentials services.

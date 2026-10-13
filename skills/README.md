@@ -40,11 +40,16 @@ must surface unsupported targets or missing hosting steps.
 ## Validation and maintenance
 
 The skill passed its structural/safety gate before export. Its package pins
-and commands were checked against public-feed Android `alpha.13` and Swift
+and commands were checked against public-feed Android `alpha.14` and Swift
 `alpha.9` consumers. The README's new-project C#, Kotlin, and Swift examples
 were extracted into a separate project and built; the Android app returned
 the real managed greeting and the Swift preview returned its explicitly
 in-memory greeting.
+
+The alpha.14 rerun used empty Gradle and NuGet caches, then verified the
+managed greeting and all ten signed R8 Orders acceptance markers twice across
+process relaunch. Swift alpha.9 generation also matched the real source-owned
+iOS workload host's contracts and passed its managed acceptance separately.
 
 The recipe also covers the checked-in existing-project Orders consumers:
 runtime-default clients, explicit injection, installation errors, callbacks,

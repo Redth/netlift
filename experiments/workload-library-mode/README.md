@@ -11,10 +11,10 @@ The proof uses the installed workload packs. It does not require a forked
 
 ## Toolchain
 
-This directory intentionally pins the Android proof to .NET 10.0.401
-independently of the repository root. The Apple proof has a narrower
-`apple/global.json` pin to the installed .NET 11 RC because the stable .NET 10
-workload has no iOS CoreCLR runtime pack.
+This directory pins .NET `11.0.100-rc.1.26425.128`, matching the current
+packaged Android components. The Apple proof has a narrower
+`apple/global.json` pin to the same installed .NET 11 RC because the stable
+.NET 10 workload has no iOS CoreCLR runtime pack.
 
 Run the environment inventory before any platform build:
 
@@ -28,7 +28,7 @@ The command discovers requirements from the installed workload manifests. It
 does not hardcode JDK, Android SDK, or Xcode requirements.
 
 Build and audit the Kotlin-owned Android application. The app resolves
-`io.github.redth.netlift` `0.1.0-alpha.12` and runtime `0.1.0-alpha.3` from the
+`io.github.redth.netlift` `0.1.0-alpha.14` and runtime `0.1.0-alpha.3` from the
 public Pages Maven repository:
 
 ```bash

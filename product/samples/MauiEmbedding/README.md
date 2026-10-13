@@ -5,7 +5,7 @@ while consuming a multi-target .NET library that contains MAUI controls
 and Essentials services.
 It uses the **workload host**, not the portable NativeAOT bridge.
 Android framework selection and view-factory options are published in
-Gradle plugin alpha.13. Swift package alpha.9 updates its bundled compiler;
+Gradle plugin alpha.14. Swift package alpha.9 updates its bundled compiler;
 Apple workload hosting is wired into the sample Xcode target and remains a
 source-checkout integration, not a Swift package feature.
 
@@ -183,7 +183,7 @@ adb -s <emulator-id> shell am start -n dev.netlift.maui.compose/.MainActivity
 adb -s <emulator-id> logcat -s NetLiftAcceptance
 ```
 
-`Compose/settings.gradle.kts` resolves plugin alpha.13 and the runtime from
+`Compose/settings.gradle.kts` resolves plugin alpha.14 and the runtime from
 the public Maven feed. The native app supplies AppCompat/Material dependencies
 matching this MAUI workload; the generated AAR includes MAUI Java helper
 classes and their resources, not another copy of the app's Maven

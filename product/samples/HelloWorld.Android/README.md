@@ -62,7 +62,7 @@ adb shell am start -n dev.netlift.helloworld/.MainActivity
 ```
 
 The screen should display `Hello, World!`. The Android app resolves plugin
-`0.1.0-alpha.13` from the public Pages feed. The plugin generates the Kotlin
+`0.1.0-alpha.14` from the public Pages feed. The plugin generates the Kotlin
 client and app-specific workload component from
 `HelloWorld.Contracts/HelloWorld.Contracts.csproj`; the app initializes
 `NetLiftRuntime` once in
@@ -72,3 +72,9 @@ wrapper. The manifest registers the custom `Application`.
 
 The tested target is an API 36 ARM64 emulator. Physical Android devices and
 non-macOS setup have not been verified.
+
+AGP `8.11.1` release lint cannot parse installed `android-37.0` SDK platform
+metadata, even when this app targets API 36. If release lint fails with
+`For input string: "37.0"`, select a separate SDK root containing the supported
+API 36 platform via `ANDROID_HOME` and `ANDROID_SDK_ROOT`. Keep lint enabled;
+do not edit or remove platforms from a shared SDK installation.
