@@ -23,9 +23,9 @@ This page contains the setup, .NET code, and native examples in one place:
 
 | Integration | Current preview |
 | --- | --- |
-| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.14` |
+| Android Gradle plugin | `io.github.redth.netlift` `0.1.0-alpha.15` |
 | Android runtime, added by the plugin | `io.github.redth.netlift:runtime-android` `0.1.0-alpha.3` |
-| Swift package and generation plugin | `NetLift` `0.1.0-alpha.9` |
+| Swift package and generation plugin | `NetLift` `0.1.0-alpha.10` |
 
 Pin exact versions. Packages are published in
 [netlift-sdk](https://github.com/Redth/netlift-sdk); published versions are immutable.
@@ -202,7 +202,7 @@ android.useAndroidX=true
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.14"
+    id("io.github.redth.netlift") version "0.1.0-alpha.15"
 }
 
 netlift {
@@ -393,7 +393,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/Redth/netlift-sdk.git",
-            exact: "0.1.0-alpha.9"
+            exact: "0.1.0-alpha.10"
         ),
     ],
     targets: [

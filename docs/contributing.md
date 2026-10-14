@@ -255,14 +255,30 @@ without timestamps or host paths. Verify a generated manifest with:
 python3 tooling/audit_release_provenance.py path/to/release-provenance.json
 ```
 
-`release-gates.json` records passed and externally blocked release gates. Its
-audit prevents simulator evidence from promoting either physical-device
-profile and prevents stable-byte promotion while device and remote-RC gates
-remain unresolved:
+`release-gates.json` records passed and externally blocked release gates.
+Physical-device execution is not a prerequisite for experimental preview
+updates; it remains required for stable support. Its audit checks that all
+Android and Swift sample pins match the selected publication versions, that
+clean public-feed consumers and their upgrade have evidence, and that neither
+physical-device profile nor RC/stable status is prematurely promoted:
 
 ```bash
 python3 tooling/audit_release_gates.py
 ```
+
+Before publishing an update, choose an unused version only for changed
+packages. Update `android/gradle.properties` for a changed plugin/runtime,
+`apple/stage_public_preview.py` and `apple/build_tool_bundle.py` together for
+a changed Swift package, and update exact sample pins and documentation.
+Leave the runtime pin alone if its bytes have not changed. Publish Maven
+artifacts into `artifacts/maven` and stage the Swift package into an isolated
+`netlift-sdk` clone; refuse any existing version directory/tag. Record the
+NetLift source commit and SHA-256 of published packages, copy only new versions
+and Maven metadata to the SDK clone, publish it, and create the Swift tag only
+after the binaries are publicly available. Verify fresh caches and an upgrade
+from prior pins against the public feeds. SwiftPM's in-memory sample verifies
+generation, not managed iOS execution; run the source-owned `OrdersHost` on a
+simulator separately. A passing preview does not authorize RC or stable.
 
 ## Android Gradle plugin and runtime
 
@@ -319,7 +335,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.14"
+    id("io.github.redth.netlift") version "0.1.0-alpha.15"
 }
 
 netlift {
@@ -398,13 +414,13 @@ unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
 The contract-neutral runtime and projection plugin are published in Swift
-package `NetLift` `0.1.0-alpha.9`:
+package `NetLift` `0.1.0-alpha.10`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.9"
+        exact: "0.1.0-alpha.10"
     ),
 ]
 ```

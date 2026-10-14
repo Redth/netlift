@@ -5,7 +5,7 @@ The complete setup and code now live in the root
 Swift package, `netlift.json`, one-time transport installation, and a
 complete client preview.
 
-The public package is `0.1.0-alpha.9`. Install the app host's transport once
+The public package is `0.1.0-alpha.10`. Install the app host's transport once
 per generated module, then use `try HelloServiceClient()`. Missing or duplicate
 installation throws; explicit initializer injection remains available.
 

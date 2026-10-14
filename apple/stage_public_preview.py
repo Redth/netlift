@@ -11,7 +11,7 @@ from pathlib import Path
 APPLE_ROOT = Path(__file__).resolve().parent
 PACKAGE = APPLE_ROOT / "netlift-swift"
 ARTIFACTS = PACKAGE / "artifacts"
-VERSION = "0.1.0-alpha.9"
+VERSION = "0.1.0-alpha.10"
 BASE_URL = (
     f"https://redth.github.io/netlift-sdk/swift/NetLift/{VERSION}"
 )
@@ -51,6 +51,9 @@ def main() -> int:
     checkout = args.sdk_checkout.resolve()
     if not (checkout / ".git").is_dir():
         raise RuntimeError(f"Not a Git checkout: {checkout}")
+    publication = checkout / "swift" / "NetLift" / VERSION
+    if publication.exists():
+        raise RuntimeError(f"Preview version already published: {publication}")
 
     subprocess.run(
         ["python3", str(APPLE_ROOT / "runtime-apple" / "build_runtime.py")],
@@ -61,7 +64,6 @@ def main() -> int:
         check=True,
     )
 
-    publication = checkout / "swift" / "NetLift" / VERSION
     runtime_zip = publication / "NetLiftRuntime.xcframework.zip"
     tools_zip = publication / "netlift-swift-tools.artifactbundle.zip"
     archive(ARTIFACTS / "NetLiftRuntime.xcframework", runtime_zip)

@@ -1,6 +1,6 @@
 # Orders Android acceptance app
 
-This native-owned app consumes public Gradle plugin `0.1.0-alpha.14` and
+This native-owned app consumes public Gradle plugin `0.1.0-alpha.15` and
 runtime `0.1.0-alpha.3`. It projects the ordinary
 [Orders library](../Orders.Contracts/OrdersContract.cs) and verifies real C#
 calls, type adapters, optional fields, typed errors, cancellation, native-owned

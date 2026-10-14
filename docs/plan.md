@@ -13,8 +13,8 @@ describe the implementation, not a parallel research direction.
 | Contracts | Deterministic manifests, stable IDs, compatibility locks, strict eligibility diagnostics |
 | Values | UUID, timestamp, byte-buffer, URI, enum/scalar collections, nullable additions, typed errors |
 | Runtime | Unary calls, cancellation, generated native-service callbacks, demand-driven streams, explicit ownership |
-| Android | Public Gradle plugin alpha.14 and runtime alpha.3; API 36 ARM64 emulator acceptance |
-| Apple | Public Swift package alpha.9; source-owned workload and NativeAOT simulator hosts |
+| Android | Public Gradle plugin alpha.15 and runtime alpha.3; API 36 ARM64 emulator acceptance |
+| Apple | Public Swift package alpha.10; source-owned workload and NativeAOT simulator hosts |
 | Platform peers | Existing Android View/Apple UIView peers and optional MAUI embedding; experimental device-required profiles |
 | Delivery | Immutable packages, clean public consumers, release manifests, dependency/package audits |
 
@@ -30,7 +30,17 @@ process relaunch. SwiftPM alone still provides generation and clients, not
 the managed app host. The workload Xcode integration supports Debug ARM64
 simulators; NativeAOT has its own feature and dependency restrictions.
 
-## Remaining release sequence
+## Experimental preview updates
+
+New immutable plugin and Swift preview versions can be published when their
+payload changes, with the unchanged Android runtime retaining its version.
+Preview updates require exact source provenance, package/dependency closure,
+fresh public-feed-only consumers, prior-preview-to-new-preview upgrades, and
+Android emulator and real source-owned managed iOS simulator execution.
+Physical-device evidence is **not required** for experimental previews.
+SwiftPM's in-memory example alone is not iOS host acceptance.
+
+## Remaining RC/stable release sequence
 
 1. Run signed physical Android/iPhone matrices on available devices.
 2. Verify device signing, no-JIT/runtime mode where applicable, offline launch,
@@ -40,7 +50,12 @@ simulators; NativeAOT has its own feature and dependency restrictions.
 5. Promote the verified RC artifact bytes to stable without rebuilding.
 
 No attached physical Android device or available paired iPhone has passed
-these gates. RC publication/consumers and stable-byte promotion remain blocked.
+these gates. RC publication/consumers and stable-byte promotion remain blocked;
+the latter is a documented objective, not an implemented publication command.
+It means reusing the exact verified RC archive/JAR/AAR bytes and their hashes
+for a stable coordinate, with only version-specific metadata changed. Current
+Swift binary-target URLs and executable-bundle version paths require separate
+stable metadata and validation before that can be implemented safely.
 The machine-readable authorities are
 [`support-matrix.json`](../support-matrix.json) and
 [`release-gates.json`](../release-gates.json); source reorganization does not

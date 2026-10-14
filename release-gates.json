@@ -1,5 +1,9 @@
 {
   "schemaVersion": 1,
+  "previewPolicy": {
+    "physicalDeviceEvidenceRequired": false,
+    "stablePromotionAuthorized": false
+  },
   "gates": [
     {
       "id": "android-signed-bundle-delivery",
@@ -38,14 +42,17 @@
       "id": "remote-preview-consumer",
       "status": "passed",
       "evidence": [
-        "gradle-plugin-0.1.0-alpha.14",
-        "swift-package-0.1.0-alpha.9",
+        "preview-package-pins-verified",
+        "gradle-plugin-0.1.0-alpha.15",
+        "swift-package-0.1.0-alpha.10",
         "github-pages-http-200",
         "fresh-gradle-cache",
         "fresh-nuget-cache",
         "fresh-swiftpm-cache",
+        "prior-preview-consumer-upgrade",
         "public-feed-only-consumer-build",
         "public-feed-only-emulator-acceptance",
+        "public-package-source-owned-ios-host-acceptance",
         "runtime-default-unary-and-stream-clients",
         "swift-missing-and-duplicate-install-diagnostics",
         "android-application-startup-hello-world",
@@ -61,10 +68,12 @@
     },
     {
       "id": "android-physical-device",
+      "requiredForStable": true,
       "status": "blocked-device-unavailable"
     },
     {
       "id": "apple-physical-device",
+      "requiredForStable": true,
       "status": "blocked-device-unavailable"
     },
     {

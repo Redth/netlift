@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.14"
+    id("io.github.redth.netlift") version "0.1.0-alpha.15"
 }
 
 val netliftReleaseStoreFile = providers.gradleProperty("netliftReleaseStoreFile")
