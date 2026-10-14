@@ -15,9 +15,9 @@ This page contains the setup, .NET code, and native examples in one place:
 > generates clients, not an iOS app host. Verified runtime targets are API 36
 > ARM64 Android emulators and Apple Silicon iOS simulators, not physical devices.
 >
-> Android plugin `0.1.0-alpha.14` fixes the `NETSDK1112` failure seen with
-> empty NuGet caches in alpha.13. Public-feed-only Debug/Release builds and
-> real managed execution now pass with fresh Gradle and NuGet caches.
+> Plugin alpha.15 retains alpha.14's fix for the `NETSDK1112` empty-cache
+> restoration failure in alpha.13. Public-feed-only Debug/Release builds and
+> real managed execution pass with fresh Gradle and NuGet caches.
 
 ## Packages and prerequisites
 

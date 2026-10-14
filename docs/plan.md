@@ -18,17 +18,22 @@ describe the implementation, not a parallel research direction.
 | Platform peers | Existing Android View/Apple UIView peers and optional MAUI embedding; experimental device-required profiles |
 | Delivery | Immutable packages, clean public consumers, release manifests, dependency/package audits |
 
-Plugin alpha.14 fixes portable-library runtime restoration with empty NuGet
-caches. Separate public-feed-only Hello World and signed R8 Orders consumers
-built with empty Gradle and NuGet caches without a manual restore. Hello World
-executed C# twice; all ten Orders acceptance markers passed twice across process
-relaunch, and component/runtime/APK closure audits passed.
+Plugin alpha.15 packages the canonical root-layout tool and retains alpha.14's
+portable-library empty-cache restoration fix. Public-feed-only Hello World
+and R8 Orders Debug/Release consumers built with empty Gradle and NuGet
+caches. Orders produced all ten acceptance markers in Debug, a test-signed
+minified Release APK, and after an alpha.14-to-alpha.15 installed update and
+process relaunch; the Android component/runtime/APK closure audits passed.
+Hello World rendered its managed `Hello, World!` greeting on the emulator.
 
-Public Swift alpha.9 generated contracts also matched the real source-owned
-iOS workload host. All ten runtime acceptance markers passed twice across
-process relaunch. SwiftPM alone still provides generation and clients, not
-the managed app host. The workload Xcode integration supports Debug ARM64
-simulators; NativeAOT has its own feature and dependency restrictions.
+SwiftPM alpha.10 generated public contracts and ran the client sample with
+empty SwiftPM/NuGet caches; the alpha.9-to-alpha.10 package upgrade resolved
+and ran too. Separately, the real source-owned iOS workload host built under
+Xcode 26.6, and all ten managed runtime markers passed on an ARM64 simulator
+and after process relaunch. Its 209 embedded workload files matched the
+built managed payload. SwiftPM alone still provides generation and clients,
+not the managed app host. The workload Xcode integration supports Debug
+ARM64 simulators; NativeAOT has separate feature/dependency restrictions.
 
 ## Experimental preview updates
 

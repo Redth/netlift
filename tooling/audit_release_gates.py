@@ -65,6 +65,14 @@ def check_preview_pins(root: Path, plugin: str, runtime: str, swift: str) -> Non
     package = (root / "apple/samples/OrdersPreview/Package.swift").read_text()
     if f'exact: "{swift}"' not in package:
         raise RuntimeError("Swift sample pin differs from publication.")
+    resolved = json.loads(
+        (root / "apple/samples/OrdersPreview/Package.resolved").read_text()
+    )
+    pins = [
+        pin for pin in resolved["pins"] if pin["identity"] == "netlift-sdk"
+    ]
+    if len(pins) != 1 or pins[0]["state"]["version"] != swift:
+        raise RuntimeError("Swift sample resolved revision differs from publication.")
     android_plugin = (root / "android/netlift-gradle-plugin/src/main/kotlin/dev/netlift/gradle/NetLiftPlugin.kt").read_text()
     if f'extension.runtimeVersion.convention("{runtime}")' not in android_plugin:
         raise RuntimeError("Plugin runtime dependency differs from publication.")

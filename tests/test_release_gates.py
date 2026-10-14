@@ -54,6 +54,23 @@ class ReleaseGateTests(unittest.TestCase):
                 PRODUCT, "0.1.0-alpha.999", "0.1.0-alpha.3", "0.1.0-alpha.10"
             )
 
+    def test_resolved_swift_version_must_match_publication(self):
+        with (
+            patch.object(
+                module.json, "loads",
+                return_value={
+                    "pins": [{
+                        "identity": "netlift-sdk",
+                        "state": {"version": "0.1.0-alpha.9"},
+                    }]
+                },
+            ),
+            self.assertRaisesRegex(RuntimeError, "resolved revision differs"),
+        ):
+            module.check_preview_pins(
+                PRODUCT, "0.1.0-alpha.15", "0.1.0-alpha.3", "0.1.0-alpha.10"
+            )
+
     def test_preview_policy_does_not_promote_stable(self):
         manifest = json.loads((PRODUCT / "release-gates.json").read_text())
         manifest["previewPolicy"]["stablePromotionAuthorized"] = True
