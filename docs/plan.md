@@ -56,11 +56,14 @@ SwiftPM's in-memory example alone is not iOS host acceptance.
 
 No attached physical Android device or available paired iPhone has passed
 these gates. RC publication/consumers and stable-byte promotion remain blocked;
-the latter is a documented objective, not an implemented publication command.
-It means reusing the exact verified RC archive/JAR/AAR bytes and their hashes
-for a stable coordinate, with only version-specific metadata changed. Current
-Swift binary-target URLs and executable-bundle version paths require separate
-stable metadata and validation before that can be implemented safely.
+the guarded staging tool does not authorize a stable publication. It aliases
+verified RC JAR/AAR/source-JAR bytes under stable Maven coordinates, updates
+their POM/module/checksum metadata, and plans a stable Swift tag pointing at
+the RC commit (which already references the exact RC binary URLs and hashes).
+The runtime compatibility version embedded in the RC binaries remains RC;
+stable Android consumers select the new stable runtime *artifact* coordinate
+independently. No binaries are rebuilt during promotion. Public stable
+consumers and byte hashes must pass before claiming the stable gate.
 The machine-readable authorities are
 [`support-matrix.json`](../support-matrix.json) and
 [`release-gates.json`](../release-gates.json); source reorganization does not

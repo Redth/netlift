@@ -25,13 +25,14 @@ class NetLiftPlugin : Plugin<Project> {
         extension.componentTargetFramework.convention("net11.0-android")
         extension.runtimeIdentifier.convention("android-arm64")
         extension.runtimeVersion.convention("0.1.0-alpha.3")
+        extension.runtimeArtifactVersion.convention(extension.runtimeVersion)
         extension.componentApplicationId.convention("${project.name}.netlift.component")
         extension.generatedDirectory.convention(project.layout.buildDirectory.dir("generated/netlift"))
 
         project.pluginManager.withPlugin("com.android.application") {
             project.dependencies.add(
                 "implementation",
-                extension.runtimeVersion.map {
+                extension.runtimeArtifactVersion.map {
                     "io.github.redth.netlift:runtime-android:$it"
                 },
             )

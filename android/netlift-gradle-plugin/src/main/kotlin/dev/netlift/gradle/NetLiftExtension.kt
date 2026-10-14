@@ -18,6 +18,7 @@ abstract class NetLiftExtension @Inject constructor(objects: ObjectFactory) {
     val componentTargetFramework: Property<String> = objects.property(String::class.java)
     val runtimeIdentifier: Property<String> = objects.property(String::class.java)
     val runtimeVersion: Property<String> = objects.property(String::class.java)
+    val runtimeArtifactVersion: Property<String> = objects.property(String::class.java)
     val componentApplicationId: Property<String> = objects.property(String::class.java)
     val compatibilityLock: RegularFileProperty = objects.fileProperty()
     val generatedDirectory: DirectoryProperty = objects.directoryProperty()

@@ -37,6 +37,32 @@ REQUIRED_PREVIEW_EVIDENCE = {
     "published-artifact-byte-identity",
     "process-relaunch",
 }
+REQUIRED_STABLE_EVIDENCE = {
+    "android-physical-device": {
+        "signed-device-launch", "offline-cold-start", "process-relaunch",
+        "dependency-symbol-closure",
+    },
+    "apple-physical-device": {
+        "signed-device-launch", "managed-host-execution", "process-relaunch",
+        "dependency-symbol-closure",
+    },
+    "remote-release-candidate-consumers": {
+        "fresh-gradle-cache", "fresh-nuget-cache", "fresh-swiftpm-cache",
+        "public-rc-runtime-acceptance", "published-artifact-byte-identity",
+    },
+}
+
+
+def require_stable_prerequisites(manifest: dict) -> None:
+    gates = {gate["id"]: gate for gate in manifest["gates"]}
+    if manifest["previewPolicy"].get("stablePromotionAuthorized") is not True:
+        raise RuntimeError("Stable promotion is not authorized by release policy.")
+    for gate_id, required in REQUIRED_STABLE_EVIDENCE.items():
+        gate = gates[gate_id]
+        if gate["status"] != "passed" or not required.issubset(
+            gate.get("evidence", [])
+        ) or gate.get("blockers"):
+            raise RuntimeError(f"Stable promotion requires verified {gate_id} evidence.")
 
 
 def preview_versions(root: Path) -> tuple[str, str, str]:
@@ -84,11 +110,11 @@ def main() -> int:
     )
     if manifest["schemaVersion"] != 1:
         raise RuntimeError("Unsupported release-gate schema.")
-    if manifest["previewPolicy"] != {
-        "physicalDeviceEvidenceRequired": False,
-        "stablePromotionAuthorized": False,
-    }:
-        raise RuntimeError("Preview cannot require devices or authorize stable promotion.")
+    if (
+        manifest["previewPolicy"].get("physicalDeviceEvidenceRequired") is not False
+        or type(manifest["previewPolicy"].get("stablePromotionAuthorized")) is not bool
+    ):
+        raise RuntimeError("Preview policy must not require devices.")
     gates = {gate["id"]: gate for gate in manifest["gates"]}
     if set(gates) != EXPECTED_GATES:
         raise RuntimeError("Release-gate manifest has missing or unexpected gates.")
@@ -113,12 +139,44 @@ def main() -> int:
         )
     check_preview_pins(PRODUCT, plugin, runtime, swift)
     for gate_id in ("android-physical-device", "apple-physical-device"):
-        if (gates[gate_id]["status"] != "blocked-device-unavailable"
-                or gates[gate_id].get("requiredForStable") is not True):
+        if (
+            gates[gate_id]["status"] not in ("blocked-device-unavailable", "passed")
+            or gates[gate_id].get("requiredForStable") is not True
+        ):
             raise RuntimeError(f"Physical-device gate has an invalid status: {gate_id}")
-    for gate_id in ("remote-release-candidate-consumers", "stable-byte-promotion"):
-        if gates[gate_id]["status"] != "blocked-prerequisites":
-            raise RuntimeError(f"Downstream release gate is promoted early: {gate_id}")
+    if gates["remote-release-candidate-consumers"]["status"] not in (
+        "blocked-prerequisites", "passed"
+    ):
+        raise RuntimeError("Release-candidate gate has an invalid status.")
+    if gates["stable-byte-promotion"]["status"] not in (
+        "blocked-prerequisites", "passed"
+    ):
+        raise RuntimeError("Stable-byte promotion has an invalid status.")
+    for gate_id, required in REQUIRED_STABLE_EVIDENCE.items():
+        gate = gates[gate_id]
+        if gate["status"] == "passed" and (
+            not required.issubset(gate.get("evidence", [])) or gate.get("blockers")
+        ):
+            raise RuntimeError(f"Passed {gate_id} lacks required evidence.")
+    if gates["remote-release-candidate-consumers"]["status"] == "passed" and any(
+        gates[gate_id]["status"] != "passed"
+        for gate_id in ("android-physical-device", "apple-physical-device")
+    ):
+        raise RuntimeError("Remote RC acceptance cannot precede physical-device evidence.")
+    if (
+        manifest["previewPolicy"]["stablePromotionAuthorized"]
+        or gates["stable-byte-promotion"]["status"] == "passed"
+    ):
+        require_stable_prerequisites(manifest)
+    if gates["stable-byte-promotion"]["status"] == "passed":
+        promotion = gates["stable-byte-promotion"]
+        if (
+            not {"rc-binary-hashes-preserved", "stable-consumer-acceptance"}.issubset(
+                promotion.get("evidence", [])
+            )
+            or promotion.get("blockers")
+        ):
+            raise RuntimeError("Stable byte promotion lacks consumer and identity evidence.")
     print("NetLift release-gate audit passed.")
     return 0
 

@@ -283,6 +283,80 @@ from prior pins against the public feeds. SwiftPM's in-memory sample verifies
 generation, not managed iOS execution; run the source-owned `OrdersHost` on a
 simulator separately. A passing preview does not authorize RC or stable.
 
+## Stable-byte promotion (after RC acceptance)
+
+An RC is not stable just because its binaries resolve. First publish an
+**immutable** RC plugin and Swift package (and Android runtime if changed), perform
+public-feed-only RC acceptance on signed physical devices and fresh consumer
+caches, and record those results in `release-gates.json`. The Android/Apple
+physical-device and remote-RC gates must each contain the evidence required
+by `audit_release_gates.py`, have no blockers, and have status `passed`.
+Set `previewPolicy.stablePromotionAuthorized` to `true` only when stable
+release is explicitly approved. Preview gates remain device-independent.
+
+In an isolated, up-to-date `netlift-sdk` clone, commit the RC and tag its
+Swift package. Record the RC source commit and all binaries in a provenance
+file:
+
+```json
+{
+  "sourceCommit": "<full NetLift source commit>",
+  "versions": {
+    "gradlePlugin": "0.2.0-rc.1",
+    "androidRuntime": "0.2.0-rc.1",
+    "swiftPackage": "0.2.0-rc.1"
+  },
+  "sha256": {
+    "maven/io/github/redth/netlift/netlift-gradle-plugin/0.2.0-rc.1/netlift-gradle-plugin-0.2.0-rc.1.jar": "<sha256>",
+    "maven/io/github/redth/netlift/runtime-android/0.2.0-rc.1/runtime-android-0.2.0-rc.1.aar": "<sha256>",
+    "maven/io/github/redth/netlift/runtime-android/0.2.0-rc.1/runtime-android-0.2.0-rc.1-sources.jar": "<sha256>",
+    "swift/NetLift/0.2.0-rc.1/NetLiftRuntime.xcframework.zip": "<sha256>",
+    "swift/NetLift/0.2.0-rc.1/netlift-swift-tools.artifactbundle.zip": "<sha256>"
+  }
+}
+```
+
+If the Android runtime is unchanged from a previous release, record its
+actual version and hashes instead of rebuilding it merely to match the RC
+plugin. The source commit must exist in the current NetLift checkout.
+`stage_stable_promotion.py` checks the bytes against this record,
+Gradle module metadata, RC Swift tag URLs/checksums, and release gates.
+First run without `--stage` to inspect the candidate:
+
+```bash
+python3 tooling/stage_stable_promotion.py \
+  --sdk-checkout /path/to/isolated/netlift-sdk \
+  --rc-provenance /path/to/rc-provenance.json \
+  --rc-version 0.2.0-rc.1 --stable-version 0.2.0
+```
+
+With `--stage`, it writes stable Maven plugin and runtime coordinates,
+metadata/checksums and `stable-provenance/0.2.0.json` to the SDK clone. Its
+JAR, AAR and sources JAR are **byte-identical** to their verified originals.
+Swift needs no new binary: the stable tag must point to the **same SDK commit**
+as the RC tag; that Package.swift already contains the verified RC binary URLs
+and checksums. The tool does not push or tag. After review, push the staged
+Maven metadata, verify the public-feed bytes, then create and push the stable
+Swift tag at the recorded `swiftTagTarget`. Never move a published tag or
+overwrite an existing Maven version.
+
+The plugin keeps `runtimeVersion` as the **embedded compatibility identity**
+used by the component and Android runtime (`BuildConfig.NETLIFT_VERSION`).
+For a stable consumer, select the stable Maven alias independently:
+
+```kotlin
+netlift {
+    runtimeArtifactVersion.set("0.2.0")
+}
+```
+
+This property is available in newly built plugin candidates; older preview
+JARs cannot be promoted with this workflow. Verify fresh public-feed-only
+stable consumers including real Android/iOS runtime execution, the exact
+stable Android runtime coordinate and unchanged RC binary hashes. Only then
+record `rc-binary-hashes-preserved` and `stable-consumer-acceptance` before
+passing the stable-byte gate. Staging alone is not a release or device proof.
+
 ## Android Gradle plugin and runtime
 
 `android/runtime-android` is the standalone, publishable Android runtime

@@ -79,9 +79,105 @@ class ReleaseGateTests(unittest.TestCase):
             (root / "release-gates.json").write_text(json.dumps(manifest))
             with (
                 patch.object(module, "PRODUCT", root),
-                self.assertRaisesRegex(RuntimeError, "authorize stable"),
+                patch.object(
+                    module, "preview_versions",
+                    return_value=("0.1.0-alpha.15", "0.1.0-alpha.3", "0.1.0-alpha.10"),
+                ),
+                patch.object(module, "check_preview_pins"),
+                self.assertRaisesRegex(RuntimeError, "verified android-physical-device"),
             ):
                 module.main()
+
+    def test_stable_gate_requires_exact_bytes_and_clean_consumers(self):
+        manifest = json.loads((PRODUCT / "release-gates.json").read_text())
+        manifest["previewPolicy"]["stablePromotionAuthorized"] = True
+        for gate in manifest["gates"]:
+            if gate["id"] in module.REQUIRED_STABLE_EVIDENCE:
+                gate["status"] = "passed"
+                gate["evidence"] = sorted(module.REQUIRED_STABLE_EVIDENCE[gate["id"]])
+        promoted = next(
+            gate for gate in manifest["gates"]
+            if gate["id"] == "stable-byte-promotion"
+        )
+        promoted["status"] = "passed"
+        with tempfile.TemporaryDirectory(prefix="release-gates-", dir=PRODUCT / "artifacts") as work:
+            root = Path(work)
+            path = root / "release-gates.json"
+            with (
+                patch.object(module, "PRODUCT", root),
+                patch.object(
+                    module, "preview_versions",
+                    return_value=("0.1.0-alpha.15", "0.1.0-alpha.3", "0.1.0-alpha.10"),
+                ),
+                patch.object(module, "check_preview_pins"),
+            ):
+                path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(RuntimeError, "lacks consumer and identity"):
+                    module.main()
+                promoted["evidence"] = [
+                    "rc-binary-hashes-preserved", "stable-consumer-acceptance"
+                ]
+                path.write_text(json.dumps(manifest))
+                self.assertEqual(module.main(), 0)
+
+    def test_physical_and_rc_evidence_cannot_be_promoted_early(self):
+        manifest = json.loads((PRODUCT / "release-gates.json").read_text())
+        gates = {gate["id"]: gate for gate in manifest["gates"]}
+        gates["android-physical-device"]["status"] = "passed"
+        with tempfile.TemporaryDirectory(prefix="release-gates-", dir=PRODUCT / "artifacts") as work:
+            root = Path(work)
+            path = root / "release-gates.json"
+            with (
+                patch.object(module, "PRODUCT", root),
+                patch.object(
+                    module, "preview_versions",
+                    return_value=("0.1.0-alpha.15", "0.1.0-alpha.3", "0.1.0-alpha.10"),
+                ),
+                patch.object(module, "check_preview_pins"),
+            ):
+                path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(RuntimeError, "lacks required evidence"):
+                    module.main()
+                gates["android-physical-device"]["evidence"] = sorted(
+                    module.REQUIRED_STABLE_EVIDENCE["android-physical-device"]
+                )
+                gates["remote-release-candidate-consumers"]["status"] = "passed"
+                gates["remote-release-candidate-consumers"]["evidence"] = sorted(
+                    module.REQUIRED_STABLE_EVIDENCE["remote-release-candidate-consumers"]
+                )
+                path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(RuntimeError, "cannot precede physical"):
+                    module.main()
+
+    def test_rc_acceptance_does_not_require_stable_authorization(self):
+        manifest = json.loads((PRODUCT / "release-gates.json").read_text())
+        for gate in manifest["gates"]:
+            if gate["id"] in module.REQUIRED_STABLE_EVIDENCE:
+                gate["status"] = "passed"
+                gate["evidence"] = sorted(module.REQUIRED_STABLE_EVIDENCE[gate["id"]])
+        with tempfile.TemporaryDirectory(prefix="release-gates-", dir=PRODUCT / "artifacts") as work:
+            root = Path(work)
+            (root / "release-gates.json").write_text(json.dumps(manifest))
+            with (
+                patch.object(module, "PRODUCT", root),
+                patch.object(
+                    module, "preview_versions",
+                    return_value=("0.1.0-alpha.15", "0.1.0-alpha.3", "0.1.0-alpha.10"),
+                ),
+                patch.object(module, "check_preview_pins"),
+            ):
+                self.assertEqual(module.main(), 0)
+                promotion = next(
+                    gate for gate in manifest["gates"]
+                    if gate["id"] == "stable-byte-promotion"
+                )
+                promotion["status"] = "passed"
+                promotion["evidence"] = [
+                    "rc-binary-hashes-preserved", "stable-consumer-acceptance"
+                ]
+                (root / "release-gates.json").write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(RuntimeError, "not authorized"):
+                    module.main()
 
 
 if __name__ == "__main__":
