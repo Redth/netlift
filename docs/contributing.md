@@ -272,7 +272,10 @@ packages. Update `android/gradle.properties` for a changed plugin/runtime,
 a changed Swift package, and update exact sample pins and documentation.
 Leave the runtime pin alone if its bytes have not changed. Publish Maven
 artifacts into `artifacts/maven` and stage the Swift package into an isolated
-`netlift-sdk` clone; refuse any existing version directory/tag. Record the
+`netlift-sdk` clone; use `python3 tooling/stage_preview_maven.py
+--sdk-checkout /path/to/isolated/netlift-sdk` to add new plugin artifacts
+without dropping earlier Maven metadata. Both staging commands reject an
+existing version directory. Refuse any existing Swift tag. Record the
 NetLift source commit and SHA-256 of published packages, copy only new versions
 and Maven metadata to the SDK clone, publish it, and create the Swift tag only
 after the binaries are publicly available. Verify fresh caches and an upgrade
