@@ -6,7 +6,11 @@ public sealed record ContractManifest(
     int FormatVersion,
     string SchemaHash,
     IReadOnlyList<ContractService> Services,
-    IReadOnlyList<ContractTypeDefinition> Types);
+    IReadOnlyList<ContractTypeDefinition> Types)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<ContractService>? NativeServices { get; init; }
+}
 
 public sealed record ContractCompilation(
     ContractManifest Manifest,
@@ -27,7 +31,9 @@ public sealed record ContractMethod(
     bool IsAsync,
     bool SupportsCancellation,
     IReadOnlyList<ContractParameter> Parameters,
-    ContractTypeReference Result);
+    ContractTypeReference Result,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    bool IsStreaming = false);
 
 public sealed record ContractParameter(string Name, ContractTypeReference Type);
 
@@ -62,7 +68,8 @@ public sealed record CompilerConfiguration(
     string Output,
     string? CompatibilityLock = null,
     bool EmitAndroidBridge = false,
-    bool EmitAppleBridge = false);
+    bool EmitAppleBridge = false,
+    IReadOnlyList<string>? NativeServiceRoots = null);
 
 [JsonSerializable(typeof(ContractManifest))]
 [JsonSerializable(typeof(ContractLock))]

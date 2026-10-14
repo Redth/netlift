@@ -1731,12 +1731,38 @@ plugin/package regression tests.
 
 **Depends on:** W5 and W7.
 
+**Implementation status:** asynchronous request/response and cancellation
+foundation completed. ABI V2, exactly-once terminal completion, stale-token
+rejection, deterministic cancel/complete races, awaitable managed drain,
+10,000-operation fake-transport stress, and real Android coroutine/iOS Swift
+task cancellation are implemented. A managed callback registry now provides
+generation-scoped registration, revoke-before-drain, stale-call rejection,
+self-drain protection, and exactly-once owner release, and endpoint drain
+includes its callback leases. The managed endpoint also supports
+pull-based `IAsyncEnumerable` transport dispatch with cancellation and
+operation drain, without an intermediate unbounded queue. The compiler now
+projects stream contracts to Kotlin `Flow` and Swift
+`AsyncThrowingStream`. Android has generated managed open/next/close stream
+operations, JNI entry points, a demand-driven `Flow` transport, cancellation
+and disposal wiring, and Orders consumer coverage for complete and early
+collection. The generated Android bridge component and Kotlin consumer compile.
+Apple workload-mode generation now emits an app-specific
+`NetLiftAppleTransport`, Objective-C stream operations, and a SwiftUI consumer
+that validates complete stream delivery; its generated component and Swift
+host compile. The compiler now accepts explicit `nativeServiceRoots` in its
+configuration and emits Kotlin interfaces, Swift protocols, stable route IDs,
+and compatibility-lock entries for async unary native services. This keeps
+callback direction explicit without adding attributes to ordinary .NET
+contracts. Native callback parameters/proxies, JNI/Objective-C owner wiring,
+and live callback/stream platform acceptance remain; W8 is not complete until
+those deliverables and platform stress gates pass.
+
 **Implementation steps:**
 
 1. Generalize generated `Task<T>` clients to Kotlin `suspend` and Swift
    `async throws`.
 2. Generate native-owned service protocols/interfaces for managed-origin
-   requests.
+   requests, selected explicitly through `nativeServiceRoots` configuration.
 3. Implement registration token + generation, nonblocking revoke, external
    drain wait, stale-reply rejection, and exactly-once final release.
 4. Add cold, demand-aware stream projection to Kotlin `Flow` and Swift

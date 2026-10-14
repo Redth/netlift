@@ -17,6 +17,9 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "OrdersPreview",
+            dependencies: [
+                .product(name: "NetLiftRuntime", package: "netlift-sdk"),
+            ],
             exclude: ["netlift.json"],
             plugins: [
                 .plugin(name: "NetLiftPlugin", package: "netlift-sdk"),

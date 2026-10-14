@@ -23,6 +23,20 @@ typedef struct invoke_thread_context {
     netlift_error_v1 error;
 } invoke_thread_context;
 
+typedef struct async_test_context {
+    netlift_adapter_complete_fn_v2 complete;
+    void* completion_context;
+    netlift_handle_v1 endpoint;
+    uint64_t operation_token;
+    atomic_uint_fast64_t cancelled_operation;
+    int opened;
+    int closed;
+    int completions;
+    netlift_status_v1 completion_status;
+    netlift_owned_buffer_v1 response;
+    netlift_error_v1 error;
+} async_test_context;
+
 static netlift_status_v1 NETLIFT_CALL open_endpoint(
     void* raw_context,
     netlift_handle_v1 endpoint,
@@ -98,6 +112,198 @@ static netlift_status_v1 NETLIFT_CALL close_endpoint(
     (void)endpoint;
     context->closed++;
     return NETLIFT_STATUS_OK;
+}
+
+static netlift_status_v1 NETLIFT_CALL invoke_async(
+    void* raw_context,
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token,
+    uint32_t service_id,
+    uint32_t member_id,
+    netlift_bytes_v1 request,
+    netlift_adapter_complete_fn_v2 complete,
+    void* completion_context,
+    netlift_bytes_v1* error)
+{
+    static const uint8_t unknown[] = "unknown async route";
+    async_test_context* context = (async_test_context*)raw_context;
+    (void)request;
+    if (service_id != 10 || member_id != 20) {
+        error->data = unknown;
+        error->length = sizeof(unknown) - 1;
+        return NETLIFT_STATUS_UNKNOWN_ROUTE;
+    }
+    context->complete = complete;
+    context->completion_context = completion_context;
+    context->endpoint = endpoint;
+    context->operation_token = operation_token;
+    return NETLIFT_STATUS_OK;
+}
+
+static netlift_status_v1 NETLIFT_CALL cancel_async(
+    void* raw_context,
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token)
+{
+    async_test_context* context = (async_test_context*)raw_context;
+    (void)endpoint;
+    atomic_store(&context->cancelled_operation, operation_token);
+    return NETLIFT_STATUS_OK;
+}
+
+static void NETLIFT_CALL completion_async(
+    void* raw_context,
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token,
+    netlift_status_v1 status,
+    netlift_owned_buffer_v1 response,
+    netlift_error_v1 error)
+{
+    async_test_context* context = (async_test_context*)raw_context;
+    assert(endpoint.token == context->endpoint.token);
+    assert(operation_token == context->operation_token);
+    context->completions++;
+    context->completion_status = status;
+    context->response = response;
+    context->error = error;
+}
+
+static netlift_status_v1 NETLIFT_CALL open_endpoint_async(
+    void* raw_context,
+    netlift_handle_v1 endpoint,
+    netlift_bytes_v1* error)
+{
+    async_test_context* context = (async_test_context*)raw_context;
+    (void)endpoint;
+    memset(error, 0, sizeof(*error));
+    context->opened++;
+    return NETLIFT_STATUS_OK;
+}
+
+static netlift_status_v1 NETLIFT_CALL close_endpoint_async(
+    void* raw_context,
+    netlift_handle_v1 endpoint)
+{
+    async_test_context* context = (async_test_context*)raw_context;
+    (void)endpoint;
+    context->closed++;
+    return NETLIFT_STATUS_OK;
+}
+
+static void test_async_v2(void)
+{
+    static const uint8_t request_data[] = { 4, 5, 6 };
+    static const uint8_t cancelled[] = "cancelled async";
+    netlift_api_v2 api = { 0 };
+    netlift_runtime_adapter_v2 adapter = { 0 };
+    netlift_handle_v1 host = { 0 };
+    netlift_handle_v1 endpoint = { 0 };
+    netlift_error_v1 error = { 0 };
+    netlift_bytes_v1 request = { request_data, sizeof(request_data) };
+    netlift_bytes_v1 message = { cancelled, sizeof(cancelled) - 1 };
+    netlift_bytes_v1 empty = { 0 };
+    async_test_context context = { 0 };
+    uint32_t required = 0;
+    uint64_t outstanding = 0;
+
+    assert(netlift_get_api_v2(sizeof(api) - 1, &api, &required) ==
+           NETLIFT_STATUS_INVALID_ARGUMENT);
+    assert(required == sizeof(api));
+    assert(netlift_get_api_v2(sizeof(api), &api, &required) == NETLIFT_STATUS_OK);
+    assert(api.abi_version == NETLIFT_ABI_VERSION_2);
+
+    adapter.struct_size = sizeof(adapter);
+    adapter.abi_version = NETLIFT_ABI_VERSION_2;
+    adapter.context = &context;
+    adapter.open_endpoint = open_endpoint_async;
+    adapter.invoke_async = invoke_async;
+    adapter.cancel = cancel_async;
+    adapter.close_endpoint = close_endpoint_async;
+
+    assert(api.host_create(&adapter, &host) == NETLIFT_STATUS_OK);
+    assert(api.endpoint_open(host, &endpoint, &error) == NETLIFT_STATUS_OK);
+    assert(context.opened == 1);
+
+    assert(api.endpoint_invoke_async(
+               endpoint, 100, 10, 20, request, completion_async, &context, &error) ==
+           NETLIFT_STATUS_OK);
+    assert(api.endpoint_get_outstanding(endpoint, &outstanding) == NETLIFT_STATUS_OK);
+    assert(outstanding == 1);
+    assert(api.endpoint_invoke_async(
+               endpoint, 100, 10, 20, request, completion_async, &context, &error) ==
+           NETLIFT_STATUS_BUSY);
+    assert(context.complete(
+               context.completion_context,
+               endpoint,
+               100,
+               NETLIFT_STATUS_OK,
+               request,
+               empty) == NETLIFT_STATUS_OK);
+    assert(context.completions == 1);
+    assert(context.completion_status == NETLIFT_STATUS_OK);
+    assert(context.response.length == sizeof(request_data));
+    assert(memcmp(context.response.data, request_data, sizeof(request_data)) == 0);
+    assert(api.buffer_release(host, &context.response) == NETLIFT_STATUS_OK);
+    assert(context.complete(
+               context.completion_context,
+               endpoint,
+               100,
+               NETLIFT_STATUS_OK,
+               request,
+               empty) == NETLIFT_STATUS_STALE_OPERATION);
+    assert(api.endpoint_cancel(endpoint, 100) == NETLIFT_STATUS_STALE_OPERATION);
+    assert(api.endpoint_invoke_async(
+               endpoint, 100, 10, 20, request, completion_async, &context, &error) ==
+           NETLIFT_STATUS_BUSY);
+
+    assert(api.endpoint_invoke_async(
+               endpoint, 101, 999, 20, request, completion_async, &context, &error) ==
+           NETLIFT_STATUS_UNKNOWN_ROUTE);
+    assert(error.status == NETLIFT_STATUS_UNKNOWN_ROUTE);
+    assert(api.buffer_release(host, &error.message) == NETLIFT_STATUS_OK);
+
+    for (uint64_t token = 1000; token < 11000; token++) {
+        assert(api.endpoint_invoke_async(
+                   endpoint, token, 10, 20, request, completion_async, &context, &error) ==
+               NETLIFT_STATUS_OK);
+        assert(context.complete(
+                   context.completion_context,
+                   endpoint,
+                   token,
+                   NETLIFT_STATUS_OK,
+                   request,
+                   empty) == NETLIFT_STATUS_OK);
+        assert(api.buffer_release(host, &context.response) == NETLIFT_STATUS_OK);
+    }
+    assert(api.endpoint_get_outstanding(endpoint, &outstanding) == NETLIFT_STATUS_OK);
+    assert(outstanding == 0);
+
+    assert(api.endpoint_invoke_async(
+               endpoint, 102, 10, 20, request, completion_async, &context, &error) ==
+           NETLIFT_STATUS_OK);
+    assert(api.endpoint_begin_drain(endpoint, &outstanding) == NETLIFT_STATUS_BUSY);
+    assert(outstanding == 1);
+    assert(api.endpoint_invoke_async(
+               endpoint, 103, 10, 20, request, completion_async, &context, &error) ==
+           NETLIFT_STATUS_UNAVAILABLE);
+    assert(api.endpoint_cancel(endpoint, 102) == NETLIFT_STATUS_OK);
+    assert(atomic_load(&context.cancelled_operation) == 102);
+    assert(context.complete(
+               context.completion_context,
+               endpoint,
+               102,
+               NETLIFT_STATUS_CANCELLED,
+               empty,
+               message) == NETLIFT_STATUS_OK);
+    assert(context.completions == 10002);
+    assert(context.completion_status == NETLIFT_STATUS_CANCELLED);
+    assert(context.error.status == NETLIFT_STATUS_CANCELLED);
+    assert(api.buffer_release(host, &context.error.message) == NETLIFT_STATUS_OK);
+    assert(api.endpoint_get_outstanding(endpoint, &outstanding) == NETLIFT_STATUS_OK);
+    assert(outstanding == 0);
+    assert(api.endpoint_close(endpoint) == NETLIFT_STATUS_OK);
+    assert(context.closed == 1);
+    assert(api.host_close(host) == NETLIFT_STATUS_OK);
 }
 
 int main(void)
@@ -188,6 +394,7 @@ int main(void)
     assert(api.host_close(host) == NETLIFT_STATUS_OK);
     assert(api.host_close(host) == NETLIFT_STATUS_STALE_HANDLE);
 
+    test_async_v2();
     puts("NetLift native ABI tests passed.");
     return 0;
 }

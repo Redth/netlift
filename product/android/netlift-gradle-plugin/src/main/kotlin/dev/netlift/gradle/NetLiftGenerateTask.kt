@@ -36,6 +36,9 @@ abstract class NetLiftGenerateTask @Inject constructor(
     abstract val contractRoots: ListProperty<String>
 
     @get:Input
+    abstract val nativeServiceRoots: ListProperty<String>
+
+    @get:Input
     abstract val kotlinPackage: Property<String>
 
     @get:Input
@@ -107,6 +110,7 @@ abstract class NetLiftGenerateTask @Inject constructor(
   "version": 1,
   "assembly": "${jsonPath(managedAssembly)}",
   "contractRoots": [${contractRoots.get().joinToString(", ") { "\"${json(it)}\"" }}],
+  "nativeServiceRoots": [${nativeServiceRoots.get().joinToString(", ") { "\"${json(it)}\"" }}],
   "kotlinPackage": "${json(kotlinPackage.get())}",
   "swiftModule": "${json(swiftModule.get())}",
   "output": "${jsonPath(generated)}",

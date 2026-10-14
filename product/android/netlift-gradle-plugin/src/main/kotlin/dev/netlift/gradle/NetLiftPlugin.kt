@@ -12,10 +12,11 @@ class NetLiftPlugin : Plugin<Project> {
         )
         extension.kotlinPackage.convention("${project.group}.netlift")
         extension.swiftModule.convention("NetLiftContracts")
+        extension.nativeServiceRoots.convention(emptyList())
         extension.contractTargetFramework.convention("net10.0")
         extension.componentTargetFramework.convention("net10.0-android")
         extension.runtimeIdentifier.convention("android-arm64")
-        extension.runtimeVersion.convention("0.1.0-alpha.1")
+        extension.runtimeVersion.convention("0.1.0-alpha.2")
         extension.componentApplicationId.convention("${project.name}.netlift.component")
         extension.generatedDirectory.convention(project.layout.buildDirectory.dir("generated/netlift"))
 
@@ -46,6 +47,7 @@ class NetLiftPlugin : Plugin<Project> {
                         "Generates NetLift projections and the ${variant.name} workload component."
                     netLiftTask.managedProject.set(extension.managedProject)
                     netLiftTask.contractRoots.set(extension.contractRoots)
+                    netLiftTask.nativeServiceRoots.set(extension.nativeServiceRoots)
                     netLiftTask.kotlinPackage.set(extension.kotlinPackage)
                     netLiftTask.swiftModule.set(extension.swiftModule)
                     netLiftTask.contractTargetFramework.set(extension.contractTargetFramework)

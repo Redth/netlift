@@ -209,7 +209,7 @@ def main() -> int:
             "sha256": environment["manifestSha256"],
         },
         "initializationAbiVersion": 1,
-        "requiredRuntimeAbiVersion": 1,
+        "requiredRuntimeAbiVersion": 2,
         "requiredRuntimeVersion": args.runtime_version,
         "minimumAndroidSdk": args.minimum_sdk,
         "typemapMode": "llvm-ir",

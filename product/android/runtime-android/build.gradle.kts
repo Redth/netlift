@@ -55,6 +55,10 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+
+    dependencies {
+        api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    }
 }
 
 publishing {

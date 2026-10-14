@@ -87,7 +87,7 @@ they never start a second CLR.
 project. It produces:
 
 ```text
-io.github.redth.netlift:runtime-android:0.1.0-alpha.1
+io.github.redth.netlift:runtime-android:0.1.0-alpha.2
 ```
 
 The checked-in Gradle wrapper makes the package independent of the workload
@@ -100,7 +100,7 @@ product/android/gradlew -p product/android \
   --no-daemon
 python3 product/android/runtime-android/audit_runtime_aar.py \
   product/artifacts/maven/io/github/redth/netlift/runtime-android/\
-0.1.0-alpha.1/runtime-android-0.1.0-alpha.1.aar
+0.1.0-alpha.2/runtime-android-0.1.0-alpha.2.aar
 ```
 
 The runtime AAR contains only the Kotlin API, generic JNI adapter,
@@ -136,12 +136,13 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 plugins {
-    id("io.github.redth.netlift") version "0.1.0-alpha.6"
+    id("io.github.redth.netlift") version "0.1.0-alpha.7"
 }
 
 netlift {
     managedProject.set(file("../managed/Orders.csproj"))
     contractRoots.set(listOf("Orders.Contracts.IOrdersService"))
+    nativeServiceRoots.set(listOf("Orders.Contracts.IOrderConfirmation"))
     kotlinPackage.set("com.example.orders")
     swiftModule.set("OrdersNetLift")
 }
@@ -154,6 +155,9 @@ exactly one public, parameterless implementation for each rooted service and
 generates the `net10.0-android` project, multi-service dispatcher, managed JNI
 bridge, and app-specific workload component. Missing or ambiguous service
 implementations fail generation with a precise diagnostic.
+`nativeServiceRoots` explicitly identifies native-owned callback interfaces;
+generated client methods accept handlers for those interfaces and scope their
+registration to the managed invocation.
 
 The native app owns startup and calls the runtime explicitly:
 
@@ -188,13 +192,13 @@ unsupported until the Swift-owned CoreCLR path succeeds on a signed device;
 macOS and x86_64 simulator slices are not included.
 
 The contract-neutral runtime and projection plugin are published in Swift
-package `NetLift` `0.1.0-alpha.4`:
+package `NetLift` `0.1.0-alpha.5`:
 
 ```swift
 dependencies: [
     .package(
         url: "https://github.com/Redth/netlift-sdk.git",
-        exact: "0.1.0-alpha.4"
+        exact: "0.1.0-alpha.5"
     ),
 ]
 ```
@@ -210,6 +214,9 @@ Attach the package's `NetLiftPlugin` to a Swift target and place
 .executableTarget(
     name: "OrdersPreview",
     exclude: ["netlift.json"],
+    dependencies: [
+        .product(name: "NetLiftRuntime", package: "netlift-sdk"),
+    ],
     plugins: [
         .plugin(name: "NetLiftPlugin", package: "netlift-sdk"),
     ]
@@ -221,6 +228,7 @@ Attach the package's `NetLiftPlugin` to a Swift target and place
   "version": 1,
   "managedProject": "../../Managed/Orders/Orders.csproj",
   "contractRoots": ["Orders.Preview.IOrdersService"],
+  "nativeServiceRoots": ["Orders.Preview.IOrderConfirmation"],
   "swiftModule": "OrdersPreview"
 }
 ```
@@ -246,6 +254,7 @@ the Swift-owned executable:
 python3 product/apple/build_component.py \
   --managed-project product/apple/samples/OrdersPreview/Managed/Orders/Orders.csproj \
   --contract-root Orders.Preview.IOrdersService \
+  --native-service-root Orders.Preview.IOrderConfirmation \
   --swift-module OrdersPreview \
   --native-source-root experiments/workload-library-mode/apple/native-app \
   --swift-contracts product/apple/samples/OrdersPreview/.build/plugins/outputs/orderspreview/OrdersPreview/destination/NetLiftPlugin/Generated/NetLiftContracts.swift \
@@ -255,5 +264,62 @@ python3 product/apple/build_component.py \
 SwiftPM build-tool plugins cannot dynamically add a generated framework or
 archive to an app target's link inputs. The plugin owns source projection;
 the explicit package-owned component command owns platform-bound
-registrar/R2R/CoreCLR construction and Xcode linking. The component command
-rejects plugin output that does not exactly match its managed contract.
+registrar/R2R/CoreCLR construction and Xcode linking. The component command requires the SwiftPM plugin projection to match the
+shared contract portion of its generated output, then appends the
+Apple-specific transport bridge.
+For workload-mode builds, the compiler also emits `NetLiftAppleTransport`,
+which uses the generated Objective-C bridge for async calls and streams. The
+SwiftUI workload proof consumes a complete `OrderEvent` stream through this
+generated transport; ordinary SwiftPM plugin output remains contract-only
+because it does not create an app-specific managed component.
+
+## Asynchronous operation lifecycle
+
+ABI V2 adds a separate 80-byte asynchronous function table without changing
+the frozen V1 table or adapter layout. An endpoint accepts a unique non-zero
+operation token once during its lifetime. The adapter borrows request bytes
+only during `invoke_async`; terminal response/error bytes are copied into
+NetLift-owned buffers before the native completion callback runs.
+
+Cancellation and completion race under one endpoint lock. Cancellation that
+wins the lock makes cancellation the terminal result; completion that wins
+first makes later cancellation stale. Duplicate tokens, duplicate
+completions, and late completions return `STALE_OPERATION` or `BUSY` and never
+deliver a second callback. Drain rejects new work while allowing accepted work
+to complete. Close requires drain, zero outstanding operations, and zero
+active callbacks, so close from inside a completion cannot wait on itself.
+
+`NetLiftEndpointHost.DrainAsync` is the managed wait primitive. Async disposal
+begins drain, requests cancellation, waits for every accepted operation, and
+then closes. Android runs managed calls off the caller thread and maps
+coroutine cancellation to the managed operation token. Apple does the same for
+Swift tasks through the generated Objective-C bridge. The Orders platform
+acceptance apps exercise success, typed managed failure, and cancellation.
+
+`NetLiftEndpointHost.NativeCallbacks` is the managed lifetime authority for
+native-owned callback registrations. Each registration receives a unique token
+and generation; revoke immediately rejects new calls, waits for accepted calls
+to finish, then runs its owner-release action once. Endpoint drain revokes all
+registrations and waits for those final releases as well as async operations.
+Calls made with a revoked token or mismatched generation return
+`STALE_HANDLE`. Android JNI global references and Apple retained Swift
+dispatchers are generated and wired to the shared registry; callback
+registrations are revoked after each client invocation, and owner release
+waits for active calls to drain. Managed lifecycle tests cover cancellation,
+stale registrations, and release behavior, while the Android and Apple sample
+applications compile a native confirmation handler through the full generated
+bridge.
+
+Managed stream handlers can implement `INetLiftStreamDispatcher`.
+`NetLiftEndpointHost.InvokeStreamAsync` retains the operation token for the
+enumerator's lifetime, copies each yielded payload, propagates cancellation,
+and releases the operation on completion or disposal. It pulls one item at a
+time from the managed async enumerable; there is no intermediate unbounded
+queue, so consumption demand is the backpressure policy. Generated Kotlin
+clients expose cold `Flow` APIs; the Android runtime opens, advances, cancels,
+and closes those streams through JNI, with each item pulled only after the
+collector requests it. The Android Orders acceptance app covers full
+enumeration and early collector cancellation. Apple workload-mode generation
+emits matching Objective-C open/next/close methods and a Swift
+`NetLiftAppleTransport`; the SwiftUI proof covers complete stream delivery.
+Physical-device stream and callback lifecycle stress tests remain.

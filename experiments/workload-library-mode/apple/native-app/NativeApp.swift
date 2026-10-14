@@ -1,50 +1,6 @@
 import SwiftUI
 import UIKit
 
-private enum ManagedTransportError: Error {
-    case invalidEnvelope
-    case managed(status: Int, message: String)
-}
-
-private struct BridgeEnvelope: Decodable {
-    let success: Bool
-    let payload: String?
-    let error: String?
-    let status: Int
-}
-
-private final class ManagedTransport: NetLiftTransport, @unchecked Sendable {
-    private let bridge = NetLiftManagedBridge()
-
-    func invoke(
-        serviceId: UInt32,
-        memberId: UInt32,
-        payload: Data
-    ) async throws -> Data {
-        let value = bridge.invokeService(
-            serviceId,
-            member: memberId,
-            payload: payload
-        ) as String
-        let envelope = try JSONDecoder().decode(
-            BridgeEnvelope.self,
-            from: Data(value.utf8)
-        )
-        guard envelope.success,
-              let encoded = envelope.payload,
-              let result = Data(base64Encoded: encoded) else {
-            if envelope.success {
-                throw ManagedTransportError.invalidEnvelope
-            }
-            throw ManagedTransportError.managed(
-                status: envelope.status,
-                message: envelope.error ?? "Managed invocation failed."
-            )
-        }
-        return result
-    }
-}
-
 @objc(NetLiftNativeAppDelegate)
 final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -66,7 +22,7 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
             do {
                 try NetLiftRuntime.validateABI()
                 let client = OrdersServiceClient(
-                    transport: ManagedTransport()
+                    transport: NetLiftAppleTransport()
                 )
                 let receipt = try await client.submitOrder(
                     request: OrderRequest(
@@ -76,6 +32,33 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                         note: "NETLIFT-IOS"
                     )
                 )
+                let confirmation = try await client.confirmOrder(
+                    request: OrderRequest(
+                        customerId: "callback",
+                        priority: .standard,
+                        quantity: 3,
+                        note: nil
+                    ),
+                    confirmation: PreviewConfirmationHandler()
+                )
+                guard confirmation.accepted,
+                      confirmation.message == "confirmed by Swift" else {
+                    throw NetLiftAppleTransportError.invalidEnvelope
+                }
+                var events: [OrderEvent] = []
+                for try await event in client.watchOrder(
+                    request: OrderRequest(
+                        customerId: "customer-42",
+                        priority: .expedited,
+                        quantity: 2,
+                        note: "NETLIFT-IOS-STREAM"
+                    )
+                ) {
+                    events.append(event)
+                }
+                guard events.map(\.state) == ["accepted", "complete"] else {
+                    throw NetLiftAppleTransportError.invalidEnvelope
+                }
                 let typedError: String
                 do {
                     _ = try await client.submitOrder(
@@ -87,17 +70,41 @@ final class NativeAppDelegate: UIResponder, UIApplicationDelegate {
                         )
                     )
                     typedError = "missing"
-                } catch ManagedTransportError.managed(let status, _) {
+                } catch NetLiftAppleTransportError.managed(let status, _) {
                     typedError = "managed status \(status)"
+                }
+                let cancellation = Task {
+                    try await client.submitOrder(
+                        request: OrderRequest(
+                            customerId: "customer-42",
+                            priority: .standard,
+                            quantity: 1,
+                            note: "NETLIFT-CANCEL"
+                        )
+                    )
+                }
+                try await Task.sleep(nanoseconds: 100_000_000)
+                cancellation.cancel()
+                let cancellationStatus: String
+                do {
+                    _ = try await cancellation.value
+                    cancellationStatus = "missing"
+                } catch NetLiftAppleTransportError.managed(let status, _) {
+                    cancellationStatus = "managed status \(status)"
+                } catch is CancellationError {
+                    cancellationStatus = "task cancelled"
                 }
                 window.rootViewController = UIHostingController(
                     rootView: ProofView(
                         status: """
                             .NET Apple workload component initialized explicitly.
                             Generated Orders client: \(receipt.orderId)
+                            Native callback: \(confirmation.message ?? "")
                             Accepted: \(receipt.accepted)
                             \(receipt.message ?? "")
+                            Stream events: \(events.map(\.state).joined(separator: ", "))
                             Typed error: \(typedError)
+                            Cancellation: \(cancellationStatus)
                             """
                     )
                 )
@@ -117,5 +124,16 @@ private struct ProofView: View {
     var body: some View {
         Text(status)
             .padding()
+    }
+}
+
+private struct PreviewConfirmationHandler: OrderConfirmation {
+    func confirm(
+        request: OrderConfirmationRequest
+    ) async throws -> OrderConfirmationResult {
+        OrderConfirmationResult(
+            accepted: request.quantity == 3,
+            reason: "confirmed by Swift"
+        )
     }
 }

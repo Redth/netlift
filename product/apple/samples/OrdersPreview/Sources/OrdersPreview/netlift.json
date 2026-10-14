@@ -4,5 +4,8 @@
   "contractRoots": [
     "Orders.Preview.IOrdersService"
   ],
+  "nativeServiceRoots": [
+    "Orders.Preview.IOrderConfirmation"
+  ],
   "swiftModule": "OrdersPreview"
 }

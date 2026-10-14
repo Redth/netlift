@@ -14,10 +14,27 @@ typedef struct netlift_buffer_node {
 
 typedef struct netlift_host_record {
     netlift_handle_v1 handle;
+    uint32_t adapter_version;
     netlift_runtime_adapter_v1 adapter;
+    netlift_runtime_adapter_v2 adapter_v2;
     netlift_buffer_node* buffers;
     struct netlift_host_record* next;
 } netlift_host_record;
+
+typedef struct netlift_operation_record {
+    uint64_t token;
+    int state;
+    netlift_completion_fn_v2 completion;
+    void* completion_context;
+    struct netlift_operation_record* next;
+} netlift_operation_record;
+
+enum {
+    NETLIFT_OPERATION_ACTIVE = 0,
+    NETLIFT_OPERATION_CANCEL_REQUESTED = 1,
+    NETLIFT_OPERATION_COMPLETING = 2,
+    NETLIFT_OPERATION_COMPLETED = 3
+};
 
 typedef struct netlift_endpoint_record {
     netlift_handle_v1 handle;
@@ -26,6 +43,7 @@ typedef struct netlift_endpoint_record {
     uint64_t callbacks;
     int draining;
     int closing;
+    netlift_operation_record* operations;
     struct netlift_endpoint_record* next;
 } netlift_endpoint_record;
 
@@ -74,6 +92,19 @@ static netlift_endpoint_record* find_endpoint(netlift_handle_v1 handle)
     netlift_endpoint_record* current = g_endpoints;
     while (current != NULL) {
         if (handles_equal(current->handle, handle))
+            return current;
+        current = current->next;
+    }
+    return NULL;
+}
+
+static netlift_operation_record* find_operation(
+    netlift_endpoint_record* endpoint,
+    uint64_t token)
+{
+    netlift_operation_record* current = endpoint->operations;
+    while (current != NULL) {
+        if (current->token == token)
             return current;
         current = current->next;
     }
@@ -162,7 +193,38 @@ static netlift_status_v1 NETLIFT_CALL host_create(
 
     lock_registry();
     record->handle = next_handle();
+    record->adapter_version = NETLIFT_ABI_VERSION_1;
     record->adapter = *adapter;
+    record->next = g_hosts;
+    g_hosts = record;
+    *host = record->handle;
+    unlock_registry();
+    return NETLIFT_STATUS_OK;
+}
+
+static netlift_status_v1 NETLIFT_CALL host_create_v2(
+    const netlift_runtime_adapter_v2* adapter,
+    netlift_handle_v1* host)
+{
+    netlift_host_record* record;
+    if (adapter == NULL || host == NULL)
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+    memset(host, 0, sizeof(*host));
+    if (adapter->abi_version != NETLIFT_ABI_VERSION_2 ||
+        adapter->struct_size < sizeof(netlift_runtime_adapter_v2))
+        return NETLIFT_STATUS_UNSUPPORTED_VERSION;
+    if (adapter->open_endpoint == NULL || adapter->invoke_async == NULL ||
+        adapter->cancel == NULL || adapter->close_endpoint == NULL)
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+
+    record = (netlift_host_record*)calloc(1, sizeof(*record));
+    if (record == NULL)
+        return NETLIFT_STATUS_OUT_OF_MEMORY;
+
+    lock_registry();
+    record->handle = next_handle();
+    record->adapter_version = NETLIFT_ABI_VERSION_2;
+    record->adapter_v2 = *adapter;
     record->next = g_hosts;
     g_hosts = record;
     *host = record->handle;
@@ -238,8 +300,13 @@ static netlift_status_v1 NETLIFT_CALL endpoint_open(
     g_endpoints = endpoint;
     unlock_registry();
 
-    status = host->adapter.open_endpoint(
-        host->adapter.context, endpoint->handle, &adapter_error);
+    if (host->adapter_version == NETLIFT_ABI_VERSION_2) {
+        status = host->adapter_v2.open_endpoint(
+            host->adapter_v2.context, endpoint->handle, &adapter_error);
+    } else {
+        status = host->adapter.open_endpoint(
+            host->adapter.context, endpoint->handle, &adapter_error);
+    }
     if (status != NETLIFT_STATUS_OK) {
         netlift_endpoint_record** current;
         netlift_status_v1 error_status =
@@ -320,12 +387,174 @@ static netlift_status_v1 NETLIFT_CALL endpoint_invoke(
     return status;
 }
 
+static netlift_status_v1 NETLIFT_CALL adapter_complete_v2(
+    void* context,
+    netlift_handle_v1 endpoint_handle,
+    uint64_t operation_token,
+    netlift_status_v1 operation_status,
+    netlift_bytes_v1 response,
+    netlift_bytes_v1 error_message)
+{
+    netlift_endpoint_record* endpoint;
+    netlift_operation_record* operation;
+    netlift_host_record* host;
+    netlift_completion_fn_v2 completion;
+    void* completion_context;
+    netlift_owned_buffer_v1 owned_response = { 0 };
+    netlift_error_v1 owned_error = { 0 };
+    netlift_status_v1 copy_status;
+    int cancellation_requested;
+    (void)context;
+
+    if (operation_token == 0 ||
+        (response.length != 0 && response.data == NULL) ||
+        (error_message.length != 0 && error_message.data == NULL))
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+
+    lock_registry();
+    endpoint = find_endpoint(endpoint_handle);
+    if (endpoint == NULL) {
+        unlock_registry();
+        return NETLIFT_STATUS_STALE_HANDLE;
+    }
+    operation = find_operation(endpoint, operation_token);
+    if (operation == NULL ||
+        (operation->state != NETLIFT_OPERATION_ACTIVE &&
+         operation->state != NETLIFT_OPERATION_CANCEL_REQUESTED)) {
+        unlock_registry();
+        return NETLIFT_STATUS_STALE_OPERATION;
+    }
+    cancellation_requested =
+        operation->state == NETLIFT_OPERATION_CANCEL_REQUESTED;
+    operation->state = NETLIFT_OPERATION_COMPLETING;
+    endpoint->outstanding--;
+    endpoint->callbacks++;
+    host = endpoint->host;
+    completion = operation->completion;
+    completion_context = operation->completion_context;
+    unlock_registry();
+
+    if (cancellation_requested) {
+        operation_status = NETLIFT_STATUS_CANCELLED;
+        copy_status = set_error(host, operation_status, error_message, &owned_error);
+    } else if (operation_status == NETLIFT_STATUS_OK) {
+        copy_status = copy_buffer(host, response, &owned_response);
+        if (copy_status != NETLIFT_STATUS_OK)
+            owned_error.status = (uint32_t)copy_status;
+    } else {
+        copy_status = set_error(host, operation_status, error_message, &owned_error);
+    }
+    if (copy_status != NETLIFT_STATUS_OK)
+        operation_status = copy_status;
+
+    completion(
+        completion_context,
+        endpoint_handle,
+        operation_token,
+        operation_status,
+        owned_response,
+        owned_error);
+
+    lock_registry();
+    operation->state = NETLIFT_OPERATION_COMPLETED;
+    endpoint->callbacks--;
+    unlock_registry();
+    return NETLIFT_STATUS_OK;
+}
+
+static netlift_status_v1 NETLIFT_CALL endpoint_invoke_async_v2(
+    netlift_handle_v1 endpoint_handle,
+    uint64_t operation_token,
+    uint32_t service_id,
+    uint32_t member_id,
+    netlift_bytes_v1 request,
+    netlift_completion_fn_v2 completion,
+    void* completion_context,
+    netlift_error_v1* error)
+{
+    netlift_endpoint_record* endpoint;
+    netlift_operation_record* operation;
+    netlift_host_record* host;
+    netlift_bytes_v1 adapter_error = { 0 };
+    netlift_status_v1 status;
+
+    if (operation_token == 0 || service_id == 0 || member_id == 0 ||
+        completion == NULL || (request.length != 0 && request.data == NULL))
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+    if (error != NULL && error->message.token != 0)
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+    clear_error(error);
+
+    operation = (netlift_operation_record*)calloc(1, sizeof(*operation));
+    if (operation == NULL)
+        return NETLIFT_STATUS_OUT_OF_MEMORY;
+    operation->token = operation_token;
+    operation->completion = completion;
+    operation->completion_context = completion_context;
+
+    lock_registry();
+    endpoint = find_endpoint(endpoint_handle);
+    if (endpoint == NULL) {
+        unlock_registry();
+        free(operation);
+        return NETLIFT_STATUS_STALE_HANDLE;
+    }
+    if (endpoint->host->adapter_version != NETLIFT_ABI_VERSION_2) {
+        unlock_registry();
+        free(operation);
+        return NETLIFT_STATUS_UNSUPPORTED_VERSION;
+    }
+    if (endpoint->draining || endpoint->closing) {
+        unlock_registry();
+        free(operation);
+        return NETLIFT_STATUS_UNAVAILABLE;
+    }
+    if (find_operation(endpoint, operation_token) != NULL) {
+        unlock_registry();
+        free(operation);
+        return NETLIFT_STATUS_BUSY;
+    }
+    operation->next = endpoint->operations;
+    endpoint->operations = operation;
+    endpoint->outstanding++;
+    endpoint->callbacks++;
+    host = endpoint->host;
+    unlock_registry();
+
+    status = host->adapter_v2.invoke_async(
+        host->adapter_v2.context,
+        endpoint_handle,
+        operation_token,
+        service_id,
+        member_id,
+        request,
+        adapter_complete_v2,
+        NULL,
+        &adapter_error);
+
+    lock_registry();
+    endpoint->callbacks--;
+    if (operation->state != NETLIFT_OPERATION_ACTIVE) {
+        unlock_registry();
+        return NETLIFT_STATUS_OK;
+    }
+    if (status == NETLIFT_STATUS_OK) {
+        unlock_registry();
+        return NETLIFT_STATUS_OK;
+    }
+    operation->state = NETLIFT_OPERATION_COMPLETED;
+    endpoint->outstanding--;
+    unlock_registry();
+    return set_error(host, status, adapter_error, error);
+}
+
 static netlift_status_v1 NETLIFT_CALL endpoint_cancel(
     netlift_handle_v1 endpoint_handle,
     uint64_t operation_token)
 {
     netlift_endpoint_record* endpoint;
-    netlift_runtime_adapter_v1 adapter;
+    netlift_host_record* host;
+    netlift_operation_record* operation;
     netlift_status_v1 status;
     if (operation_token == 0)
         return NETLIFT_STATUS_INVALID_ARGUMENT;
@@ -339,11 +568,29 @@ static netlift_status_v1 NETLIFT_CALL endpoint_cancel(
         unlock_registry();
         return NETLIFT_STATUS_UNAVAILABLE;
     }
+    host = endpoint->host;
+    if (host->adapter_version == NETLIFT_ABI_VERSION_2) {
+        operation = find_operation(endpoint, operation_token);
+        if (operation == NULL || operation->state != NETLIFT_OPERATION_ACTIVE) {
+            unlock_registry();
+            return NETLIFT_STATUS_STALE_OPERATION;
+        }
+        operation->state = NETLIFT_OPERATION_CANCEL_REQUESTED;
+    }
     endpoint->callbacks++;
-    adapter = endpoint->host->adapter;
     unlock_registry();
-    status = adapter.cancel(adapter.context, endpoint_handle, operation_token);
+    if (host->adapter_version == NETLIFT_ABI_VERSION_2) {
+        status = host->adapter_v2.cancel(
+            host->adapter_v2.context, endpoint_handle, operation_token);
+    } else {
+        status = host->adapter.cancel(
+            host->adapter.context, endpoint_handle, operation_token);
+    }
     lock_registry();
+    if (host->adapter_version == NETLIFT_ABI_VERSION_2 &&
+        status != NETLIFT_STATUS_OK &&
+        operation->state == NETLIFT_OPERATION_CANCEL_REQUESTED)
+        operation->state = NETLIFT_OPERATION_ACTIVE;
     endpoint->callbacks--;
     unlock_registry();
     return status;
@@ -390,6 +637,7 @@ static netlift_status_v1 NETLIFT_CALL endpoint_close(netlift_handle_v1 endpoint_
 {
     netlift_endpoint_record* endpoint;
     netlift_endpoint_record** current;
+    netlift_operation_record* operation;
     netlift_status_v1 status;
 
     lock_registry();
@@ -405,8 +653,13 @@ static netlift_status_v1 NETLIFT_CALL endpoint_close(netlift_handle_v1 endpoint_
     }
     endpoint->closing = 1;
     unlock_registry();
-    status = endpoint->host->adapter.close_endpoint(
-        endpoint->host->adapter.context, endpoint_handle);
+    if (endpoint->host->adapter_version == NETLIFT_ABI_VERSION_2) {
+        status = endpoint->host->adapter_v2.close_endpoint(
+            endpoint->host->adapter_v2.context, endpoint_handle);
+    } else {
+        status = endpoint->host->adapter.close_endpoint(
+            endpoint->host->adapter.context, endpoint_handle);
+    }
     lock_registry();
     if (status != NETLIFT_STATUS_OK) {
         endpoint->closing = 0;
@@ -418,6 +671,11 @@ static netlift_status_v1 NETLIFT_CALL endpoint_close(netlift_handle_v1 endpoint_
         current = &(*current)->next;
     *current = endpoint->next;
     unlock_registry();
+    while (endpoint->operations != NULL) {
+        operation = endpoint->operations;
+        endpoint->operations = operation->next;
+        free(operation);
+    }
     free(endpoint);
     return NETLIFT_STATUS_OK;
 }
@@ -482,6 +740,34 @@ netlift_status_v1 NETLIFT_CALL netlift_get_api(
     if (requested_version != NETLIFT_ABI_VERSION_1)
         return NETLIFT_STATUS_UNSUPPORTED_VERSION;
     if (api == NULL || caller_size < sizeof(netlift_api_v1))
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+    memcpy(api, &implementation, sizeof(implementation));
+    return NETLIFT_STATUS_OK;
+}
+
+netlift_status_v1 NETLIFT_CALL netlift_get_api_v2(
+    uint32_t caller_size,
+    netlift_api_v2* api,
+    uint32_t* required_size)
+{
+    static const netlift_api_v2 implementation = {
+        sizeof(netlift_api_v2),
+        NETLIFT_ABI_VERSION_2,
+        host_create_v2,
+        host_close,
+        endpoint_open,
+        endpoint_invoke_async_v2,
+        endpoint_cancel,
+        endpoint_begin_drain,
+        endpoint_close,
+        buffer_release,
+        endpoint_get_outstanding
+    };
+
+    if (required_size == NULL)
+        return NETLIFT_STATUS_INVALID_ARGUMENT;
+    *required_size = (uint32_t)sizeof(netlift_api_v2);
+    if (api == NULL || caller_size < sizeof(netlift_api_v2))
         return NETLIFT_STATUS_INVALID_ARGUMENT;
     memcpy(api, &implementation, sizeof(implementation));
     return NETLIFT_STATUS_OK;

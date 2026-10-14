@@ -27,7 +27,7 @@ def main() -> int:
     manifest = json.loads(
         (ARTIFACTS / "netlift-runtime-apple.json").read_text(encoding="utf-8")
     )
-    if manifest["abiVersion"] != 1:
+    if manifest["abiVersion"] != 2:
         raise RuntimeError("Apple runtime declares an unexpected ABI")
     supported = [
         target
@@ -63,6 +63,8 @@ def main() -> int:
     ).stdout
     if "_netlift_get_api" not in symbols:
         raise RuntimeError("Apple runtime framework is missing netlift_get_api")
+    if "_netlift_get_api_v2" not in symbols:
+        raise RuntimeError("Apple runtime framework is missing netlift_get_api_v2")
     if "Orders" in symbols:
         raise RuntimeError("Apple runtime framework contains sample symbols")
     print(f"Apple runtime audit passed: {FRAMEWORK}")

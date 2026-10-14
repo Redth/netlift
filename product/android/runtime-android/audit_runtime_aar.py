@@ -69,7 +69,7 @@ def main() -> int:
         manifest = json.loads(aar.read(RUNTIME_MANIFEST))
         if manifest != {
             "schemaVersion": 1,
-            "runtimeAbiVersion": 1,
+            "runtimeAbiVersion": 2,
             "minimumComponentSchemaVersion": 1,
         }:
             raise RuntimeError("Runtime AAR compatibility manifest is invalid.")

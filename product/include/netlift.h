@@ -21,6 +21,7 @@ extern "C" {
 #endif
 
 #define NETLIFT_ABI_VERSION_1 1u
+#define NETLIFT_ABI_VERSION_2 2u
 
 typedef enum netlift_status_v1 {
     NETLIFT_STATUS_OK = 0,
@@ -96,6 +97,35 @@ typedef struct netlift_runtime_adapter_v1 {
     netlift_adapter_close_endpoint_fn_v1 close_endpoint;
 } netlift_runtime_adapter_v1;
 
+typedef netlift_status_v1 (NETLIFT_CALL *netlift_adapter_complete_fn_v2)(
+    void* context,
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token,
+    netlift_status_v1 status,
+    netlift_bytes_v1 response,
+    netlift_bytes_v1 error);
+
+typedef netlift_status_v1 (NETLIFT_CALL *netlift_adapter_invoke_async_fn_v2)(
+    void* context,
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token,
+    uint32_t service_id,
+    uint32_t member_id,
+    netlift_bytes_v1 request,
+    netlift_adapter_complete_fn_v2 complete,
+    void* completion_context,
+    netlift_bytes_v1* error);
+
+typedef struct netlift_runtime_adapter_v2 {
+    uint32_t struct_size;
+    uint32_t abi_version;
+    void* context;
+    netlift_adapter_open_endpoint_fn_v1 open_endpoint;
+    netlift_adapter_invoke_async_fn_v2 invoke_async;
+    netlift_adapter_cancel_fn_v1 cancel;
+    netlift_adapter_close_endpoint_fn_v1 close_endpoint;
+} netlift_runtime_adapter_v2;
+
 /*
  * Adapter response and error views are borrowed until the adapter callback returns.
  * NetLift copies them before returning to the native caller. Adapter callbacks may
@@ -156,10 +186,51 @@ typedef struct netlift_api_v1 {
     netlift_endpoint_get_outstanding_fn_v1 endpoint_get_outstanding;
 } netlift_api_v1;
 
+typedef void (NETLIFT_CALL *netlift_completion_fn_v2)(
+    void* context,
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token,
+    netlift_status_v1 status,
+    netlift_owned_buffer_v1 response,
+    netlift_error_v1 error);
+
+typedef netlift_status_v1 (NETLIFT_CALL *netlift_host_create_fn_v2)(
+    const netlift_runtime_adapter_v2* adapter,
+    netlift_handle_v1* host);
+
+typedef netlift_status_v1 (NETLIFT_CALL *netlift_endpoint_invoke_async_fn_v2)(
+    netlift_handle_v1 endpoint,
+    uint64_t operation_token,
+    uint32_t service_id,
+    uint32_t member_id,
+    netlift_bytes_v1 request,
+    netlift_completion_fn_v2 completion,
+    void* completion_context,
+    netlift_error_v1* error);
+
+typedef struct netlift_api_v2 {
+    uint32_t struct_size;
+    uint32_t abi_version;
+    netlift_host_create_fn_v2 host_create;
+    netlift_host_close_fn_v1 host_close;
+    netlift_endpoint_open_fn_v1 endpoint_open;
+    netlift_endpoint_invoke_async_fn_v2 endpoint_invoke_async;
+    netlift_endpoint_cancel_fn_v1 endpoint_cancel;
+    netlift_endpoint_begin_drain_fn_v1 endpoint_begin_drain;
+    netlift_endpoint_close_fn_v1 endpoint_close;
+    netlift_buffer_release_fn_v1 buffer_release;
+    netlift_endpoint_get_outstanding_fn_v1 endpoint_get_outstanding;
+} netlift_api_v2;
+
 NETLIFT_EXPORT netlift_status_v1 NETLIFT_CALL netlift_get_api(
     uint32_t requested_version,
     uint32_t caller_size,
     netlift_api_v1* api,
+    uint32_t* required_size);
+
+NETLIFT_EXPORT netlift_status_v1 NETLIFT_CALL netlift_get_api_v2(
+    uint32_t caller_size,
+    netlift_api_v2* api,
     uint32_t* required_size);
 
 /*
@@ -175,12 +246,16 @@ static_assert(sizeof(netlift_owned_buffer_v1) == 24, "netlift_owned_buffer_v1 AB
 static_assert(sizeof(netlift_error_v1) == 32, "netlift_error_v1 ABI changed");
 static_assert(sizeof(netlift_runtime_adapter_v1) == 48, "netlift_runtime_adapter_v1 ABI changed");
 static_assert(sizeof(netlift_api_v1) == 80, "netlift_api_v1 ABI changed");
+static_assert(sizeof(netlift_runtime_adapter_v2) == 48, "netlift_runtime_adapter_v2 ABI changed");
+static_assert(sizeof(netlift_api_v2) == 80, "netlift_api_v2 ABI changed");
 #else
 _Static_assert(sizeof(netlift_handle_v1) == 16, "netlift_handle_v1 ABI changed");
 _Static_assert(sizeof(netlift_owned_buffer_v1) == 24, "netlift_owned_buffer_v1 ABI changed");
 _Static_assert(sizeof(netlift_error_v1) == 32, "netlift_error_v1 ABI changed");
 _Static_assert(sizeof(netlift_runtime_adapter_v1) == 48, "netlift_runtime_adapter_v1 ABI changed");
 _Static_assert(sizeof(netlift_api_v1) == 80, "netlift_api_v1 ABI changed");
+_Static_assert(sizeof(netlift_runtime_adapter_v2) == 48, "netlift_runtime_adapter_v2 ABI changed");
+_Static_assert(sizeof(netlift_api_v2) == 80, "netlift_api_v2 ABI changed");
 #endif
 #endif
 

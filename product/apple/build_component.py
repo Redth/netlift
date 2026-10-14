@@ -115,6 +115,7 @@ def main() -> int:
     parser.add_argument("--managed-project", type=Path, required=True)
     parser.add_argument("--managed-framework", default="net10.0")
     parser.add_argument("--contract-root", action="append", required=True)
+    parser.add_argument("--native-service-root", action="append", default=[])
     parser.add_argument("--swift-module", default="NetLiftGenerated")
     parser.add_argument("--native-source-root", type=Path, required=True)
     parser.add_argument("--swift-contracts", type=Path)
@@ -177,6 +178,7 @@ def main() -> int:
         "version": 1,
         "assembly": str(managed_assembly),
         "contractRoots": args.contract_root,
+        "nativeServiceRoots": args.native_service_root,
         "kotlinPackage": "dev.netlift.generated",
         "swiftModule": args.swift_module,
         "output": str(generated),
@@ -195,11 +197,31 @@ def main() -> int:
     if args.swift_contracts is not None:
         plugin_swift = args.swift_contracts.resolve()
         generated_swift = generated / "NetLiftContracts.swift"
-        if plugin_swift.read_bytes() != generated_swift.read_bytes():
+        shared_generated = artifact_root / "shared-generated"
+        shared_config = {
+            **config,
+            "output": str(shared_generated),
+            "emitAppleBridge": False,
+        }
+        shared_config_path = artifact_root / "netlift-shared.json"
+        shared_config_path.write_text(
+            json.dumps(shared_config, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        run(
+            "dotnet",
+            "run",
+            "--project",
+            str(PRODUCT / "src" / "NetLift.Tool" / "NetLift.Tool.csproj"),
+            "--",
+            str(shared_config_path),
+        )
+        plugin_output = plugin_swift.read_bytes()
+        shared_output = (shared_generated / "NetLiftContracts.swift").read_bytes()
+        if plugin_output != shared_output:
             raise RuntimeError(
-                "SwiftPM plugin output does not match component contract generation"
+                "SwiftPM plugin output does not match shared contract generation"
             )
-        shutil.copy2(plugin_swift, generated_swift)
 
     component_project_root = artifact_root / "component-project"
     component_project_root.mkdir()
@@ -303,6 +325,18 @@ def main() -> int:
     )
 
     swift_object = objects / "NativeApp.o"
+    generated_swift_source = generated / "NetLiftContracts.swift"
+    component_swift_source = generated / "NetLiftContracts.Component.swift"
+    swift_source_text = generated_swift_source.read_text(encoding="utf-8")
+    runtime_import = "import NetLiftRuntime\n"
+    if runtime_import not in swift_source_text:
+        raise RuntimeError(
+            "Generated Swift contracts do not import the NetLift runtime"
+        )
+    component_swift_source.write_text(
+        swift_source_text.replace(runtime_import, "", 1),
+        encoding="utf-8",
+    )
     run(
         "xcrun",
         "swiftc",
@@ -325,7 +359,7 @@ def main() -> int:
             / "NetLiftRuntime"
             / "NetLiftRuntime.swift"
         ),
-        str(generated / "NetLiftContracts.swift"),
+        str(component_swift_source),
         str(native_source_root / "NativeApp.swift"),
         "-o",
         str(swift_object),

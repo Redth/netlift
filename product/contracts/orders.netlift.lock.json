@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "schemaHash": "c04facd03c6b76a41ed53b4530b36421f2a36d629c9dc56ff8a4cd065d2c3f4c",
+  "schemaHash": "b21677263d48211609c2bce5343a53ee52520e6020de40906bbe1345abb59d73",
   "entries": [
     {
       "kind": "dto",
@@ -10,9 +10,27 @@
     },
     {
       "kind": "dto",
+      "id": 616105388,
+      "name": "Orders.Contracts.OrderConfirmationResult",
+      "signature": "Orders.Contracts.OrderConfirmationResult:dto:538573718:Accepted:bool:-:!,1625084821:Reason:string:-:?"
+    },
+    {
+      "kind": "dto",
       "id": 779267412,
       "name": "Orders.Contracts.OrderRequest",
       "signature": "Orders.Contracts.OrderRequest:dto:25135561:CustomerId:string:-:!,388580559:Quantity:int32:-:!,1217124482:Priority:enum:1442367054:!,1263479496:Note:string:-:?"
+    },
+    {
+      "kind": "dto",
+      "id": 1264895446,
+      "name": "Orders.Contracts.OrderEvent",
+      "signature": "Orders.Contracts.OrderEvent:dto:1189907702:State:string:-:!,1795772756:OrderId:string:-:!"
+    },
+    {
+      "kind": "dto",
+      "id": 1883918602,
+      "name": "Orders.Contracts.OrderConfirmationRequest",
+      "signature": "Orders.Contracts.OrderConfirmationRequest:dto:65908095:OrderId:string:-:!,2024367026:Quantity:int32:-:!"
     },
     {
       "kind": "enum",
@@ -28,6 +46,12 @@
     },
     {
       "kind": "field",
+      "id": 65908095,
+      "name": "Orders.Contracts.OrderConfirmationRequest.OrderId",
+      "signature": "Orders.Contracts.OrderConfirmationRequest.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
       "id": 300439661,
       "name": "Orders.Contracts.OrderResult.Message",
       "signature": "Orders.Contracts.OrderResult.Message:string:-:?"
@@ -37,6 +61,18 @@
       "id": 388580559,
       "name": "Orders.Contracts.OrderRequest.Quantity",
       "signature": "Orders.Contracts.OrderRequest.Quantity:int32:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 538573718,
+      "name": "Orders.Contracts.OrderConfirmationResult.Accepted",
+      "signature": "Orders.Contracts.OrderConfirmationResult.Accepted:bool:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 1189907702,
+      "name": "Orders.Contracts.OrderEvent.State",
+      "signature": "Orders.Contracts.OrderEvent.State:string:-:!"
     },
     {
       "kind": "field",
@@ -52,9 +88,27 @@
     },
     {
       "kind": "field",
+      "id": 1625084821,
+      "name": "Orders.Contracts.OrderConfirmationResult.Reason",
+      "signature": "Orders.Contracts.OrderConfirmationResult.Reason:string:-:?"
+    },
+    {
+      "kind": "field",
+      "id": 1795772756,
+      "name": "Orders.Contracts.OrderEvent.OrderId",
+      "signature": "Orders.Contracts.OrderEvent.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
       "id": 1922247558,
       "name": "Orders.Contracts.OrderResult.OrderId",
       "signature": "Orders.Contracts.OrderResult.OrderId:string:-:!"
+    },
+    {
+      "kind": "field",
+      "id": 2024367026,
+      "name": "Orders.Contracts.OrderConfirmationRequest.Quantity",
+      "signature": "Orders.Contracts.OrderConfirmationRequest.Quantity:int32:-:!"
     },
     {
       "kind": "field",
@@ -64,9 +118,33 @@
     },
     {
       "kind": "method",
+      "id": 335542559,
+      "name": "Orders.Contracts.IOrdersService.ConfirmOrderAsync",
+      "signature": "Orders.Contracts.IOrdersService.ConfirmOrderAsync(request:dto:779267412:!,confirmation:nativeService:1784511791:!)-\u003Edto:249840796:!:True:True"
+    },
+    {
+      "kind": "method",
+      "id": 338532860,
+      "name": "Orders.Contracts.IOrdersService.WatchOrderAsync",
+      "signature": "Orders.Contracts.IOrdersService.WatchOrderAsync(request:dto:779267412:!)-\u003Edto:1264895446:!:False:True:stream"
+    },
+    {
+      "kind": "method",
       "id": 479762786,
       "name": "Orders.Contracts.IOrdersService.SubmitOrderAsync",
       "signature": "Orders.Contracts.IOrdersService.SubmitOrderAsync(request:dto:779267412:!)-\u003Edto:249840796:!:True:True"
+    },
+    {
+      "kind": "nativeService",
+      "id": 1784511791,
+      "name": "Orders.Contracts.IOrderConfirmation",
+      "signature": "nativeService:Orders.Contracts.IOrderConfirmation"
+    },
+    {
+      "kind": "nativeServiceMethod",
+      "id": 394752378,
+      "name": "Orders.Contracts.IOrderConfirmation.ConfirmAsync",
+      "signature": "Orders.Contracts.IOrderConfirmation.ConfirmAsync(request:dto:1883918602:!)-\u003Edto:616105388:!:True:True"
     },
     {
       "kind": "service",

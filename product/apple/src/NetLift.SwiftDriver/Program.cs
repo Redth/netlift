@@ -88,7 +88,8 @@ try
 
     var manifest = ContractCompiler.Compile(
         managedAssembly,
-        configuration.ContractRoots);
+        configuration.ContractRoots,
+        configuration.NativeServiceRoots ?? []);
     var generated = ProjectionEmitter.Emit(
         manifest,
         "dev.netlift.generated",
@@ -240,6 +241,7 @@ internal sealed record SwiftPluginConfiguration(
     IReadOnlyList<string> ContractRoots,
     string SwiftModule,
     string ManagedFramework = "net10.0",
-    string Configuration = "Release");
+    string Configuration = "Release",
+    IReadOnlyList<string>? NativeServiceRoots = null);
 
 internal sealed class SwiftDriverException(string message) : Exception(message);

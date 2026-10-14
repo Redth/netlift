@@ -20,10 +20,13 @@ try
 
     var assemblyPath = Path.GetFullPath(configuration.Assembly, configurationDirectory);
     var outputPath = Path.GetFullPath(configuration.Output, configurationDirectory);
+    var nativeServiceRoots = configuration.NativeServiceRoots ?? [];
     var compilation = configuration.EmitAndroidBridge || configuration.EmitAppleBridge
-        ? ContractCompiler.CompileWithImplementations(assemblyPath, configuration.ContractRoots)
+        ? ContractCompiler.CompileWithImplementations(
+            assemblyPath, configuration.ContractRoots, nativeServiceRoots)
         : new ContractCompilation(
-            ContractCompiler.Compile(assemblyPath, configuration.ContractRoots),
+            ContractCompiler.Compile(
+                assemblyPath, configuration.ContractRoots, nativeServiceRoots),
             []);
     var manifest = compilation.Manifest;
     var contractLock = ContractCompiler.CreateLock(manifest);
@@ -46,7 +49,10 @@ try
     Directory.CreateDirectory(outputPath);
     WriteIfChanged(Path.Combine(outputPath, "netlift.manifest.json"), ContractCompiler.Serialize(manifest));
     foreach (var (name, content) in ProjectionEmitter.Emit(
-                 manifest, configuration.KotlinPackage, configuration.SwiftModule))
+                 manifest,
+                 configuration.KotlinPackage,
+                 configuration.SwiftModule,
+                 configuration.EmitAppleBridge))
         WriteIfChanged(Path.Combine(outputPath, name), content);
     if (configuration.EmitAndroidBridge)
         WriteIfChanged(

@@ -66,6 +66,7 @@ Build and audit the SwiftUI-owned Apple application:
 python3 product/apple/build_component.py \
   --managed-project product/samples/Orders.Contracts/Orders.Contracts.csproj \
   --contract-root Orders.Contracts.IOrdersService \
+  --native-service-root Orders.Contracts.IOrderConfirmation \
   --native-source-root experiments/workload-library-mode/apple/native-app \
   --output experiments/workload-library-mode/.artifacts/apple-product-slice
 python3 product/apple/audit_component.py \

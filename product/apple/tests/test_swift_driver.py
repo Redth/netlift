@@ -18,7 +18,7 @@ TOOL = (
     / "netlift-swift"
     / "artifacts"
     / "netlift-swift-tools.artifactbundle"
-    / "netlift-swift-0.1.0-alpha.4-macos"
+    / "netlift-swift-0.1.0-alpha.5-macos"
     / "bin"
     / "netlift-swift"
 )
@@ -69,6 +69,7 @@ def main() -> int:
                 "version": 1,
                 "managedProject": "Managed/Orders/Orders.csproj",
                 "contractRoots": ["Orders.Preview.IOrdersService"],
+                "nativeServiceRoots": ["Orders.Preview.IOrderConfirmation"],
                 "swiftModule": "OrdersPreview",
             }
         ),

@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../samples/Orders.Contracts/Orders.Contracts.csproj" />
+    <ProjectReference Include="../../src/NetLift.Compiler/NetLift.Compiler.csproj" />
     <ProjectReference Include="../../src/NetLift.Runtime/NetLift.Runtime.csproj" />
     <ProjectReference Include="../../src/NetLift.Tool/NetLift.Tool.csproj"
                       ReferenceOutputAssembly="false" />

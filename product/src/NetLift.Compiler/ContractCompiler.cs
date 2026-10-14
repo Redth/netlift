@@ -10,20 +10,34 @@ namespace NetLift.Compiler;
 public static class ContractCompiler
 {
     public static ContractManifest Compile(string assemblyPath, IReadOnlyList<string> contractRoots)
-        => CompileCore(assemblyPath, contractRoots, discoverImplementations: false).Manifest;
+        => Compile(assemblyPath, contractRoots, []);
+
+    public static ContractManifest Compile(
+        string assemblyPath,
+        IReadOnlyList<string> contractRoots,
+        IReadOnlyList<string> nativeServiceRoots)
+        => CompileCore(assemblyPath, contractRoots, nativeServiceRoots, discoverImplementations: false).Manifest;
 
     public static ContractCompilation CompileWithImplementations(
         string assemblyPath,
         IReadOnlyList<string> contractRoots)
-        => CompileCore(assemblyPath, contractRoots, discoverImplementations: true);
+        => CompileWithImplementations(assemblyPath, contractRoots, []);
+
+    public static ContractCompilation CompileWithImplementations(
+        string assemblyPath,
+        IReadOnlyList<string> contractRoots,
+        IReadOnlyList<string> nativeServiceRoots)
+        => CompileCore(assemblyPath, contractRoots, nativeServiceRoots, discoverImplementations: true);
 
     private static ContractCompilation CompileCore(
         string assemblyPath,
         IReadOnlyList<string> contractRoots,
+        IReadOnlyList<string> nativeServiceRoots,
         bool discoverImplementations)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
         ArgumentNullException.ThrowIfNull(contractRoots);
+        ArgumentNullException.ThrowIfNull(nativeServiceRoots);
         if (contractRoots.Count == 0)
             throw new ContractCompilerException("At least one contract root is required.");
 
@@ -37,21 +51,61 @@ public static class ContractCompiler
             var assembly = loadContext.LoadFromAssemblyPath(fullPath);
             var exportedTypes = assembly.GetExportedTypes();
             var services = ResolveServices(exportedTypes, contractRoots);
-            var discoveredTypes = DiscoverTypes(services);
+            var nativeServices = ResolveServices(exportedTypes, nativeServiceRoots);
+            var duplicateDirection = services.Intersect(nativeServices).FirstOrDefault();
+            if (duplicateDirection is not null)
+                throw new ContractCompilerException(
+                    $"Service '{TypeName(duplicateDirection)}' cannot be both managed-owned and native-owned.");
+            var discoveredTypes = DiscoverTypes(
+                services.Concat(nativeServices), nativeServices.ToHashSet());
             var typeDefinitions = BuildTypeDefinitions(discoveredTypes);
             var typeIds = typeDefinitions.ToDictionary(type => type.Name, type => type.Id, StringComparer.Ordinal);
+            var nativeServiceIds = nativeServices.ToDictionary(
+                TypeName,
+                service => StableId("service", TypeName(service)),
+                StringComparer.Ordinal);
             var nullability = new NullabilityInfoContext();
             var contractServices = services
-                .Select(service => BuildService(service, typeIds, nullability))
+                .Select(service => BuildService(service, typeIds, nativeServiceIds, nullability))
                 .OrderBy(service => service.Id)
                 .ThenBy(service => service.Name, StringComparer.Ordinal)
                 .ToArray();
+            var nativeContractServices = nativeServices
+                .Select(service => BuildService(service, typeIds, nativeServiceIds, nullability))
+                .OrderBy(service => service.Id)
+                .ThenBy(service => service.Name, StringComparer.Ordinal)
+                .ToArray();
+            foreach (var service in nativeContractServices)
+            {
+                foreach (var method in service.Methods)
+                {
+                    if (!method.IsAsync || method.IsStreaming)
+                        throw new ContractCompilerException(
+                            $"Native service method '{service.Name}.{method.Name}' must return Task<T>; native service streams are not supported yet.");
+                    if (method.Parameters.Any(parameter => parameter.Type.Kind == "nativeService"))
+                        throw new ContractCompilerException(
+                            $"Native service method '{service.Name}.{method.Name}' cannot accept another native service callback.");
+                }
+            }
+            foreach (var service in contractServices)
+            {
+                foreach (var method in service.Methods.Where(method =>
+                             method.IsStreaming &&
+                             method.Parameters.Any(parameter => parameter.Type.Kind == "nativeService")))
+                {
+                    throw new ContractCompilerException(
+                        $"Streaming managed method '{service.Name}.{method.Name}' cannot accept native service callbacks yet.");
+                }
+            }
             var orderedTypes = typeDefinitions
                 .OrderBy(type => type.Id)
                 .ThenBy(type => type.Name, StringComparer.Ordinal)
                 .ToArray();
 
-            var withoutHash = new ContractManifest(1, "", contractServices, orderedTypes);
+            var withoutHash = new ContractManifest(1, "", contractServices, orderedTypes)
+            {
+                NativeServices = nativeContractServices.Length == 0 ? null : nativeContractServices
+            };
             var canonical = SerializeCanonical(withoutHash);
             var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))
                 .ToLowerInvariant();
@@ -103,6 +157,15 @@ public static class ContractCompiler
             .Concat(manifest.Services.SelectMany(service => service.Methods.Select(method =>
                 new ContractLockEntry(
                     "method",
+                    method.Id,
+                    $"{service.Name}.{method.Name}",
+                    MethodSignature(service, method)))))
+            .Concat((manifest.NativeServices ?? [])
+                .Select(service => new ContractLockEntry(
+                    "nativeService", service.Id, service.Name, $"nativeService:{service.Name}")))
+            .Concat((manifest.NativeServices ?? []).SelectMany(service => service.Methods.Select(method =>
+                new ContractLockEntry(
+                    "nativeServiceMethod",
                     method.Id,
                     $"{service.Name}.{method.Name}",
                     MethodSignature(service, method)))))
@@ -186,7 +249,9 @@ public static class ContractCompiler
         return result;
     }
 
-    private static HashSet<Type> DiscoverTypes(IEnumerable<Type> services)
+    private static HashSet<Type> DiscoverTypes(
+        IEnumerable<Type> services,
+        ISet<Type> nativeServiceTypes)
     {
         var discovered = new HashSet<Type>();
         foreach (var service in services)
@@ -197,10 +262,12 @@ public static class ContractCompiler
                 {
                     if (parameter.ParameterType == typeof(CancellationToken))
                         continue;
-                    DiscoverType(Unwrap(parameter.ParameterType), discovered);
+                    var parameterType = Unwrap(parameter.ParameterType);
+                    if (!nativeServiceTypes.Contains(parameterType))
+                        DiscoverType(parameterType, discovered);
                 }
 
-                DiscoverType(UnwrapTask(method.ReturnType), discovered);
+                DiscoverType(UnwrapResult(method.ReturnType), discovered);
             }
         }
 
@@ -257,10 +324,12 @@ public static class ContractCompiler
     private static ContractService BuildService(
         Type service,
         IReadOnlyDictionary<string, uint> typeIds,
+        IReadOnlyDictionary<string, uint> nativeServiceIds,
         NullabilityInfoContext nullability)
     {
         var methods = service.GetMethods()
-            .Select(method => BuildMethod(service, method, typeIds, nullability))
+            .Select(method => BuildMethod(
+                service, method, typeIds, nativeServiceIds, nullability))
             .OrderBy(method => method.Id)
             .ThenBy(method => method.Name, StringComparer.Ordinal)
             .ToArray();
@@ -275,6 +344,7 @@ public static class ContractCompiler
         Type service,
         MethodInfo method,
         IReadOnlyDictionary<string, uint> typeIds,
+        IReadOnlyDictionary<string, uint> nativeServiceIds,
         NullabilityInfoContext nullability)
     {
         if (method.IsGenericMethod)
@@ -289,14 +359,15 @@ public static class ContractCompiler
             throw new ContractCompilerException(
                 $"Method '{TypeName(service)}.{method.Name}' may have one trailing CancellationToken.");
 
+        var isStreaming = IsAsyncEnumerable(method.ReturnType);
         var isAsync = IsTask(method.ReturnType);
-        if (!isAsync)
+        if (!isAsync && !isStreaming)
             throw new ContractCompilerException(
-                $"Method '{TypeName(service)}.{method.Name}' must return Task<T> in the initial contract profile.");
-        if (cancellationParameters.Length != 0 && !isAsync)
+                $"Method '{TypeName(service)}.{method.Name}' must return Task<T> or IAsyncEnumerable<T>.");
+        if (cancellationParameters.Length != 0 && !isAsync && !isStreaming)
             throw new ContractCompilerException(
                 $"Synchronous method '{TypeName(service)}.{method.Name}' cannot accept CancellationToken.");
-        var resultType = UnwrapTask(method.ReturnType);
+        var resultType = UnwrapResult(method.ReturnType);
         if (resultType == typeof(void))
             throw new ContractCompilerException($"Method '{TypeName(service)}.{method.Name}' must return a value.");
 
@@ -307,40 +378,58 @@ public static class ContractCompiler
                 ToTypeReference(
                     parameter.ParameterType,
                     nullability.Create(parameter).ReadState == NullabilityState.Nullable,
-                    typeIds)))
+                    typeIds,
+                    nativeServiceIds)))
             .ToArray();
-        if (parameters.Length != 1 || parameters[0].Type.Kind != "dto" || parameters[0].Type.Nullable)
+        if (parameters.Length == 0 ||
+            parameters[0].Type.Kind != "dto" ||
+            parameters.Count(parameter => parameter.Type.Kind == "dto" && !parameter.Type.Nullable) != 1 ||
+            parameters.Any(parameter =>
+                parameter.Type.Kind != "dto" && parameter.Type.Kind != "nativeService" ||
+                parameter.Type.Nullable))
             throw new ContractCompilerException(
-                $"Method '{TypeName(service)}.{method.Name}' must have one non-null DTO request parameter.");
-        var resultNullability = isAsync
+                $"Method '{TypeName(service)}.{method.Name}' must begin with one non-null DTO request parameter and may only follow it with configured native service callback parameters.");
+        var duplicateCallbackType = parameters
+            .Where(parameter => parameter.Type.Kind == "nativeService")
+            .GroupBy(parameter => parameter.Type.TypeName!, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateCallbackType is not null)
+            throw new ContractCompilerException(
+                $"Method '{TypeName(service)}.{method.Name}' cannot declare the same native service callback type more than once.");
+        var resultNullability = isAsync || isStreaming
             ? nullability.Create(method.ReturnParameter).GenericTypeArguments.SingleOrDefault()?.ReadState
             : nullability.Create(method.ReturnParameter).ReadState;
         var resultReference = ToTypeReference(
             resultType, resultNullability == NullabilityState.Nullable, typeIds);
         if (resultReference.Kind != "dto" || resultReference.Nullable)
             throw new ContractCompilerException(
-                $"Method '{TypeName(service)}.{method.Name}' must return Task<T> where T is a non-null DTO.");
-        var methodKey = $"{TypeName(service)}.{method.Name}({string.Join(",", parameters.Select(parameter => TypeKey(parameter.Type)))})";
+                $"Method '{TypeName(service)}.{method.Name}' must return a non-null DTO result or stream element.");
+        var methodKey = $"{TypeName(service)}.{method.Name}({string.Join(",", parameters.Select(parameter => TypeKey(parameter.Type)))})" +
+                        (isStreaming ? ":stream" : "");
         return new ContractMethod(
             StableId("method", methodKey),
             method.Name,
             isAsync,
             cancellationParameters.Length != 0,
             parameters,
-            resultReference);
+            resultReference,
+            isStreaming);
     }
 
     private static ContractTypeReference ToTypeReference(
         Type type,
         bool nullable,
-        IReadOnlyDictionary<Type, uint> typeIds) =>
+        IReadOnlyDictionary<Type, uint> typeIds,
+        IReadOnlyDictionary<string, uint>? nativeServiceIds = null) =>
         ToTypeReference(type, nullable, typeIds.ToDictionary(
-            pair => TypeName(pair.Key), pair => pair.Value, StringComparer.Ordinal));
+            pair => TypeName(pair.Key), pair => pair.Value, StringComparer.Ordinal),
+            nativeServiceIds);
 
     private static ContractTypeReference ToTypeReference(
         Type type,
         bool nullable,
-        IReadOnlyDictionary<string, uint> typeIds)
+        IReadOnlyDictionary<string, uint> typeIds,
+        IReadOnlyDictionary<string, uint>? nativeServiceIds = null)
     {
         type = Unwrap(type);
         var kind = type == typeof(bool) ? "bool"
@@ -357,11 +446,14 @@ public static class ContractCompiler
             : type == typeof(string) ? "string"
             : type.IsEnum ? "enum"
             : type.IsClass ? "dto"
+            : type.IsInterface && nativeServiceIds?.ContainsKey(TypeName(type)) == true
+                ? "nativeService"
             : throw new ContractCompilerException($"Type '{TypeName(type)}' is unsupported.");
-        if (kind is "dto" or "enum")
+        if (kind is "dto" or "enum" or "nativeService")
         {
             var name = TypeName(type);
-            if (!typeIds.TryGetValue(name, out var id))
+            var lookup = kind == "nativeService" ? nativeServiceIds : typeIds;
+            if (lookup is null || !lookup.TryGetValue(name, out var id))
                 throw new ContractCompilerException($"Type '{name}' is not part of the discovered contract graph.");
             return new ContractTypeReference(kind, nullable, id, name);
         }
@@ -384,6 +476,17 @@ public static class ContractCompiler
 
     private static bool IsTask(Type type) =>
         type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>);
+
+    private static bool IsAsyncEnumerable(Type type) =>
+        type.IsGenericType &&
+        type.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>);
+
+    private static Type UnwrapResult(Type type)
+    {
+        if (IsAsyncEnumerable(type))
+            return type.GetGenericArguments()[0];
+        return UnwrapTask(type);
+    }
 
     private static Type UnwrapTask(Type type)
     {
@@ -431,7 +534,8 @@ public static class ContractCompiler
         $"{type.Kind}:{type.TypeId?.ToString() ?? "-"}:{(type.Nullable ? "?" : "!")}";
 
     private static string MethodSignature(ContractService service, ContractMethod method) =>
-        $"{service.Name}.{method.Name}({string.Join(",", method.Parameters.Select(parameter => $"{parameter.Name}:{TypeKey(parameter.Type)}"))})->{TypeKey(method.Result)}:{method.IsAsync}:{method.SupportsCancellation}";
+        $"{service.Name}.{method.Name}({string.Join(",", method.Parameters.Select(parameter => $"{parameter.Name}:{TypeKey(parameter.Type)}"))})->{TypeKey(method.Result)}:{method.IsAsync}:{method.SupportsCancellation}" +
+        (method.IsStreaming ? ":stream" : "");
 
     private static string TypeSignature(ContractTypeDefinition type) =>
         type.Kind == "enum"

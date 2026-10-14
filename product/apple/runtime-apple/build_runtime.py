@@ -119,8 +119,8 @@ def main() -> int:
     )
     manifest = {
         "schemaVersion": 1,
-        "packageVersion": "0.1.0-alpha.1",
-        "abiVersion": 1,
+        "packageVersion": "0.1.0-alpha.5",
+        "abiVersion": 2,
         "supportedTargets": [
             {
                 "platform": "ios",

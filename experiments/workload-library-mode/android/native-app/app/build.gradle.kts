@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("io.github.redth.netlift") version "0.1.0-alpha.6"
+    id("io.github.redth.netlift") version "0.1.0-alpha.7"
 }
 
 netlift {
@@ -13,6 +13,7 @@ netlift {
         )
     )
     contractRoots.set(listOf("Orders.Contracts.IOrdersService"))
+    nativeServiceRoots.set(listOf("Orders.Contracts.IOrderConfirmation"))
     kotlinPackage.set("dev.netlift.orders")
     swiftModule.set("OrdersNetLift")
     componentApplicationId.set("dev.netlift.workloadlibrarymode.component")
